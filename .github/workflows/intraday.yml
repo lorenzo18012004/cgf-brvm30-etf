@@ -56,12 +56,9 @@ jobs:
 
       - name: Commit et push (PAT pour declencher boucle)
         if: steps.check_hours.outputs.market_open == 'true'
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "iNAV cloud: snapshot $(date -u +'%Y-%m-%d %H:%M') UTC"
-          file_pattern: |
-            intraday_nav.json
-            nav_intraday_history.json
-          commit_user_name: cgf-bot
-          commit_user_email: bot@cgf-bourse.ci
-          token: ${{ secrets.PAT_TOKEN }}
+        run: |
+          git config user.name "cgf-bot"
+          git config user.email "bot@cgf-bourse.ci"
+          git add intraday_nav.json nav_intraday_history.json
+          git diff --staged --quiet || git commit -m "iNAV cloud: snapshot $(date -u +'%Y-%m-%d %H:%M') UTC"
+          git push
