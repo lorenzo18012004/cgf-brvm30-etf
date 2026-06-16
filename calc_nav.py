@@ -164,13 +164,18 @@ def _extend_nav(
     fee_daily = fee_annual / 252.0
 
     # VL de référence au jour du rebalancement
-    if rebal_date not in hist_nav.index:
-        # Prendre le dernier point disponible avant rebal_date
-        base_val = hist_nav[hist_nav.index <= rebal_date].iloc[-1]
-        base_date = hist_nav[hist_nav.index <= rebal_date].index[-1]
-    else:
-        base_val = hist_nav[rebal_date]
+    if rebal_date in hist_nav.index:
+        base_val  = hist_nav[rebal_date]
         base_date = rebal_date
+    else:
+        before = hist_nav[hist_nav.index <= rebal_date]
+        if not before.empty:
+            base_val  = before.iloc[-1]
+            base_date = before.index[-1]
+        else:
+            # Fallback cloud : hist_nav n'a qu'un point récent (nav_latest)
+            base_val  = hist_nav.iloc[-1]
+            base_date = hist_nav.index[-1]
 
     # Tickers du panier présents dans les prix
     tickers = [t for t in basket if t in prices.columns]
