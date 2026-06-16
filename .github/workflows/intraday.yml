@@ -2,8 +2,7 @@ name: iNAV 5min (BRVM heures de marche)
 
 on:
   schedule:
-  #iNAV toutes les 5min
-    - cron: '*/5 9-15 * * 1-5'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
