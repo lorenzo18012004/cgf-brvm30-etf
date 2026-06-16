@@ -14265,6 +14265,18 @@
           "gap_contrib_pct": -0.0
         }
       }
+    },
+    {
+      "time": "14:26",
+      "nav_indice": 240.6261,
+      "brvm30_official": 203.68,
+      "vl_par_part": 100621.0,
+      "vl_live_fcfa": 100621.0,
+      "perf_since_launch": 0.621,
+      "change_1d_pct": 0.1242,
+      "change_day_pct": 0.4821,
+      "aum_mfcfa": 5031.0,
+      "n_prices": 27
     }
   ],
   "open_nav": 239.4715
