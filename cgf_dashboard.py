@@ -484,7 +484,8 @@ div[data-testid="stCustomComponentV1"] { margin: 0 !important; padding: 0 !impor
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 BASE       = os.path.dirname(os.path.abspath(__file__))
-BRVM30_DIR = os.path.join(BASE, "test_BRVM30")
+# Sur Streamlit Cloud le repo est cloné à la racine (pas de sous-dossier test_BRVM30)
+BRVM30_DIR = BASE if os.path.exists(os.path.join(BASE, "nav_latest.json")) else os.path.join(BASE, "test_BRVM30")
 sys.path.insert(0, BRVM30_DIR)
 
 # Sur Streamlit Cloud, les fichiers live sont lus depuis GitHub (toujours frais)
