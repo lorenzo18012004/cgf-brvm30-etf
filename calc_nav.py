@@ -40,17 +40,29 @@ OUTPUT_FILE       = os.path.join(BASE_DIR, 'nav_latest.json')
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _load_historical_nav() -> pd.Series:
-    """Série VL normalisée (base 100) depuis le fichier dashboard_data.json."""
-    with open(DASHBOARD_FILE, encoding='utf-8') as f:
-        d = json.load(f)
-    pts = d.get('nav_etf', [])
-    if not pts:
-        raise ValueError("nav_etf vide dans dashboard_data.json")
-    s = pd.Series(
-        {pd.Timestamp(p[0]): p[1] for p in pts},
-        name='nav_indice'
-    )
-    return s.sort_index()
+    """Série VL depuis dashboard_data.json, ou nav_latest.json en fallback (cloud)."""
+    if os.path.exists(DASHBOARD_FILE):
+        with open(DASHBOARD_FILE, encoding='utf-8') as f:
+            d = json.load(f)
+        pts = d.get('nav_etf', [])
+        if pts:
+            s = pd.Series(
+                {pd.Timestamp(p[0]): p[1] for p in pts},
+                name='nav_indice'
+            )
+            return s.sort_index()
+
+    # Fallback cloud : construire une série minimale depuis nav_latest.json
+    nav_path = os.path.join(BASE_DIR, 'nav_latest.json')
+    if not os.path.exists(nav_path):
+        raise FileNotFoundError("dashboard_data.json et nav_latest.json sont tous les deux absents")
+    with open(nav_path, encoding='utf-8') as f:
+        nl = json.load(f)
+    nav_val  = nl.get('nav_indice')
+    nav_date = nl.get('calc_date')
+    if not nav_val or not nav_date:
+        raise ValueError("nav_latest.json ne contient pas nav_indice/calc_date")
+    return pd.Series({pd.Timestamp(nav_date): float(nav_val)}, name='nav_indice')
 
 
 def _load_last_basket() -> tuple[pd.Timestamp, dict]:
