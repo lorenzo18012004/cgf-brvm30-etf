@@ -2187,6 +2187,90 @@
       "change_day_pct": 0.5581,
       "aum_mfcfa": 5034.9,
       "n_prices": 27
+    },
+    {
+      "time": "13:55",
+      "vl": 100578.0,
+      "vl_fcfa": 100578.0,
+      "nav_indice": 240.5238,
+      "brvm30_official": 203.77,
+      "perf_since_launch": 0.5782,
+      "change_1d_pct": 0.0816,
+      "change_day_pct": 0.4394,
+      "aum_mfcfa": 5028.9,
+      "n_prices": 27
+    },
+    {
+      "time": "14:00",
+      "vl": 100578.0,
+      "vl_fcfa": 100578.0,
+      "nav_indice": 240.5238,
+      "brvm30_official": 203.77,
+      "perf_since_launch": 0.5782,
+      "change_1d_pct": 0.0816,
+      "change_day_pct": 0.4394,
+      "aum_mfcfa": 5028.9,
+      "n_prices": 27
+    },
+    {
+      "time": "14:05",
+      "vl": 100578.0,
+      "vl_fcfa": 100578.0,
+      "nav_indice": 240.5238,
+      "brvm30_official": 203.77,
+      "perf_since_launch": 0.5782,
+      "change_1d_pct": 0.0816,
+      "change_day_pct": 0.4394,
+      "aum_mfcfa": 5028.9,
+      "n_prices": 27
+    },
+    {
+      "time": "14:10",
+      "vl": 100650.0,
+      "vl_fcfa": 100650.0,
+      "nav_indice": 240.6963,
+      "brvm30_official": 203.66,
+      "perf_since_launch": 0.6503,
+      "change_1d_pct": 0.1534,
+      "change_day_pct": 0.5115,
+      "aum_mfcfa": 5032.5,
+      "n_prices": 27
+    },
+    {
+      "time": "14:15",
+      "vl": 100650.0,
+      "vl_fcfa": 100650.0,
+      "nav_indice": 240.6963,
+      "brvm30_official": 203.66,
+      "perf_since_launch": 0.6503,
+      "change_1d_pct": 0.1534,
+      "change_day_pct": 0.5115,
+      "aum_mfcfa": 5032.5,
+      "n_prices": 27
+    },
+    {
+      "time": "14:20",
+      "vl": 100650.0,
+      "vl_fcfa": 100650.0,
+      "nav_indice": 240.6963,
+      "brvm30_official": 203.66,
+      "perf_since_launch": 0.6503,
+      "change_1d_pct": 0.1534,
+      "change_day_pct": 0.5115,
+      "aum_mfcfa": 5032.5,
+      "n_prices": 27
+    },
+    {
+      "time": "14:25",
+      "vl": 100621.0,
+      "vl_fcfa": 100621.0,
+      "nav_indice": 240.6261,
+      "brvm30_official": 203.68,
+      "perf_since_launch": 0.621,
+      "change_1d_pct": 0.1242,
+      "change_day_pct": 0.4821,
+      "aum_mfcfa": 5031.0,
+      "n_prices": 27
     }
   ]
 }
