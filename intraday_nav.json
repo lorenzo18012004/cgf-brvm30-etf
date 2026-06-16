@@ -16501,6 +16501,18 @@
       "change_day_pct": 0.5061,
       "aum_mfcfa": 5032.2,
       "n_prices": 27
+    },
+    {
+      "time": "14:51",
+      "nav_indice": 240.6834,
+      "brvm30_official": 203.68,
+      "vl_par_part": 100645.0,
+      "vl_live_fcfa": 100645.0,
+      "perf_since_launch": 0.6449,
+      "change_1d_pct": 0.148,
+      "change_day_pct": 0.5061,
+      "aum_mfcfa": 5032.2,
+      "n_prices": 27
     }
   ],
   "open_nav": 239.4715
