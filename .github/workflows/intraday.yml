@@ -1,8 +1,9 @@
 name: iNAV 5min (BRVM heures de marche)
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'
+  push:
+    paths:
+      - 'intraday_nav.json'
   workflow_dispatch:
 
 jobs:
@@ -15,9 +16,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 1
 
+      - name: Verifier heures de marche
+        id: check_hours
+        run: |
+          python - <<'EOF'
+          from datetime import datetime, timezone, time as dtime
+          now = datetime.now(timezone.utc)
+          t = now.time().replace(tzinfo=None)
+          is_open = now.weekday() < 5 and dtime(9,0) <= t <= dtime(15,30)
+          print(f"market_open={'true' if is_open else 'false'}")
+          with open("$GITHUB_OUTPUT", "a") as f:
+              f.write(f"market_open={'true' if is_open else 'false'}\n")
+          EOF
+
+      - name: Attendre 5 minutes
+        if: steps.check_hours.outputs.market_open == 'true'
+        run: sleep 300
+
       - name: Setup Python 3.11
+        if: steps.check_hours.outputs.market_open == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -25,12 +45,15 @@ jobs:
           cache-dependency-path: requirements_cloud.txt
 
       - name: Installer dependances
+        if: steps.check_hours.outputs.market_open == 'true'
         run: pip install -r requirements_cloud.txt
 
       - name: Calculer iNAV
+        if: steps.check_hours.outputs.market_open == 'true'
         run: python scrape_intraday_cloud.py
 
-      - name: Commit et push
+      - name: Commit et push (PAT pour declencher boucle)
+        if: steps.check_hours.outputs.market_open == 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "iNAV cloud: snapshot $(date -u +'%Y-%m-%d %H:%M') UTC"
@@ -39,3 +62,4 @@ jobs:
             nav_intraday_history.json
           commit_user_name: cgf-bot
           commit_user_email: bot@cgf-bourse.ci
+          token: ${{ secrets.PAT_TOKEN }}
