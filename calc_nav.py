@@ -174,8 +174,8 @@ def _extend_nav(
             base_date = before.index[-1]
         else:
             # Fallback cloud : hist_nav n'a qu'un point récent (nav_latest)
-            base_val  = hist_nav.iloc[-1]
-            base_date = hist_nav.index[-1]
+            base_val  = float(hist_nav.iloc[-1])
+            base_date = pd.Timestamp(hist_nav.index[-1])
 
     # Tickers du panier présents dans les prix
     tickers = [t for t in basket if t in prices.columns]
