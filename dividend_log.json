@@ -1,0 +1,12 @@
+{
+  "annee": 2026,
+  "distribution_date": "2026-09-30",
+  "taux_rf_annuel": 0.03,
+  "updated_at": "2026-06-12T10:28:43",
+  "evenements": [],
+  "total_cash_fcfa": 0.0,
+  "dividende_par_part_fcfa": 0.0,
+  "n_parts": 50000,
+  "rendement_distribution": 0.0,
+  "distribue": false
+}

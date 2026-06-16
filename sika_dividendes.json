@@ -1,0 +1,327 @@
+{
+  "annee": 2026,
+  "scraped_at": "2026-06-11T14:05:41",
+  "dividendes": [
+    {
+      "nom_sika": "ORANGE CI",
+      "ticker": "ORAC",
+      "date_detach": "2026-06-05",
+      "montant": 800.0,
+      "rendement": 5.06
+    },
+    {
+      "nom_sika": "ONATEL BF",
+      "ticker": "ONTBF",
+      "date_detach": "2026-06-12",
+      "montant": 145.32,
+      "rendement": 4.93
+    },
+    {
+      "nom_sika": "CORIS BANK INTERNATIONAL BF",
+      "ticker": "CBIBF",
+      "date_detach": "2026-06-18",
+      "montant": 900.0,
+      "rendement": 4.0
+    },
+    {
+      "nom_sika": "PALMCI",
+      "ticker": "PALC",
+      "date_detach": "2026-06-26",
+      "montant": 501.6,
+      "rendement": 5.77
+    },
+    {
+      "nom_sika": "VIVO ENERGY CI",
+      "ticker": "VIVC",
+      "date_detach": null,
+      "montant": 85.07,
+      "rendement": 4.25
+    },
+    {
+      "nom_sika": "CIE CI",
+      "ticker": "CIEC",
+      "date_detach": null,
+      "montant": 205.92,
+      "rendement": 4.2
+    },
+    {
+      "nom_sika": "SMB CI",
+      "ticker": "SMBC",
+      "date_detach": null,
+      "montant": 704.0,
+      "rendement": 4.32
+    },
+    {
+      "nom_sika": "LOTERIE NATIONALE DU BENIN",
+      "ticker": "LNBB",
+      "date_detach": null,
+      "montant": 164.0,
+      "rendement": 4.28
+    },
+    {
+      "nom_sika": "TRACTAFRIC MOTORS CI",
+      "ticker": "TTLC",
+      "date_detach": null,
+      "montant": 183.92,
+      "rendement": 4.38
+    },
+    {
+      "nom_sika": "NESTLE CI",
+      "ticker": "NLCI",
+      "date_detach": null,
+      "montant": 369.6,
+      "rendement": 2.41
+    },
+    {
+      "nom_sika": "TOTAL SENEGAL",
+      "ticker": "TOSG",
+      "date_detach": null,
+      "montant": 169.81,
+      "rendement": 4.99
+    },
+    {
+      "nom_sika": "SERVAIR ABIDJAN CI",
+      "ticker": "SAFC",
+      "date_detach": null,
+      "montant": 120.97,
+      "rendement": 3.6
+    },
+    {
+      "nom_sika": "SODECI",
+      "ticker": "SDSC",
+      "date_detach": null,
+      "montant": 462.0,
+      "rendement": 3.82
+    },
+    {
+      "nom_sika": "NEI CEDA CI",
+      "ticker": "NEIC",
+      "date_detach": null,
+      "montant": 140.39,
+      "rendement": 6.77
+    },
+    {
+      "nom_sika": "SOCIETE IVOIRIENNE DE BANQUE CI",
+      "ticker": "SIBC",
+      "date_detach": null,
+      "montant": 374.0,
+      "rendement": 4.27
+    },
+    {
+      "nom_sika": "SGBCI",
+      "ticker": "SGBC",
+      "date_detach": null,
+      "montant": 2293.28,
+      "rendement": 5.9
+    },
+    {
+      "nom_sika": "ETI TG",
+      "ticker": "ETIT",
+      "date_detach": null,
+      "montant": 0.93,
+      "rendement": 2.91
+    },
+    {
+      "nom_sika": "TOTAL CI",
+      "ticker": "TOTC",
+      "date_detach": null,
+      "montant": 139.77,
+      "rendement": 4.9
+    },
+    {
+      "nom_sika": "SAPH CI",
+      "ticker": "SHEC",
+      "date_detach": null,
+      "montant": 430.32,
+      "rendement": 5.74
+    }
+  ],
+  "historique": {
+    "ABJC": {
+      "2022": 83.0,
+      "2023": 92.0,
+      "2024": 92.0,
+      "2025": null
+    },
+    "BOAB": {
+      "2022": 273.0,
+      "2023": 353.0,
+      "2024": 468.0,
+      "2025": 585.0
+    },
+    "BOAC": {
+      "2022": 125.0,
+      "2023": 200.0,
+      "2024": 350.0,
+      "2025": 450.0
+    },
+    "BOAM": {
+      "2022": null,
+      "2023": 96.0,
+      "2024": 237.0,
+      "2025": 305.0
+    },
+    "BOAN": {
+      "2022": 355.0,
+      "2023": 381.0,
+      "2024": 209.0,
+      "2025": null
+    },
+    "BNBC": {
+      "2022": 150.0,
+      "2023": null,
+      "2024": null,
+      "2025": null
+    },
+    "BICC": {
+      "2022": 402.0,
+      "2023": 541.0,
+      "2024": 831.0,
+      "2025": 1157.0
+    },
+    "CIEC": {
+      "2022": 158.0,
+      "2023": 171.0,
+      "2024": 158.0,
+      "2025": 206.0
+    },
+    "CBIBF": {
+      "2022": 525.0,
+      "2023": 790.0,
+      "2024": 555.0,
+      "2025": 900.0
+    },
+    "ECOC": {
+      "2022": 549.0,
+      "2023": 594.0,
+      "2024": 708.0,
+      "2025": 781.0
+    },
+    "ETIT": {
+      "2022": 1.0,
+      "2023": null,
+      "2024": null,
+      "2025": 1.0
+    },
+    "FTSC": {
+      "2022": null,
+      "2023": 130.0,
+      "2024": 1727.0,
+      "2025": null
+    },
+    "LNBB": {
+      "2022": 107.0,
+      "2023": null,
+      "2024": 276.0,
+      "2025": 164.0
+    },
+    "NEIC": {
+      "2022": 35.0,
+      "2023": 82.0,
+      "2024": null,
+      "2025": 140.0
+    },
+    "NLCI": {
+      "2022": 728.0,
+      "2023": 675.0,
+      "2024": 722.0,
+      "2025": 370.0
+    },
+    "ONTBF": {
+      "2022": 288.0,
+      "2023": 266.0,
+      "2024": 195.0,
+      "2025": 145.0
+    },
+    "ORAC": {
+      "2022": 753.0,
+      "2023": 780.0,
+      "2024": 660.0,
+      "2025": 704.0
+    },
+    "PALC": {
+      "2022": 1214.0,
+      "2023": 563.0,
+      "2024": 451.0,
+      "2025": 441.0
+    },
+    "SHEC": {
+      "2022": 294.0,
+      "2023": 65.0,
+      "2024": 324.0,
+      "2025": 430.0
+    },
+    "SAFC": {
+      "2022": 83.0,
+      "2023": 206.0,
+      "2024": null,
+      "2025": 202.0
+    },
+    "SGBC": {
+      "2022": 1107.0,
+      "2023": 1547.0,
+      "2024": 1639.0,
+      "2025": 2293.0
+    },
+    "SCRC": {
+      "2022": 69.0,
+      "2023": 80.0,
+      "2024": 113.0,
+      "2025": 152.0
+    },
+    "SDSC": {
+      "2022": 450.0,
+      "2023": 482.0,
+      "2024": 352.0,
+      "2025": 462.0
+    },
+    "SMBC": {
+      "2022": 720.0,
+      "2023": 1080.0,
+      "2024": 616.0,
+      "2025": 704.0
+    },
+    "SIBC": {
+      "2022": 248.0,
+      "2023": 248.0,
+      "2024": 330.0,
+      "2025": 374.0
+    },
+    "SOGC": {
+      "2022": 554.0,
+      "2023": 207.0,
+      "2024": 528.0,
+      "2025": 502.0
+    },
+    "SLBC": {
+      "2022": null,
+      "2023": 270.0,
+      "2024": 1074.0,
+      "2025": 1872.0
+    },
+    "TOTC": {
+      "2022": 176.0,
+      "2023": 200.0,
+      "2024": 196.0,
+      "2025": 140.0
+    },
+    "TOSG": {
+      "2022": 234.0,
+      "2023": 208.0,
+      "2024": 222.0,
+      "2025": null
+    },
+    "TTLC": {
+      "2022": 224.0,
+      "2023": 183.0,
+      "2024": 182.0,
+      "2025": 184.0
+    },
+    "VIVC": {
+      "2022": 53.0,
+      "2023": 57.0,
+      "2024": 75.0,
+      "2025": 85.0
+    }
+  }
+}

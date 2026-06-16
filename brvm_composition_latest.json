@@ -1,0 +1,52 @@
+{
+  "rebal_date": "2025-10-01",
+  "scrape_ts": "2026-06-02 18:19",
+  "pdf_slug": "20251001-_avis_ndeg242_brvmdg_-_composition_de_lindice_brvm_30.pdf",
+  "pdf_url": "https://www.brvm.org/sites/default/files/20251001-_avis_ndeg242_brvmdg_-_composition_de_lindice_brvm_30.pdf",
+  "article_url": "https://www.brvm.org//fr/brvm-composition-de-lindice-brvm-30-1",
+  "avis_num": 242,
+  "avis_year": 2025,
+  "n_tickers": 30,
+  "composition": [
+    "SDSC",
+    "SIVC",
+    "BOABF",
+    "BOAB",
+    "BOAC",
+    "BOAM",
+    "BOAN",
+    "BOAS",
+    "BICB",
+    "CFAC",
+    "CIEC",
+    "ECOC",
+    "ETIT",
+    "FTSC",
+    "NTLC",
+    "ONTBF",
+    "ORGT",
+    "ORAC",
+    "PALC",
+    "SAFC",
+    "SPHC",
+    "SIBC",
+    "STBC",
+    "SGBC",
+    "SOGC",
+    "SNTS",
+    "SCRC",
+    "TTLC",
+    "UNXC",
+    "SHEC"
+  ],
+  "entries": [
+    "CFAC",
+    "ORGT",
+    "SAFC"
+  ],
+  "exits": [
+    "NSBC",
+    "CABC",
+    "TTLS"
+  ]
+}

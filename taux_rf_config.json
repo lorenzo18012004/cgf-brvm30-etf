@@ -1,0 +1,6 @@
+{
+  "taux_rf_annuel": 0.03,
+  "source": "bceao.int — taux directeur minimum appels d'offres",
+  "updated_at": "2026-06-11",
+  "note": "Mis à jour automatiquement par scrape_taux_rf.py"
+}

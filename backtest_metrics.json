@@ -1,0 +1,57 @@
+{
+  "start_label": "Janvier 2023",
+  "end_label": "Avril 2026",
+  "n_years": 3.2,
+  "n_rebal": 13,
+  "mgmt_fee_ann": 0.006,
+  "te_full": 0.017479,
+  "te_p1": 0.020984,
+  "te_p2": 0.011912,
+  "te_prog": 0.018471,
+  "td_full": -0.061631,
+  "td_full_ann": -0.019453,
+  "mgmt_fee_cumul": 0.019185,
+  "cost_tx_cumul": 0.091835,
+  "basket_gap_cumul": 0.049388,
+  "td_structural_cumul": -0.111019,
+  "td_structural_ann": -0.034219,
+  "cost_tx_ann": 0.028306,
+  "turnover_avg": 0.144359,
+  "n_titres_avg": 27,
+  "n_titres_min": 25,
+  "n_titres_max": 29,
+  "annual": [
+    {
+      "year": 2023,
+      "te": 0.024845,
+      "td": -0.034921,
+      "cost_tx": 0.052685,
+      "mgmt_fee": 0.005894,
+      "basket_gap": 0.023658
+    },
+    {
+      "year": 2024,
+      "te": 0.012807,
+      "td": -0.012498,
+      "cost_tx": 0.030589,
+      "mgmt_fee": 0.005964,
+      "basket_gap": 0.024056
+    },
+    {
+      "year": 2025,
+      "te": 0.013924,
+      "td": -0.023672,
+      "cost_tx": 0.016151,
+      "mgmt_fee": 0.006012,
+      "basket_gap": -0.00151
+    },
+    {
+      "year": 2026,
+      "te": 0.00951,
+      "td": -0.006185,
+      "cost_tx": 0.006393,
+      "mgmt_fee": 0.001518,
+      "basket_gap": 0.001726
+    }
+  ]
+}
