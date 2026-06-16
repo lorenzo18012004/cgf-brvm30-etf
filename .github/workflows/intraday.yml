@@ -1,6 +1,8 @@
 name: iNAV 5min (BRVM heures de marche)
 
 on:
+  schedule:
+    - cron: '0 9 * * 1-5'
   push:
     paths:
       - 'intraday_nav.json'
