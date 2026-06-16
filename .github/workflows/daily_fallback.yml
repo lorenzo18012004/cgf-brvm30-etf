@@ -1,0 +1,78 @@
+name: NAV quotidienne (fallback cloud)
+
+on:
+  schedule:
+    # 16h00 UTC lun-ven — après clôture BRVM (15h30 UTC)
+    - cron: '0 16 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  nav-fallback:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements_cloud.txt
+
+      - name: Installer dependances
+        run: pip install -r requirements_cloud.txt
+
+      - name: Mettre à jour sika_history (cours de clôture)
+        run: python scrape_sika_history.py
+
+      - name: Calculer NAV (fallback si non mis a jour ce jour)
+        run: python calc_nav_cloud.py
+
+      - name: Mettre à jour brvm30_index_history
+        run: |
+          python - <<'EOF'
+          import json, os
+          from datetime import datetime, timezone
+
+          BASE = os.path.dirname(os.path.abspath("brvm30_index_history.json"))
+          ih_path   = "nav_intraday_history.json"
+          brvm_path = "brvm30_index_history.json"
+
+          if not os.path.exists(ih_path) or not os.path.exists(brvm_path):
+              print("Fichiers manquants, skip.")
+              exit(0)
+
+          ih     = json.load(open(ih_path, encoding="utf-8"))
+          brvm_h = json.load(open(brvm_path, encoding="utf-8"))
+
+          dates_sorted = sorted(ih.keys())
+          for i, date in enumerate(dates_sorted):
+              if i + 1 < len(dates_sorted):
+                  next_snaps = ih.get(dates_sorted[i + 1], [])
+                  if next_snaps:
+                      val = next_snaps[0].get("brvm30_official")
+                      if val and date not in brvm_h:
+                          brvm_h[date] = float(val)
+                          print(f"  Ajout {date}: {val}")
+
+          with open(brvm_path, "w", encoding="utf-8") as f:
+              json.dump(brvm_h, f, ensure_ascii=False)
+          print("brvm30_index_history.json mis a jour.")
+          EOF
+
+      - name: Commit et push
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "data: NAV cloud fallback $(date -u +'%Y-%m-%d')"
+          file_pattern: |
+            nav_latest.json
+            sika_history.json
+            brvm30_index_history.json
+          commit_user_name: cgf-bot
+          commit_user_email: bot@cgf-bourse.ci
