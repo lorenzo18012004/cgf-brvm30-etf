@@ -32,7 +32,7 @@ jobs:
         run: python scrape_sika_history.py
 
       - name: Recalculer la NAV
-        run: python calc_nav.py
+        run: python calc_nav_cloud.py
 
       - name: Mettre à jour brvm30_index_history
         run: |
