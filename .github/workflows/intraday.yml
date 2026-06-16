@@ -3,7 +3,7 @@ name: iNAV 5min (BRVM heures de marché)
 on:
   schedule:
     # Toutes les 5 min, 09h00-15h30 UTC, lun-ven
-    - cron: '* * * * *'
+    - cron: '*/5 9-15 * * 1-5'
   workflow_dispatch:
     inputs:
       force:
