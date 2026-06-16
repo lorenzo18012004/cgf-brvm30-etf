@@ -1,0 +1,11 @@
+name: Test Cron
+
+on:
+  schedule:
+    - cron: '* * * * *'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Scheduled OK $(date -u)"
