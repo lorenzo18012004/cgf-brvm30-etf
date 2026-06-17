@@ -2784,8 +2784,6 @@ elif _page == "live":
 
                             parts = []
                             for tk, we, wi, dw, r, gc in all_items:
-                                if abs(gc) < 0.0005:
-                                    continue
                                 col = _POS if gc > 0 else _NEG
                                 move_col = _POS if r > 0 else _NEG
                                 etf_more = dw > 0
