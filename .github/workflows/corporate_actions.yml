@@ -2,7 +2,7 @@ name: Détection Actions Corporatives (9h00 UTC)
 
 on:
   schedule:
-    - cron: '0 9 * * 1-5'   # 9h00 UTC, lundi-vendredi (avant ouverture marché)
+    - cron: '45 9 * * 1-5'  # 9h45 UTC, lundi-vendredi (15 min après ouverture marché)
   workflow_dispatch:
 
 jobs:
