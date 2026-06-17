@@ -2024,13 +2024,18 @@ elif _page == "live":
             _launch_ts_te = pd.Timestamp(launch_date) if launch_date else pd.Timestamp("1900-01-01")
             _ih = load_json(os.path.join(BRVM30_DIR, "nav_intraday_history.json")) or {}
             _closes_etf = {}
+            _closes_idx = {}
             for _d, _pts in _ih.items():
                 if _pts and pd.Timestamp(_d) >= _launch_ts_te:
                     _lp = _pts[-1]
                     _vl = _lp.get("vl_fcfa") or _lp.get("vl")
+                    _bv = _lp.get("brvm30_official")
                     if _vl: _closes_etf[_d] = float(_vl)
-            _closes_idx = {_d: float(_v) for _d, _v in _brvm30_hist_te.items()
-                           if pd.Timestamp(_d) >= _launch_ts_te}
+                    # Utiliser le BRVM30 du même snapshot que le VL (pas le lendemain matin)
+                    if _bv:
+                        _closes_idx[_d] = float(_bv)
+                    elif _d in _brvm30_hist_te:
+                        _closes_idx[_d] = float(_brvm30_hist_te[_d])
             _te_snaps = (intraday or {}).get("snapshots", [])
             if _te_snaps:
                 _ls = _te_snaps[-1]
