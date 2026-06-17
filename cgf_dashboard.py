@@ -3787,7 +3787,187 @@ elif _page == "live":
     # ── AP ────────────────────────────────────────────────────────────────────
     elif _lsec == "ap":
         st.markdown("<br>", unsafe_allow_html=True)
-        st.info("Aucune opération AP enregistrée. Cette section contiendra les apports et rachats lorsqu'ils seront disponibles.")
+        _section("Simulateur AP — Opportunité d'arbitrage")
+
+        _nl_ap   = load_json_fresh(nav_latest_path) or {}
+        _bask_ap = _nl_ap.get("basket", [])
+        _inav_ap = float(_nl_ap.get("vl_par_part_fcfa") or 0)
+        _n_total_ap = int(_launch_data.get("n_parts", 50000))
+
+        if not _inav_ap or not _bask_ap:
+            st.warning("Données iNAV indisponibles — impossible de simuler.")
+        else:
+            # ── Paramètres ────────────────────────────────────────────────
+            _apc1, _apc2, _apc3 = st.columns([2, 1, 1])
+            with _apc1:
+                _ap_etf_px = st.number_input(
+                    "Prix de marché ETF (FCFA/part)",
+                    min_value=float(_inav_ap * 0.70),
+                    max_value=float(_inav_ap * 1.30),
+                    value=float(_inav_ap),
+                    step=100.0,
+                    format="%.0f",
+                    key="ap_etf_px",
+                    help="Prix coté sur le marché secondaire BRVM",
+                )
+            with _apc2:
+                _ap_cout = st.number_input(
+                    "Coûts aller-retour (%)",
+                    min_value=0.0, max_value=5.0,
+                    value=1.2,
+                    step=0.1,
+                    format="%.2f",
+                    key="ap_cout",
+                    help="Total frais achat + vente (courtage + taxes BRVM)",
+                )
+            with _apc3:
+                _ap_unit = st.number_input(
+                    "Taille unité AP (parts)",
+                    min_value=1000, max_value=_n_total_ap,
+                    value=min(5000, _n_total_ap),
+                    step=1000,
+                    key="ap_unit",
+                )
+
+            _ap_cout_dec  = _ap_cout / 100.0
+            _ap_cout_demi = _ap_cout_dec / 2.0
+            _ap_prem_pct  = (_ap_etf_px - _inav_ap) / _inav_ap * 100
+            _ap_notionnel = _inav_ap * _ap_unit
+
+            # Création : AP achète panier → livre au fonds → reçoit ETF → vend ETF
+            _ap_profit_c = (
+                (_ap_etf_px - _inav_ap) * _ap_unit
+                - (_inav_ap + _ap_etf_px) * _ap_unit * _ap_cout_demi
+            )
+            # Rachat : AP achète ETF → livre au fonds → reçoit panier → vend panier
+            _ap_profit_r = (
+                (_inav_ap - _ap_etf_px) * _ap_unit
+                - (_inav_ap + _ap_etf_px) * _ap_unit * _ap_cout_demi
+            )
+
+            _ap_breakeven = _ap_cout_dec * 100  # ≈ prime minimale pour couvrir les frais
+
+            if abs(_ap_prem_pct) <= _ap_breakeven / 2:
+                _ap_reco, _ap_reco_col, _ap_reco_bg = "NEUTRE", "#6b7280", "#f3f4f6"
+            elif _ap_prem_pct > 0:
+                _ap_reco, _ap_reco_col, _ap_reco_bg = "CRÉER", POS_COLOR, "#f0fdf4"
+            else:
+                _ap_reco, _ap_reco_col, _ap_reco_bg = "RACHETER", NEG_COLOR, "#fdf2f2"
+
+            _ap_best_profit = _ap_profit_c if _ap_prem_pct >= 0 else _ap_profit_r
+            _ap_sign = "+" if _ap_prem_pct >= 0 else ""
+
+            # ── KPIs ──────────────────────────────────────────────────────
+            _kpi_html(
+                ("iNAV (FCFA/part)",  f"{_inav_ap:,.0f}"),
+                ("Prix marché ETF",   f"{_ap_etf_px:,.0f}"),
+                ("Prime / Décote",    f"{_ap_sign}{_ap_prem_pct:.3f}%"),
+                ("Seuil rentabilité", f"±{_ap_breakeven:.2f}%"),
+            )
+
+            # ── Recommandation + P&L ──────────────────────────────────────
+            _ap_rcol, _ap_plcol = st.columns(2)
+            with _ap_rcol:
+                st.markdown(f"""
+                <div style="border-radius:10px;background:{_ap_reco_bg};border:2px solid {_ap_reco_col};
+                            padding:22px;text-align:center;margin-top:10px">
+                  <div style="font-size:12px;color:#6b7280;letter-spacing:.05em;margin-bottom:6px">RECOMMANDATION AP</div>
+                  <div style="font-size:32px;font-weight:800;color:{_ap_reco_col}">{_ap_reco}</div>
+                  <div style="font-size:12px;color:#9ca3af;margin-top:6px">{_ap_unit:,} parts · {_ap_cout:.2f}% de coûts</div>
+                </div>""", unsafe_allow_html=True)
+            with _ap_plcol:
+                _ap_pl_col = POS_COLOR if _ap_best_profit > 0 else (NEG_COLOR if _ap_best_profit < 0 else "#6b7280")
+                _ap_pl_pct = _ap_best_profit / _ap_notionnel * 100 if _ap_notionnel else 0
+                st.markdown(f"""
+                <div style="border-radius:10px;background:#f9fafb;border:1px solid #e5e7eb;
+                            padding:22px;text-align:center;margin-top:10px">
+                  <div style="font-size:12px;color:#6b7280;letter-spacing:.05em;margin-bottom:6px">P&L NET ESTIMÉ</div>
+                  <div style="font-size:32px;font-weight:800;color:{_ap_pl_col}">{_ap_best_profit:+,.0f} FCFA</div>
+                  <div style="font-size:12px;color:#9ca3af;margin-top:6px">{_ap_pl_pct:+.4f}% du notionnel</div>
+                </div>""", unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # ── Graphique P&L selon prime ─────────────────────────────────
+            _section("Profit AP en fonction de la prime / décote")
+            import numpy as _np_ap
+            _ap_px_arr   = _np_ap.linspace(_inav_ap * 0.92, _inav_ap * 1.08, 200)
+            _ap_prem_arr = (_ap_px_arr - _inav_ap) / _inav_ap * 100
+            _ap_plc_arr  = (_ap_px_arr - _inav_ap) * _ap_unit - (_inav_ap + _ap_px_arr) * _ap_unit * _ap_cout_demi
+            _ap_plr_arr  = (_inav_ap - _ap_px_arr) * _ap_unit - (_inav_ap + _ap_px_arr) * _ap_unit * _ap_cout_demi
+
+            fig_ap = go.Figure()
+            fig_ap.add_trace(go.Scatter(
+                x=_ap_prem_arr, y=_ap_plc_arr, name="Création",
+                line=dict(color=POS_COLOR, width=2),
+                hovertemplate="Prime: %{x:.3f}%<br>P&L: %{y:+,.0f} FCFA<extra>Création</extra>",
+            ))
+            fig_ap.add_trace(go.Scatter(
+                x=_ap_prem_arr, y=_ap_plr_arr, name="Rachat",
+                line=dict(color=NEG_COLOR, width=2),
+                hovertemplate="Prime: %{x:.3f}%<br>P&L: %{y:+,.0f} FCFA<extra>Rachat</extra>",
+            ))
+            fig_ap.add_hline(y=0, line_dash="dash", line_color="#9ca3af", line_width=1)
+            fig_ap.add_vline(
+                x=float(_ap_prem_pct),
+                line_dash="dot", line_color=COLOR, line_width=2,
+                annotation_text=f" Actuel ({_ap_sign}{_ap_prem_pct:.3f}%)",
+                annotation_font_color=COLOR,
+            )
+            fig_ap.update_layout(
+                **PLOTLY_LAYOUT, height=300,
+                xaxis_title="Prime / Décote (%)",
+                yaxis_title="P&L (FCFA)",
+                title=f"P&L AP · {_ap_unit:,} parts · {_ap_cout:.2f}% coûts aller-retour",
+                legend=dict(orientation="h", x=0.5, xanchor="center", y=1.12),
+            )
+            st.plotly_chart(fig_ap, width='stretch')
+
+            # ── Tableau des trades — Création ────────────────────────────
+            _section("Trades à exécuter — Création (achat du panier)")
+            _ap_rows = []
+            _ap_total_m = 0.0
+            _ap_total_com = 0.0
+            for _it in _bask_ap:
+                _tk   = _it["ticker"]
+                _w    = _it["poids_pct"] / 100.0
+                _px_s = float(_it.get("dernier_prix") or 0)
+                if not _px_s:
+                    continue
+                _ap_val    = _w * _inav_ap * _ap_unit
+                _ap_qty_th = _ap_val / _px_s
+                _ap_qty_rd = round(_ap_qty_th)
+                _ap_mont   = _ap_qty_rd * _px_s
+                _ap_com    = _ap_mont * _ap_cout_demi
+                _ap_total_m   += _ap_mont
+                _ap_total_com += _ap_com
+                _ap_rows.append({
+                    "Titre":          _tk,
+                    "Poids ETF (%)":  round(_it["poids_pct"], 2),
+                    "Prix (FCFA)":    int(_px_s),
+                    "Qté théorique":  round(_ap_qty_th, 2),
+                    "Qté entière":    _ap_qty_rd,
+                    "Montant (FCFA)": int(_ap_mont),
+                    "Commission":     int(_ap_com),
+                })
+
+            if _ap_rows:
+                _df_ap = pd.DataFrame(_ap_rows).sort_values("Poids ETF (%)", ascending=False)
+                st.dataframe(_df_ap, hide_index=True, use_container_width=True, height=400)
+                _ap_ecart = abs(_ap_total_m - _ap_notionnel) / _ap_notionnel * 100
+                st.caption(
+                    f"Coût total panier : {_ap_total_m:,.0f} FCFA  ·  "
+                    f"Commission achat : {_ap_total_com:,.0f} FCFA  ·  "
+                    f"Valeur ETF reçue : {_ap_etf_px * _ap_unit:,.0f} FCFA  ·  "
+                    f"Écart arrondi : {_ap_ecart:.3f}%"
+                )
+                st.markdown(f"""
+                <div style="margin-top:12px;padding:12px 16px;background:#f9fafb;border-left:3px solid #e5e7eb;
+                            border-radius:0 8px 8px 0;font-size:12px;color:#6b7280">
+                  <b>Hypothèses</b> : coûts aller-retour {_ap_cout:.2f}% répartis moitié achat / moitié vente.
+                  Quantités arrondies au titre entier (résidu ±{_ap_ecart:.3f}%).
+                  Prix du panier = derniers cours disponibles (iNAV {_inav_ap:,.0f} FCFA/part).
+                </div>""", unsafe_allow_html=True)
 
     # ── Analyse approfondie ───────────────────────────────────────────────────
     elif _lsec == "analyse":
