@@ -34,10 +34,20 @@ jobs:
       - name: Recalculer la NAV
         run: python calc_nav_cloud.py
 
-      - name: Mettre à jour brvm30_index_history
+      - name: Snapshot de clôture iNAV (16h UTC — marché fermé)
+        run: |
+          current_hour=$(date -u +%H)
+          if [ "$current_hour" -lt "17" ]; then
+            python scrape_intraday_cloud.py --force
+          else
+            echo "[SKIP] Job trop retardé (${current_hour}h UTC), snapshot ignoré."
+          fi
+
+      - name: Mettre à jour brvm30_index_history (clôture officielle du jour)
         run: |
           python - <<'EOF'
           import json, os
+          from datetime import date as _date
 
           ih_path   = "nav_intraday_history.json"
           brvm_path = "brvm30_index_history.json"
@@ -49,29 +59,22 @@ jobs:
           ih     = json.load(open(ih_path, encoding="utf-8"))
           brvm_h = json.load(open(brvm_path, encoding="utf-8"))
 
-          dates_sorted = sorted(ih.keys())
-          for i, date in enumerate(dates_sorted):
-              if i + 1 < len(dates_sorted):
-                  next_snaps = ih.get(dates_sorted[i + 1], [])
-                  if next_snaps:
-                      val = next_snaps[0].get("brvm30_official")
-                      if val and date not in brvm_h:
-                          brvm_h[date] = float(val)
-                          print(f"  Ajout {date}: {val}")
+          updated = 0
+          for day, snaps in ih.items():
+              if not snaps or day in brvm_h:
+                  continue
+              # Dernier snapshot du jour = clôture (scraping 16h UTC marché fermé)
+              last_snap = snaps[-1]
+              val = last_snap.get("brvm30_official")
+              if val:
+                  brvm_h[day] = float(val)
+                  print(f"  Clôture {day}: {val}")
+                  updated += 1
 
           with open(brvm_path, "w", encoding="utf-8") as f:
               json.dump(brvm_h, f, ensure_ascii=False)
-          print("brvm30_index_history.json mis a jour.")
+          print(f"brvm30_index_history.json mis a jour ({updated} date(s)).")
           EOF
-
-      - name: Snapshot de clôture iNAV
-        run: |
-          current_hour=$(date -u +%H)
-          if [ "$current_hour" -lt "17" ]; then
-            python scrape_intraday_cloud.py --force
-          else
-            echo "[SKIP] Job trop retardé (${current_hour}h UTC), snapshot ignoré."
-          fi
 
       - name: Générer le rapport PDF
         run: python generate_daily_report.py --force
