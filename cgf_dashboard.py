@@ -2723,17 +2723,56 @@ elif _page == "live":
                                     f'</div>'
                                 )
 
-                            # Ecart significatif mais attribution trop faible : decalage de donnees
+                            # Ecart significatif : afficher tableau poids ETF vs BRVM30
                             if pct is not None and pct < 30:
-                                return (
-                                    f'<div style="font-size:11px;padding:6px 8px;margin-bottom:4px;'
-                                    f'background:#fef3c7;border-left:3px solid #f59e0b;border-radius:0 4px 4px 0;color:#92400e">'
-                                    f'<b>Ecart de {gap_actual:+.3f}% difficile a expliquer par la structure du portefeuille.</b><br>'
-                                    f'Cause probable : certains titres du BRVM30 ont ete cotés a des prix differents '
-                                    f'de ceux captures par notre scraper sur cette tranche de 15 min '
-                                    f'(decalage temporel entre notre iNAV et la valeur officielle de Sika).<br>'
-                                    f'<span style="opacity:.8">Attribution par titre : {total_expl:+.4f}pts expliques sur {gap_actual:+.3f}% — non fiable.</span>'
+                                # Tous les titres qui ont bougé, triés par écart de poids absolu
+                                _all_w = []
+                                for tk, v in contribs.items():
+                                    we = v.get('w_pct', 0)
+                                    wi = v.get('w_brvm30_pct') or w_idx_map.get(tk, 0)
+                                    r  = v.get('ret_pct', 0)
+                                    gc = v.get('gap_contrib_pct', 0)
+                                    if wi is None: wi = 0
+                                    if abs(r) >= 0.05:
+                                        _all_w.append((tk, we, wi, round(we - wi, 2), r, gc))
+                                _all_w.sort(key=lambda x: abs(x[3]), reverse=True)
+                                _hdr = (
+                                    f'<div style="font-size:11px;padding:4px 8px;margin-bottom:6px;'
+                                    f'background:#fef9f0;border-left:3px solid #f59e0b;border-radius:0 4px 4px 0;color:#92400e">'
+                                    f'Attribution partielle ({total_expl:+.4f}pts sur {gap_actual:+.3f}%). '
+                                    f'Poids ETF vs BRVM30 pour les titres qui ont bouge :'
                                     f'</div>'
+                                )
+                                _th = (
+                                    f'<div style="display:grid;grid-template-columns:52px 52px 52px 52px 60px 60px;'
+                                    f'gap:4px;padding:4px 8px;background:#f3f4f6;border-radius:4px;margin-bottom:4px;'
+                                    f'font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase">'
+                                    f'<span>Titre</span><span>Var%</span>'
+                                    f'<span>ETF%</span><span>BRVM30%</span>'
+                                    f'<span>Δ poids</span><span>Gap contrib</span>'
+                                    f'</div>'
+                                )
+                                _rows_w = []
+                                for tk, we, wi, dw, r, gc in _all_w:
+                                    r_col  = _POS if r  >= 0 else _NEG
+                                    gc_col = _POS if gc >= 0 else _NEG
+                                    dw_col = _POS if dw >= 0 else _NEG
+                                    _rows_w.append(
+                                        f'<div style="display:grid;grid-template-columns:52px 52px 52px 52px 60px 60px;'
+                                        f'gap:4px;padding:4px 8px;border-bottom:1px solid #f0f0f0;'
+                                        f'font-size:11px;align-items:center">'
+                                        f'<b style="color:#0c1a2e">{tk}</b>'
+                                        f'<span style="color:{r_col}">{r:+.2f}%</span>'
+                                        f'<span style="color:#374151">{we:.2f}%</span>'
+                                        f'<span style="color:#374151">{wi:.2f}%</span>'
+                                        f'<span style="color:{dw_col};font-weight:600">{dw:+.2f}%</span>'
+                                        f'<span style="color:{gc_col};font-weight:600">{gc:+.4f}pts</span>'
+                                        f'</div>'
+                                    )
+                                return (
+                                    _hdr + _th +
+                                    f'<div style="border:1px solid #e5e7eb;border-radius:4px;overflow:hidden">'
+                                    + "".join(_rows_w) + f'</div>'
                                 )
 
                             pct_label = f"expliquent environ {min(pct, 100)}% de cet ecart"
