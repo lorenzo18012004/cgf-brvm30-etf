@@ -1,0 +1,13 @@
+{
+  "_comment": "Calendrier manuel des actions corporatives BRVM. Ajouter les événements connus à l'avance.",
+  "_format": {
+    "ex_date": "YYYY-MM-DD (date de détachement / ex-date)",
+    "type": "dividend | split | rights | merger",
+    "ticker": "code ticker BRVM",
+    "amount_fcfa": "montant dividende en FCFA (pour type=dividend)",
+    "split_ratio": "ex: 2 pour un split 2-pour-1 (pour type=split)",
+    "note": "commentaire libre"
+  },
+  "events": [
+  ]
+}
