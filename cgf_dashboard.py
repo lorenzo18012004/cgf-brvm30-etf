@@ -2655,17 +2655,14 @@ elif _page == "live":
                         _POS = "#16a34a"; _NEG = "#dc2626"; _MUT = "#9ca3af"
 
                         def _sig_tickers(contribs, w_idx_map):
-                            """Ensemble commun des titres significatifs pour les deux colonnes.
-                            Un titre est inclus s'il a bougé ET a un impact non nul sur l'ETF ou sur l'écart."""
+                            """Titres significatifs : ont bougé ET ont un impact sur l'ETF OU sur l'écart.
+                            Inclut les titres hors ETF (w_pct=0) s'ils ont un poids BRVM30 significatif."""
                             result = []
                             for tk, v in contribs.items():
-                                if v.get('w_pct', 0) <= 0:
-                                    continue
                                 r = v.get('ret_pct', 0)
                                 if abs(r) < 0.05:
                                     continue
-                                wi = v.get('w_brvm30_pct') or w_idx_map.get(tk)
-                                gc = v.get('gap_contrib_pct') or (round(((v['w_pct'] - wi) / 100) * r, 4) if wi else 0)
+                                gc = v.get('gap_contrib_pct', 0)
                                 if abs(v.get('contrib_pct', 0)) >= 0.001 or abs(gc) >= 0.0005:
                                     result.append(tk)
                             return set(result)
@@ -2694,10 +2691,11 @@ elif _page == "live":
                             if not contribs:
                                 return f'<span style="color:{_MUT}">—</span>'
 
-                            basket_movers = {tk: v for tk, v in contribs.items() if tk in sig_set}
                             all_items = []
-                            for tk, v in basket_movers.items():
-                                we = v['w_pct']
+                            for tk, v in contribs.items():
+                                if tk not in sig_set:
+                                    continue
+                                we = v.get('w_pct', 0)
                                 wi = v.get('w_brvm30_pct') or w_idx_map.get(tk)
                                 if wi is None:
                                     continue
