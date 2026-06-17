@@ -3002,7 +3002,7 @@ elif _page == "live":
                             # Δ% depuis ouverture
                             _etf_vs_open  = round((_nav / _nav0_csv - 1) * 100, 4) if _nav and _nav0_csv else None
                             _brv_vs_open  = round((_brv / _brv0_csv - 1) * 100, 4) if _brv and _brv0_csv else None
-                            _rows_csv.append({
+                            _row = {
                                 "date":                _d_csv,
                                 "heure":               _pt.get("time"),
                                 "vl_fcfa":             round(_vl, 0) if _vl else None,
@@ -3016,7 +3016,14 @@ elif _page == "live":
                                 "perf_lancement_%":    _pt.get("perf_since_launch"),
                                 "var_jour_%":          _pt.get("change_day_pct"),
                                 "aum_mfcfa":           _pt.get("aum_mfcfa"),
-                            })
+                            }
+                            for _tk, _tc in sorted((_pt.get("ticker_contributions") or {}).items()):
+                                _row[f"{_tk}_var_%"]       = _tc.get("ret_pct")
+                                _row[f"{_tk}_w_etf_%"]     = _tc.get("w_pct")
+                                _row[f"{_tk}_w_brvm30_%"]  = _tc.get("w_brvm30_pct")
+                                _row[f"{_tk}_contrib_etf_%"] = _tc.get("contrib_pct")
+                                _row[f"{_tk}_gap_contrib_%"] = _tc.get("gap_contrib_pct")
+                            _rows_csv.append(_row)
                             _prev_nav = _nav or _prev_nav
                             _prev_brv = _brv or _prev_brv
                     _df_csv = pd.DataFrame(_rows_csv)

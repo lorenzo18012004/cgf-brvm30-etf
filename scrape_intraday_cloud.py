@@ -65,14 +65,64 @@ def run(force: bool = False):
 
         _total_ret = 0.0
         _n_live    = 0
+        _prices_now = {}
         for _item in _basket:
             _tk = _item["ticker"]
             _w  = _item["poids_pct"] / 100.0
             _p0 = _item.get("dernier_prix")
             _p1 = float(live_prices[_tk]) if _tk in live_prices.index else None
+            if _p1:
+                _prices_now[_tk] = round(_p1, 0)
             if _p0 and _p0 > 0 and _p1 and _p1 > 0:
                 _total_ret += _w * (_p1 / _p0 - 1)
                 _n_live += 1
+
+        # Poids BRVM30 ajustés depuis rebal_detail.json
+        _brvm30_rebal = {}
+        _rebal_date   = None
+        try:
+            with open(os.path.join(BASE_DIR, "rebal_detail.json"), encoding="utf-8") as _f2:
+                _rd = json.load(_f2)
+            _rebals = [r for r in _rd.get("rebalancings", []) if not r.get("skipped") and r.get("basket")]
+            if _rebals:
+                _last_rebal = _rebals[-1]
+                _rebal_date = _last_rebal["date"]
+                for _rb in _last_rebal["basket"]:
+                    _brvm30_rebal[_rb["ticker"]] = _rb["w_brvm30"]
+                for _ex in _last_rebal.get("excluded", []):
+                    _brvm30_rebal[_ex["ticker"]] = _ex["w_brvm30"]
+        except Exception:
+            pass
+
+        # Prix au dernier rebal pour ajuster les poids BRVM30 à la dérive
+        _price_at_rebal = {}
+        if _rebal_date:
+            try:
+                from datetime import date as _date, timedelta as _td
+                _rh_path = os.path.join(BASE_DIR, "richbourse_history.json")
+                if os.path.exists(_rh_path):
+                    with open(_rh_path, encoding="utf-8") as _f3:
+                        _rh = json.load(_f3)
+                    for _tk in _brvm30_rebal:
+                        _hist = _rh.get(_tk, {})
+                        for _delta in range(0, 5):
+                            _d = (_date.fromisoformat(_rebal_date) + _td(days=_delta)).isoformat()
+                            if _d in _hist:
+                                _price_at_rebal[_tk] = _hist[_d].get("close") or _hist[_d].get("close_adj")
+                                break
+            except Exception:
+                pass
+
+        _denom = sum(
+            _brvm30_rebal[_tk] * (_prices_now.get(_tk, 0) / _price_at_rebal[_tk])
+            for _tk in _brvm30_rebal if _tk in _price_at_rebal and _price_at_rebal[_tk]
+        )
+        _brvm30_adj = {}
+        for _tk, _w_rebal in _brvm30_rebal.items():
+            if _tk in _price_at_rebal and _price_at_rebal[_tk] and _denom > 0:
+                _brvm30_adj[_tk] = _w_rebal * (_prices_now.get(_tk, 0) / _price_at_rebal[_tk]) / _denom
+            else:
+                _brvm30_adj[_tk] = _w_rebal
 
         _nav_live = _nav_base * (1.0 + _total_ret)
         if _ls:
@@ -116,17 +166,67 @@ def run(force: bool = False):
         vl_live     = round(par_fcfa * (nav_result["nav_indice"] / nav_anchor), 0)
         perf_launch = round((nav_result["nav_indice"] / nav_anchor - 1) * 100, 4)
 
+    # Prix live pour tous les tickers BRVM30 (panier + exclus)
+    _all_tickers = set(it["ticker"] for it in _basket) | set(_brvm30_rebal.keys())
+    for _tk in _all_tickers:
+        if _tk not in _prices_now and _tk in live_prices.index:
+            _prices_now[_tk] = round(float(live_prices[_tk]), 0)
+
+    # Contributions par ticker vs snapshot précédent
+    _w_etf_map   = {it["ticker"]: it["poids_pct"] / 100 for it in _basket}
+    _prev_prices = {}
+    _prev_snaps  = [s for s in data.get("snapshots", []) if s.get("prices_by_ticker")]
+    if _prev_snaps:
+        _prev_prices = _prev_snaps[-1].get("prices_by_ticker", {})
+
+    _contribs = {}
+    if _prev_prices:
+        for _item in _basket:
+            _tk = _item["ticker"]
+            _p1 = _prev_prices.get(_tk)
+            _p2 = _prices_now.get(_tk)
+            if _p1 and _p2 and _p1 > 0:
+                _ret      = (_p2 / _p1 - 1) * 100
+                _w_etf    = _w_etf_map.get(_tk, _item["poids_pct"] / 100)
+                _w_brvm30 = _brvm30_adj.get(_tk, _brvm30_rebal.get(_tk, _w_etf))
+                _contribs[_tk] = {
+                    "w_pct":          round(_w_etf * 100, 2),
+                    "w_brvm30_pct":   round(_w_brvm30 * 100, 2),
+                    "prix_prev":      _p1,
+                    "prix_now":       _p2,
+                    "ret_pct":        round(_ret, 3),
+                    "contrib_pct":    round(_w_etf * _ret, 4),
+                    "gap_contrib_pct": round((_w_etf - _w_brvm30) * _ret, 4),
+                }
+        for _tk, _w_rebal in _brvm30_rebal.items():
+            if _w_etf_map.get(_tk, 0) > 0 or _tk in _contribs:
+                continue
+            _p1 = _prev_prices.get(_tk)
+            _p2 = _prices_now.get(_tk)
+            if _p1 and _p2 and _p1 > 0:
+                _ret = (_p2 / _p1 - 1) * 100
+                _w_b = _brvm30_adj.get(_tk, _w_rebal)
+                _contribs[_tk] = {
+                    "w_pct": 0.0, "w_brvm30_pct": round(_w_b * 100, 2),
+                    "prix_prev": _p1, "prix_now": _p2,
+                    "ret_pct": round(_ret, 3),
+                    "contrib_pct": 0.0,
+                    "gap_contrib_pct": round(-_w_b * _ret, 4),
+                }
+
     snapshot = {
-        "time":              now_utc.strftime("%H:%M"),
-        "nav_indice":        nav_result["nav_indice"],
-        "brvm30_official":   round(brvm30_val, 4) if brvm30_val else None,
-        "vl_par_part":       nav_result["vl_par_part_fcfa"],
-        "vl_live_fcfa":      vl_live,
-        "perf_since_launch": perf_launch,
-        "change_1d_pct":     nav_result["change_1d_pct"],
-        "change_day_pct":    round(change_day, 4),
-        "aum_mfcfa":         nav_result["aum_mfcfa"],
-        "n_prices":          nav_result["n_live_prices"],
+        "time":                now_utc.strftime("%H:%M"),
+        "nav_indice":          nav_result["nav_indice"],
+        "brvm30_official":     round(brvm30_val, 4) if brvm30_val else None,
+        "vl_par_part":         nav_result["vl_par_part_fcfa"],
+        "vl_live_fcfa":        vl_live,
+        "perf_since_launch":   perf_launch,
+        "change_1d_pct":       nav_result["change_1d_pct"],
+        "change_day_pct":      round(change_day, 4),
+        "aum_mfcfa":           nav_result["aum_mfcfa"],
+        "n_prices":            nav_result["n_live_prices"],
+        "prices_by_ticker":    _prices_now,
+        "ticker_contributions": _contribs,
     }
 
     existing_times = {s["time"] for s in data["snapshots"]}
@@ -141,17 +241,21 @@ def run(force: bool = False):
         if today_str not in hist:
             hist[today_str] = []
         if snapshot["time"] not in {p["time"] for p in hist[today_str]}:
-            hist[today_str].append({
-                "time":              snapshot["time"],
-                "vl":                round(vl_live, 0),
-                "vl_fcfa":           round(vl_live, 0),
-                "nav_indice":        snapshot["nav_indice"],
-                "perf_since_launch": snapshot["perf_since_launch"],
-                "change_1d_pct":     snapshot["change_1d_pct"],
-                "change_day_pct":    snapshot["change_day_pct"],
-                "aum_mfcfa":         snapshot["aum_mfcfa"],
-                "n_prices":          snapshot["n_prices"],
-            })
+            _hist_snap = {
+                "time":                snapshot["time"],
+                "vl":                  round(vl_live, 0),
+                "vl_fcfa":             round(vl_live, 0),
+                "nav_indice":          snapshot["nav_indice"],
+                "brvm30_official":     snapshot["brvm30_official"],
+                "perf_since_launch":   snapshot["perf_since_launch"],
+                "change_1d_pct":       snapshot["change_1d_pct"],
+                "change_day_pct":      snapshot["change_day_pct"],
+                "aum_mfcfa":           snapshot["aum_mfcfa"],
+                "n_prices":            snapshot["n_prices"],
+            }
+            if snapshot.get("ticker_contributions"):
+                _hist_snap["ticker_contributions"] = snapshot["ticker_contributions"]
+            hist[today_str].append(_hist_snap)
         with open(HIST_FILE, "w", encoding="utf-8") as f:
             json.dump(hist, f, ensure_ascii=False, indent=2)
     except Exception as e:
