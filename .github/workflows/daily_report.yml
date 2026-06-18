@@ -75,9 +75,26 @@ jobs:
                   print(f"  Clôture {day}: {val}")
                   updated += 1
 
+          # Interpolation linéaire pour les trous restants (weekends, jours sans data)
+          from datetime import timedelta
+          known = sorted((d, v) for d, v in brvm_h.items())
+          interp = 0
+          for i in range(len(known) - 1):
+              d0, v0 = known[i]
+              d1, v1 = known[i + 1]
+              from datetime import date as _dt
+              days = (_dt.fromisoformat(d1) - _dt.fromisoformat(d0)).days
+              if days <= 1:
+                  continue
+              for step in range(1, days):
+                  dmid = (_dt.fromisoformat(d0) + timedelta(days=step)).isoformat()
+                  if dmid not in brvm_h:
+                      brvm_h[dmid] = round(v0 + (v1 - v0) * step / days, 2)
+                      interp += 1
+
           with open(brvm_path, "w", encoding="utf-8") as f:
               json.dump(brvm_h, f, ensure_ascii=False)
-          print(f"brvm30_index_history.json mis a jour ({updated} date(s)).")
+          print(f"brvm30_index_history.json mis a jour ({updated} ajout(s), {interp} interpolation(s)).")
           EOF
 
       - name: Générer le rapport PDF
