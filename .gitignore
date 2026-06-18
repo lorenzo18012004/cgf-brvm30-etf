@@ -1,0 +1,13 @@
+secrets.json
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.vscode/
+*.xlsm
+*.xlsx
+*.xls
+*.npz
+logs/
+cours_ajustee/
+exports/
