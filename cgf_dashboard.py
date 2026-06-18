@@ -484,9 +484,9 @@ div[data-testid="stCustomComponentV1"] { margin: 0 !important; padding: 0 !impor
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 BASE       = os.path.dirname(os.path.abspath(__file__))
-# Sur Streamlit Cloud le repo est cloné à la racine (pas de sous-dossier test_BRVM30)
-BRVM30_DIR = BASE if os.path.exists(os.path.join(BASE, "nav_latest.json")) else os.path.join(BASE, "test_BRVM30")
-sys.path.insert(0, BRVM30_DIR)
+DATA_DIR   = os.path.join(BASE, "data")
+BRVM30_DIR = DATA_DIR if os.path.exists(os.path.join(DATA_DIR, "nav_latest.json")) else BASE
+sys.path.insert(0, os.path.join(BASE, "scripts"))
 
 # Sur Streamlit Cloud, les fichiers live sont lus depuis GitHub (toujours frais)
 _GITHUB_RAW_DEFAULT = "https://raw.githubusercontent.com/lorenzo18012004/cgf-brvm30-etf/main"
@@ -620,7 +620,7 @@ def load_json_fresh(path):
     if not os.path.exists(path): return None
     with open(path, encoding="utf-8-sig") as f: return json.load(f)
 
-EXCEL_PATH      = os.path.join(BRVM30_DIR, "BRVM_Consolidated_Kendall_updated.xlsx")
+EXCEL_PATH      = os.path.join(BASE, "BRVM_Consolidated_Kendall_updated.xlsx")
 RICHBOURSE_PATH = os.path.join(BRVM30_DIR, "richbourse_history.json")
 
 @st.cache_data(ttl=120)
@@ -823,11 +823,13 @@ def scrape_sika_open():
         return {}
 
 def _run_pipeline(script_name: str) -> tuple[bool, str]:
-    python = os.path.join(BRVM30_DIR, ".venv", "Scripts", "python.exe")
-    script = os.path.join(BRVM30_DIR, script_name)
+    python = os.path.join(BASE, ".venv", "Scripts", "python.exe")
+    if not os.path.exists(python):
+        python = sys.executable
+    script = os.path.join(BASE, "scripts", script_name)
     try:
         r = subprocess.run([python, script], capture_output=True, text=True,
-                           encoding="utf-8", errors="replace", cwd=BRVM30_DIR, timeout=180)
+                           encoding="utf-8", errors="replace", cwd=BASE, timeout=180)
         return r.returncode == 0, (r.stdout or "") + (r.stderr or "")
     except subprocess.TimeoutExpired: return False, "Timeout (>3 min)"
     except Exception as e: return False, str(e)

@@ -7,7 +7,8 @@ Prérequis: test.py exécuté au moins une fois (fichiers Excel présents).
 import os, json, warnings
 warnings.filterwarnings('ignore')
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.normpath(os.path.join(_SCRIPTS_DIR, "..", "data"))
 os.chdir(BASE_DIR)
 
 import pandas as pd

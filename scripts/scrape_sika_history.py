@@ -16,7 +16,8 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='repla
 
 import requests
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.normpath(os.path.join(_SCRIPTS_DIR, "..", "data"))
 OUT_FILE = os.path.join(BASE_DIR, 'sika_history.json')
 API_URL  = 'https://www.sikafinance.com/api/general/GetHistos'
 START_DATE = date(2005, 1, 1)

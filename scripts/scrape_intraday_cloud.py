@@ -35,7 +35,7 @@ def _is_market_open() -> bool:
 
 def run(force: bool = False):
     os.chdir(BASE_DIR)
-    sys.path.insert(0, BASE_DIR)
+    sys.path.insert(0, _SCRIPTS_DIR)
 
     now_utc   = datetime.now(timezone.utc)
     today_str = now_utc.strftime("%Y-%m-%d")

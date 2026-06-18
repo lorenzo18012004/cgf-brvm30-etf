@@ -23,14 +23,16 @@ warnings.filterwarnings('ignore')
 import pandas as pd
 import numpy as np
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.normpath(os.path.join(_SCRIPTS_DIR, "..", "data"))
+ROOT_DIR = os.path.normpath(os.path.join(_SCRIPTS_DIR, ".."))
 
 # ── Paramètres par défaut ─────────────────────────────────────────────────────
 DEFAULT_PAR_FCFA  = 100_000    # valeur faciale d'une part (FCFA)
 DEFAULT_AUM_FCFA  = 5_000_000_000  # AUM de référence au lancement (FCFA)
 MGMT_FEE_ANNUAL   = 0.006
 PRICE_SHEET       = '📈 Cours_Close'
-PRIX_FILE         = os.path.join(BASE_DIR, 'BRVM_Consolidated_Kendall_updated.xlsx')
+PRIX_FILE         = os.path.join(ROOT_DIR, 'BRVM_Consolidated_Kendall_updated.xlsx')
 DASHBOARD_FILE    = os.path.join(BASE_DIR, 'dashboard_data.json')
 REBAL_FILE        = os.path.join(BASE_DIR, 'rebal_detail.json')
 OUTPUT_FILE       = os.path.join(BASE_DIR, 'nav_latest.json')

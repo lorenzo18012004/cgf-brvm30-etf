@@ -52,7 +52,7 @@ def _get_etf_weights(nav_latest):
 def _scrape_live_prices():
     """Récupère les prix live depuis Sika."""
     try:
-        sys.path.insert(0, BASE_DIR)
+        sys.path.insert(0, _SCRIPTS_DIR)
         from scrape_sika import _fetch_html, scrape_prices, SIKA_URL
         html = _fetch_html(SIKA_URL)
         prices = scrape_prices(html)

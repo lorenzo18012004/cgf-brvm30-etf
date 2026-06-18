@@ -29,16 +29,16 @@ jobs:
         run: pip install -r requirements_cloud.txt
 
       - name: Mettre à jour les prix de clôture (Sika)
-        run: python scrape_sika_history.py
+        run: python scripts/scrape_sika_history.py
 
       - name: Recalculer la NAV
-        run: python calc_nav_cloud.py
+        run: python scripts/calc_nav_cloud.py
 
       - name: Snapshot de clôture iNAV (16h UTC — marché fermé)
         run: |
           current_hour=$(date -u +%H)
           if [ "$current_hour" -lt "17" ]; then
-            python scrape_intraday_cloud.py --force
+            python scripts/scrape_intraday_cloud.py --force
           else
             echo "[SKIP] Job trop retardé (${current_hour}h UTC), snapshot ignoré."
           fi
@@ -49,8 +49,8 @@ jobs:
           import json, os
           from datetime import date as _date
 
-          ih_path   = "nav_intraday_history.json"
-          brvm_path = "brvm30_index_history.json"
+          ih_path   = "data/nav_intraday_history.json"
+          brvm_path = "data/brvm30_index_history.json"
 
           if not os.path.exists(ih_path) or not os.path.exists(brvm_path):
               print("Fichiers manquants, skip.")
@@ -67,11 +67,8 @@ jobs:
           for day, snaps in ih.items():
               if not snaps:
                   continue
-              # Toujours réécrire les 5 derniers jours (corrige backfills manuels)
-              # Sinon, sauter les dates déjà connues
               if day in brvm_h and day < recent_cutoff:
                   continue
-              # Dernier snapshot non-null (le snapshot 16h peut avoir brvm30=None si Sika timeout)
               val = None
               for snap in reversed(snaps):
                   v = snap.get("brvm30_official")
@@ -83,7 +80,6 @@ jobs:
                   print(f"  Clôture {day}: {val}")
                   updated += 1
 
-          # Interpolation linéaire pour les trous restants (weekends, jours sans data)
           from datetime import timedelta
           known = sorted((d, v) for d, v in brvm_h.items())
           interp = 0
@@ -106,24 +102,24 @@ jobs:
           EOF
 
       - name: Générer le rapport PDF
-        run: python generate_daily_report.py --force
+        run: python scripts/generate_daily_report.py --force
 
       - name: Envoyer par email
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-        run: python send_report_email.py
+        run: python scripts/send_report_email.py
 
       - name: Commit & push
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "data: prix + NAV + rapport $(date -u +'%Y-%m-%d')"
           file_pattern: |
-            sika_history.json
-            nav_latest.json
-            intraday_nav.json
-            nav_intraday_history.json
-            brvm30_index_history.json
-            pdfs/
+            data/sika_history.json
+            data/nav_latest.json
+            data/intraday_nav.json
+            data/nav_intraday_history.json
+            data/brvm30_index_history.json
+            data/pdfs/
           commit_user_name: cgf-bot
           commit_user_email: bot@cgf-bourse.ci

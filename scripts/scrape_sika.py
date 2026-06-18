@@ -24,8 +24,10 @@ from datetime import datetime, date, timedelta
 from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 
-BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-PRIX_FILE  = os.path.join(BASE_DIR, 'BRVM_Consolidated_Kendall_updated.xlsx')
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR   = os.path.normpath(os.path.join(_SCRIPTS_DIR, "..", "data"))
+ROOT_DIR   = os.path.normpath(os.path.join(_SCRIPTS_DIR, ".."))
+PRIX_FILE  = os.path.join(ROOT_DIR, 'BRVM_Consolidated_Kendall_updated.xlsx')
 PRIX_SHEET = '📈 Cours_Close'
 SIKA_URL   = 'https://sikafinance.com/marches/aaz'
 

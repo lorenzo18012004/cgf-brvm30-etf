@@ -15,9 +15,10 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 from datetime import datetime
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.normpath(os.path.join(_SCRIPTS_DIR, "..", "data"))
 PDFS_DIR = os.path.join(BASE_DIR, 'pdfs')
-sys.path.insert(0, BASE_DIR)
+sys.path.insert(0, _SCRIPTS_DIR)
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm

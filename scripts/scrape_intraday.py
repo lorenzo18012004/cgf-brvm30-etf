@@ -16,9 +16,11 @@ warnings.filterwarnings('ignore')
 import pandas as pd
 from datetime import datetime, time as dtime, timezone
 
-BASE_DIR      = os.path.dirname(os.path.abspath(__file__))
+_SCRIPTS_DIR  = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR      = os.path.normpath(os.path.join(_SCRIPTS_DIR, "..", "data"))
+ROOT_DIR      = os.path.normpath(os.path.join(_SCRIPTS_DIR, ".."))
 INTRADAY_FILE = os.path.join(BASE_DIR, 'intraday_nav.json')
-LOG_DIR       = os.path.join(BASE_DIR, 'logs')
+LOG_DIR       = os.path.join(ROOT_DIR, 'logs')
 
 # Heures de marché BRVM (heure Abidjan = UTC+0)
 MARKET_OPEN  = dtime(9,  0)
@@ -60,7 +62,7 @@ def run(force: bool = False) -> dict | None:
     force=True : ignore la vérification des heures de marché.
     """
     os.chdir(BASE_DIR)
-    sys.path.insert(0, BASE_DIR)
+    sys.path.insert(0, _SCRIPTS_DIR)
 
     now_utc = datetime.now(timezone.utc)
     today_str = now_utc.strftime('%Y-%m-%d')
