@@ -2819,19 +2819,32 @@ elif _page == "live":
                             _sp  = _snaps_c[_ai]
                             _t   = times_c[_ai]; _t0 = times_c[_ai - 1]
                             _etf_d = round(etf_base100[_ai] - etf_base100[_ai-1], 3)
-                            _idx_d = round((idx_base100[_ai] or 0) - (idx_base100[_ai-1] or 0), 3) if idx_base100[_ai] and idx_base100[_ai-1] else None
+                            # BRVM30 officiel Sika (peut rester figé 15-30 min entre MAJ)
+                            _idx_d_off = round((idx_base100[_ai] or 0) - (idx_base100[_ai-1] or 0), 3) if idx_base100[_ai] and idx_base100[_ai-1] else None
+                            # BRVM30 estimé depuis nos propres prix (synchrone avec l'iNAV)
+                            # = Σ(w_brvm30_i × ret_i) — identité exacte avec Σ(gap_contrib)
+                            _tc_ai = _sp.get('ticker_contributions', {})
+                            _idx_d_est = None
+                            if _tc_ai:
+                                _brv_est = sum(v.get('w_brvm30_pct', 0) / 100 * v.get('ret_pct', 0) for v in _tc_ai.values())
+                                _idx_d_est = round(_brv_est * (idx_base100[_ai - 1] or 100) / 100, 3)
+                            # Pour l'attribution : estimé (synchrone). Pour l'affichage : officiel en secondaire
+                            _idx_d = _idx_d_est if _idx_d_est is not None else _idx_d_off
                             _gap   = round(_etf_d - _idx_d, 3) if _idx_d is not None else None
                             _attr_data.append({
                                 'periode': f"{_t0}→{_t}",
-                                'etf_d': _etf_d, 'idx_d': _idx_d, 'gap': _gap,
-                                'contribs': _sp.get('ticker_contributions', {}),
+                                'etf_d': _etf_d, 'idx_d': _idx_d, 'idx_d_off': _idx_d_off,
+                                'gap': _gap,
+                                'contribs': _tc_ai,
                             })
 
                         if _attr_data:
                             _section("Attribution intraday — explication des mouvements")
                             st.caption(
                                 "Cliquez sur une tranche pour voir le detail. "
-                                "Ce qui a bouge l'ETF + pourquoi il ne suit pas exactement l'indice BRVM30."
+                                "Ce qui a bouge l'ETF + pourquoi il ne suit pas exactement l'indice BRVM30. "
+                                "BRVM30* = valeur estimee depuis nos propres prix (synchrone avec l'iNAV). "
+                                "L'indice officiel Sika ne se met a jour que toutes les 15-30 min."
                             )
                             _items_html = ""
                             for _i, _d in enumerate(_attr_data):
@@ -2844,6 +2857,11 @@ elif _page == "live":
                                 _eca_html = _chips_ecart(_d["contribs"], _w_brvm30_ref, _gp, _sig) if _gp is not None else f'<span style="color:{_MUT}">—</span>'
                                 _has_detail = bool(_sig)
                                 _border_top = "border-top:1px solid #e5e7eb;" if _i > 0 else ""
+                                # BRVM30 officiel pour info (peut être figé)
+                                _id_off = _d.get('idx_d_off')
+                                _off_diff = _id_off is not None and _id is not None and abs((_id_off or 0) - _id) > 0.002
+                                _brv_label = 'BRVM30*' if _d.get('contribs') else 'BRVM30'
+                                _off_note = (f' <span style="color:#9ca3af;font-size:10px">(officiel {_id_off:+.3f}%)</span>' if _off_diff else '')
                                 # Résumé compact : ligne toujours visible
                                 _summary = (
                                     f'<summary style="list-style:none;display:flex;align-items:center;gap:16px;'
@@ -2853,8 +2871,8 @@ elif _page == "live":
                                     f'<span style="color:#6b7280;font-size:11px;min-width:90px">{"▶ " if _has_detail else ""}{_d["periode"]}</span>'
                                     f'<span style="color:#9ca3af;font-size:11px">ETF</span>'
                                     f'<span style="color:{_ec};font-weight:600;min-width:55px">{_ed:+.3f}%</span>'
-                                    f'<span style="color:#9ca3af;font-size:11px">BRVM30</span>'
-                                    f'<span style="color:{_ic};min-width:55px">{f"{_id:+.3f}%" if _id is not None else "—"}</span>'
+                                    f'<span style="color:#9ca3af;font-size:11px">{_brv_label}</span>'
+                                    f'<span style="color:{_ic};min-width:80px">{f"{_id:+.3f}%" if _id is not None else "—"}{_off_note}</span>'
                                     f'<span style="color:#9ca3af;font-size:11px">Écart</span>'
                                     f'<span style="color:{_gc};font-weight:700;min-width:55px">{f"{_gp:+.3f}%" if _gp is not None else "—"}</span>'
                                     f'</summary>'
