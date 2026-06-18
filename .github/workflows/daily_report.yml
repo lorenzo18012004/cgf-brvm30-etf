@@ -59,9 +59,17 @@ jobs:
           ih     = json.load(open(ih_path, encoding="utf-8"))
           brvm_h = json.load(open(brvm_path, encoding="utf-8"))
 
+          from datetime import timedelta as _td
+          today_iso = _date.today().isoformat()
+          recent_cutoff = (_date.today() - _td(days=5)).isoformat()
+
           updated = 0
           for day, snaps in ih.items():
-              if not snaps or day in brvm_h:
+              if not snaps:
+                  continue
+              # Toujours réécrire les 5 derniers jours (corrige backfills manuels)
+              # Sinon, sauter les dates déjà connues
+              if day in brvm_h and day < recent_cutoff:
                   continue
               # Dernier snapshot non-null (le snapshot 16h peut avoir brvm30=None si Sika timeout)
               val = None

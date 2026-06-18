@@ -2382,6 +2382,14 @@ elif _page == "live":
                     _dt = pd.Timestamp(_d).normalize()
                     if _dt > _t0:
                         _etf_pts[_dt] = float(_v) / par * 100
+                # Compléter avec les derniers snapshots intraday des jours passés
+                for _d, _dpts in intra_hist.items():
+                    _dt = pd.Timestamp(_d).normalize()
+                    if _dpts and _dt > _t0:
+                        _lp = _dpts[-1]
+                        _vl_d = _lp.get("vl_fcfa") or _lp.get("vl")
+                        if _vl_d:
+                            _etf_pts[_dt] = float(_vl_d) / par * 100
                 if intra_snaps:
                     _last_s = intra_snaps[-1]
                     _vl_s   = _last_s.get("vl_live_fcfa") or (_last_s["nav_indice"] / nav_anch * par)
@@ -2393,7 +2401,8 @@ elif _page == "live":
                     _idx_pts[_t0] = 100.0
                     for _d, _bv in _brvm30_hist.items():
                         _dt = pd.Timestamp(_d).normalize()
-                        if _dt > _t0:
+                        # Exclure weekends (valeurs interpolées sans marché)
+                        if _dt > _t0 and _dt.weekday() < 5:
                             _idx_pts[_dt] = float(_bv) / _brvm30_at_launch * 100
                     if intra_snaps:
                         _bv_live = intra_snaps[-1].get("brvm30_official")
@@ -2460,10 +2469,10 @@ elif _page == "live":
                             _lp = _pts[-1]
                             _v  = _lp.get("vl_fcfa") or _lp.get("vl")
                             if _v: _raw_vl[_dt] = float(_v)
-                    # Indice BRVM30 officiel depuis brvm30_index_history.json
+                    # Indice BRVM30 officiel depuis brvm30_index_history.json (jours ouvrés uniquement)
                     for _d, _bv in _brvm30_hist.items():
                         _dt = pd.Timestamp(_d).normalize()
-                        if _dt >= _t0:
+                        if _dt >= _t0 and _dt.weekday() < 5:
                             _raw_ni[_dt] = float(_bv)
                     # nav_live_series (VL de clôture calc_nav) écrase si dispo — source du graphique
                     for _d, _v in (_live_ser or []):
