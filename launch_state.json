@@ -1,10 +1,9 @@
 {
-  "launch_date": "2026-06-12",
+  "launch_date": "2026-06-19",
   "par_fcfa": 100000,
   "n_parts": 50000,
   "aum_initial_fcfa": 5000000000,
   "aum_initial_mfcfa": 5000.0,
-  "nav_index_at_launch": 239.141127,
   "vl_par_part_initial": 100000,
   "last_prices_date": "2026-06-11",
   "basket": [
@@ -198,6 +197,6 @@
       "prix_stale": false
     }
   ],
-  "created_at": "2026-06-12 10:10",
-  "launch_time_utc": "10:10"
+  "created_at": "2026-06-19 09:30",
+  "launch_time_utc": "09:30"
 }

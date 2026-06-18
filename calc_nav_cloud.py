@@ -81,9 +81,18 @@ def run() -> None:
     if os.path.exists(LAUNCH_PATH):
         with open(LAUNCH_PATH, encoding="utf-8") as f:
             ls = json.load(f)
-        vl_new   = float(ls["par_fcfa"]) * (nav_new / float(ls["nav_index_at_launch"]))
-        n_parts  = int(ls.get("n_parts", n_parts))
-        perf_lct = (nav_new / float(ls["nav_index_at_launch"]) - 1) * 100
+        nav_anchor = ls.get("nav_index_at_launch")
+        n_parts    = int(ls.get("n_parts", n_parts))
+        par_ls     = float(ls.get("par_fcfa", 100_000))
+        if not nav_anchor:
+            # Premier calcul depuis le lancement — ancrer la NAV courante
+            nav_anchor = nav_new
+            ls["nav_index_at_launch"] = round(float(nav_new), 6)
+            with open(LAUNCH_PATH, "w", encoding="utf-8") as fw:
+                json.dump(ls, fw, ensure_ascii=False, indent=2)
+            print(f"[LANCEMENT] nav_index_at_launch fixé à {nav_anchor:.6f}")
+        vl_new   = par_ls * (nav_new / float(nav_anchor))
+        perf_lct = (nav_new / float(nav_anchor) - 1) * 100
     else:
         vl_new   = vl_base * (1.0 + total_ret)
         perf_lct = total_ret * 100
@@ -94,6 +103,7 @@ def run() -> None:
     # Mettre à jour nav_latest.json en conservant toutes les clés existantes
     nl.update({
         "calc_date":          today_str,
+        "launched":           True,
         "nav_indice":         round(nav_new, 4),
         "vl_par_part_fcfa":   round(vl_new, 0),
         "aum_mfcfa":          round(aum, 1),
