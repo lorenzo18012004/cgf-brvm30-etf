@@ -2717,17 +2717,8 @@ elif _page == "live":
                             # Qualite de l'attribution
                             pct = round(abs(total_expl / gap_actual) * 100) if abs(gap_actual) >= 0.02 else None
 
-                            # Ecart faible : ne pas afficher de %
-                            if abs(gap_actual) < 0.02:
-                                return (
-                                    f'<div style="font-size:11px;color:{_MUT};padding:6px 8px;'
-                                    f'background:#f9fafb;border-radius:4px">'
-                                    f'Ecart negligeable ({gap_actual:+.3f}%) — pas d\'explication utile a afficher.'
-                                    f'</div>'
-                                )
-
-                            # Ecart significatif : afficher tableau poids ETF vs BRVM30
-                            if pct is not None and pct < 30:
+                            # Toujours afficher le tableau des titres qui ont bougé
+                            if pct is None or pct < 30:
                                 # Tous les titres qui ont bougé, triés par écart de poids absolu
                                 _all_w = []
                                 for tk, v in contribs.items():
@@ -2739,13 +2730,22 @@ elif _page == "live":
                                     if abs(r) >= 0.05:
                                         _all_w.append((tk, we, wi, round(we - wi, 2), r, gc))
                                 _all_w.sort(key=lambda x: abs(x[3]), reverse=True)
-                                _hdr = (
-                                    f'<div style="font-size:11px;padding:4px 8px;margin-bottom:6px;'
-                                    f'background:#fef9f0;border-left:3px solid #f59e0b;border-radius:0 4px 4px 0;color:#92400e">'
-                                    f'Attribution partielle ({total_expl:+.4f}pts sur {gap_actual:+.3f}%). '
-                                    f'Poids ETF vs BRVM30 pour les titres qui ont bouge :'
-                                    f'</div>'
-                                )
+                                if abs(gap_actual) < 0.02:
+                                    _hdr = (
+                                        f'<div style="font-size:11px;padding:4px 8px;margin-bottom:6px;'
+                                        f'background:#f9fafb;border-left:3px solid #cbd5e1;border-radius:0 4px 4px 0;color:#6b7280">'
+                                        f'Ecart negligeable ({gap_actual:+.3f}%). '
+                                        f'Poids ETF vs BRVM30 pour les titres qui ont bouge :'
+                                        f'</div>'
+                                    )
+                                else:
+                                    _hdr = (
+                                        f'<div style="font-size:11px;padding:4px 8px;margin-bottom:6px;'
+                                        f'background:#fef9f0;border-left:3px solid #f59e0b;border-radius:0 4px 4px 0;color:#92400e">'
+                                        f'Attribution partielle ({total_expl:+.4f}pts sur {gap_actual:+.3f}%). '
+                                        f'Poids ETF vs BRVM30 pour les titres qui ont bouge :'
+                                        f'</div>'
+                                    )
                                 _th = (
                                     f'<div style="display:grid;grid-template-columns:52px 52px 52px 52px 60px 60px;'
                                     f'gap:4px;padding:4px 8px;background:#f3f4f6;border-radius:4px;margin-bottom:4px;'
