@@ -63,11 +63,15 @@ jobs:
           for day, snaps in ih.items():
               if not snaps or day in brvm_h:
                   continue
-              # Dernier snapshot du jour = clôture (scraping 16h UTC marché fermé)
-              last_snap = snaps[-1]
-              val = last_snap.get("brvm30_official")
+              # Dernier snapshot non-null (le snapshot 16h peut avoir brvm30=None si Sika timeout)
+              val = None
+              for snap in reversed(snaps):
+                  v = snap.get("brvm30_official")
+                  if v:
+                      val = float(v)
+                      break
               if val:
-                  brvm_h[day] = float(val)
+                  brvm_h[day] = val
                   print(f"  Clôture {day}: {val}")
                   updated += 1
 
