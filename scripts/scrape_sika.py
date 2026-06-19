@@ -403,6 +403,19 @@ class SikaScraper(BaseScript):
         return summary
 
 
+# Aliases module-level pour les scripts qui importent ces fonctions directement
+SIKA_URL = 'https://sikafinance.com/marches/aaz'
+
+def _fetch_html(url: str, timeout: int = 20) -> str:
+    return SikaScraper()._fetch_html(url, timeout)
+
+def scrape_prices(html: str):
+    return SikaScraper().scrape_prices(html)
+
+def scrape_brvm30_index(html: str):
+    return SikaScraper().scrape_brvm30_index(html)
+
+
 if __name__ == '__main__':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     parser = argparse.ArgumentParser(description='Scraper cours Sika Finance → Excel BRVM')
