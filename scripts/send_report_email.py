@@ -68,7 +68,7 @@ class ReportEmailSender(BaseScript):
         return True
 
     def _load_secrets(self) -> dict:
-        path = os.path.join(self.scripts_dir, "secrets.json")
+        path = os.path.join(self.root_dir, "secrets.json")
         if os.path.exists(path):
             try:
                 return json.load(open(path, encoding="utf-8"))
@@ -80,7 +80,7 @@ class ReportEmailSender(BaseScript):
         if date_str is None:
             date_str = datetime.date.today().strftime("%Y-%m-%d")
 
-        pdf_path = os.path.join(self.scripts_dir, "pdfs", f"rapport_journalier_{date_str}.pdf")
+        pdf_path = os.path.join(self.data_dir, "pdfs", f"rapport_journalier_{date_str}.pdf")
         if not os.path.exists(pdf_path):
             print(f"[ERREUR] PDF introuvable : {pdf_path}")
             return False

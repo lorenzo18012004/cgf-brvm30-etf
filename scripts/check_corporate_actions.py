@@ -24,9 +24,9 @@ class CorporateActionsChecker(BaseScript):
         self.THRESHOLD_SPLIT = 0.15
         self.CALENDAR_DAYS   = 5
         self.RECIPIENT       = "l.philippe@cgfgestion.com"
-        self.SIKA_HIST    = os.path.join(self.scripts_dir, "sika_history.json")
-        self.NAV_LATEST   = os.path.join(self.scripts_dir, "nav_latest.json")
-        self.DIV_CALENDAR = os.path.join(self.scripts_dir, "dividend_calendar.json")
+        self.SIKA_HIST    = os.path.join(self.data_dir, "sika_history.json")
+        self.NAV_LATEST   = os.path.join(self.data_dir, "nav_latest.json")
+        self.DIV_CALENDAR = os.path.join(self.data_dir, "dividend_calendar.json")
 
     def _get_prev_close(self, sika_hist, ticker, today_str):
         hist = sika_hist.get(ticker, {})
@@ -121,7 +121,7 @@ class CorporateActionsChecker(BaseScript):
             print(f"[{today_str}] Aucune action corporative détectée.")
             return
 
-        secrets    = self.load_json_path(os.path.join(self.scripts_dir, "secrets.json")) or {}
+        secrets    = self.load_json_path(os.path.join(self.root_dir, "secrets.json")) or {}
         gmail_user = os.environ.get("GMAIL_USER") or secrets.get("smtp_user")
         gmail_pass = os.environ.get("GMAIL_APP_PASSWORD") or secrets.get("smtp_password")
         if not gmail_user or not gmail_pass:

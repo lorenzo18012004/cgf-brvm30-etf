@@ -22,8 +22,8 @@ from base import BaseScript
 class AlertSender(BaseScript):
     def __init__(self):
         super().__init__()
-        self.CONFIG_PATH = os.path.join(self.scripts_dir, "alert_config.json")
-        self.NAV_PATH    = os.path.join(self.scripts_dir, "nav_latest.json")
+        self.CONFIG_PATH = os.path.join(self.data_dir, "alert_config.json")
+        self.NAV_PATH    = os.path.join(self.data_dir, "nav_latest.json")
 
     def _load(self, path):
         if not os.path.exists(path):
