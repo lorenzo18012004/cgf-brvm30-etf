@@ -110,13 +110,22 @@ class IntradayScraperCloud(BaseScript):
                 else:
                     _brvm30_adj[_tk] = _w_rebal
 
-            _nav_live = _nav_base * (1.0 + _total_ret)
-            if _ls:
-                _vl_live = float(_ls["par_fcfa"]) * (_nav_live / float(_ls["nav_index_at_launch"]))
-                _n_parts = _ls["n_parts"]
+            _nav_live   = _nav_base * (1.0 + _total_ret)
+            _nav_anchor = float(_ls["nav_index_at_launch"]) if _ls and _ls.get("nav_index_at_launch") else None
+            if _nav_anchor:
+                _vl_live = float(_ls["par_fcfa"]) * (_nav_live / _nav_anchor)
+                _n_parts = _ls.get("n_parts", _nl.get("n_parts", 50000))
             else:
-                _vl_live = _vl_base * (1.0 + _total_ret)
-                _n_parts = _nl.get("n_parts", 50000)
+                # Pas encore lancé — on fixe l'ancre maintenant et on la sauvegarde
+                _nav_anchor = _nav_live
+                _par        = float((_ls or {}).get("par_fcfa", _vl_base))
+                _vl_live    = _par
+                _n_parts    = _nl.get("n_parts", 50000)
+                if _ls:
+                    _ls["nav_index_at_launch"] = round(_nav_anchor, 6)
+                    with open(os.path.join(self.data_dir, "launch_state.json"), "w", encoding="utf-8") as _fw:
+                        json.dump(_ls, _fw, ensure_ascii=False, indent=2)
+                    print(f"[LANCEMENT] nav_index_at_launch fixé à {_nav_anchor:.6f}")
 
             nav_result = {
                 "nav_indice":       round(_nav_live, 4),
