@@ -1022,7 +1022,7 @@ def _build_excel_complet(_cache_key: str = "") -> bytes:
 # ══════════════════════════════════════════════════════════════════════════════
 # LANDING
 # ══════════════════════════════════════════════════════════════════════════════
-if _page == "landing":
+def _render_landing():
     # ── Barre de téléchargement (tout en haut) ─────────────────────────────
     import glob as _glob
     _pdf_dir_path    = os.path.join(BRVM30_DIR, "CGF_BRVM30_ETF_Rapport_Direction.pdf")
@@ -1175,7 +1175,8 @@ if _page in ("live", "backtest") and _nosplit != "1":
 else:
     _sp_html = ""
 _tabbar_style = "display:flex;align-items:center;gap:0;background:#ffffff;padding:0;border-bottom:2px solid #b8973f;margin-bottom:1.5rem;overflow-x:auto;"
-st.markdown(f'<div style="{_tabbar_style}">{_tab_items}{_sp_html}</div>', unsafe_allow_html=True)
+if _page != "landing":
+    st.markdown(f'<div style="{_tabbar_style}">{_tab_items}{_sp_html}</div>', unsafe_allow_html=True)
 
 # ── Mode split ────────────────────────────────────────────────────────────────
 if _split != "1" and _nosplit != "1" and _page in ("live", "backtest"):
@@ -1316,7 +1317,9 @@ if _page in ("live", "backtest"):
 # ══════════════════════════════════════════════════════════════════════════════
 # BACKTEST
 # ══════════════════════════════════════════════════════════════════════════════
-if _page == "backtest":
+def _render_backtest():
+    """Section backtest — simulation 2023–2026, métriques et graphiques."""
+    global _bsec
 
     nav_e_full = to_series(dd.get("nav_etf", {}))
     nav_b_full = to_series(dd.get("nav_bench", {}))
@@ -1847,7 +1850,9 @@ if _page == "backtest":
 # ══════════════════════════════════════════════════════════════════════════════
 # LIVE
 # ══════════════════════════════════════════════════════════════════════════════
-elif _page == "live":
+def _render_live():
+    """Section live — ETF réel, iNAV, rebalancements, AP, analyse approfondie."""
+    global _lsec
 
     # Auto-refresh toutes les 5 min pendant les heures de marché BRVM (09h–15h30 UTC)
     try:
@@ -5064,3 +5069,41 @@ elif _page == "live":
                 else:
                     st.caption("Aucun titre exclu à ce rebalancement.")
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DASHBOARD — Point d'entrée OOP
+# ══════════════════════════════════════════════════════════════════════════════
+class Dashboard:
+    """
+    Dashboard CGF BRVM30 ETF — structure orientée objet.
+
+    Chaque section est une méthode dédiée pour faciliter la navigation et
+    la maintenance du code par l'équipe.
+
+    Structure :
+      run()              — routing principal (délègue selon _page)
+      render_landing()   — page d'accueil (cartes, téléchargements)
+      render_backtest()  — backtest simulation 2023–2026
+      render_live()      — live ETF : iNAV, rebalancements, AP, analyse
+
+    Ajouter une nouvelle section :
+      1. Définir la fonction _render_xxx() au-dessus de cette classe
+      2. Ajouter render_xxx = staticmethod(_render_xxx) ici
+      3. Ajouter l'appel dans run()
+    """
+
+    render_landing  = staticmethod(_render_landing)
+    render_backtest = staticmethod(_render_backtest)
+    render_live     = staticmethod(_render_live)
+
+    def run(self):
+        """Point d'entrée principal — routing par valeur de ?page=."""
+        if _page == "landing":
+            self.render_landing()
+        elif _page == "backtest":
+            self.render_backtest()
+        elif _page == "live":
+            self.render_live()
+
+
+Dashboard().run()
