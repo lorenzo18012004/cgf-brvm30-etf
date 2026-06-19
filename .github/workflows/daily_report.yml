@@ -104,6 +104,12 @@ jobs:
       - name: Générer le rapport PDF
         run: python scripts/generate_daily_report.py --force
 
+      - name: Vérifier alertes NAV
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python scripts/send_alert.py || true
+
       - name: Envoyer par email
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
