@@ -7629,6 +7629,322 @@
           "gap_contrib_pct": -0.0
         }
       }
+    },
+    {
+      "time": "13:21",
+      "nav_indice": 245.7799,
+      "brvm30_official": 208.22,
+      "vl_par_part": 100851.0,
+      "vl_live_fcfa": 100851.0,
+      "perf_since_launch": 0.8506,
+      "change_1d_pct": 1.9653,
+      "change_day_pct": 0.8506,
+      "aum_mfcfa": 5042.5,
+      "n_prices": 27,
+      "prices_by_ticker": {
+        "SNTS": 28100.0,
+        "ORAC": 16700.0,
+        "SGBC": 39150.0,
+        "ECOC": 16745.0,
+        "SIBC": 8850.0,
+        "ETIT": 35.0,
+        "CBIBF": 22295.0,
+        "STBC": 22495.0,
+        "BOAC": 9300.0,
+        "BOAB": 8900.0,
+        "BICB": 5850.0,
+        "ORGT": 2680.0,
+        "BOAS": 7445.0,
+        "BOABF": 5500.0,
+        "ONTBF": 2730.0,
+        "CIEC": 4995.0,
+        "SPHC": 7570.0,
+        "TTLC": 2860.0,
+        "SHEC": 2140.0,
+        "BOAM": 4550.0,
+        "CFAC": 1825.0,
+        "SDSC": 2320.0,
+        "BOAN": 3760.0,
+        "UNXC": 1920.0,
+        "STAC": 3500.0,
+        "SCRC": 3100.0,
+        "FTSC": 2165.0,
+        "SIVC": 2665.0,
+        "SEMC": 1600.0,
+        "NEIC": 2340.0
+      },
+      "ticker_contributions": {
+        "SNTS": {
+          "w_pct": 23.4,
+          "w_brvm30_pct": 22.89,
+          "prix_prev": 28100.0,
+          "prix_now": 28100.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": 0.0
+        },
+        "ORAC": {
+          "w_pct": 18.47,
+          "w_brvm30_pct": 18.08,
+          "prix_prev": 16695.0,
+          "prix_now": 16700.0,
+          "ret_pct": 0.03,
+          "contrib_pct": 0.0055,
+          "gap_contrib_pct": 0.0001
+        },
+        "SGBC": {
+          "w_pct": 8.66,
+          "w_brvm30_pct": 8.47,
+          "prix_prev": 39195.0,
+          "prix_now": 39150.0,
+          "ret_pct": -0.115,
+          "contrib_pct": -0.0099,
+          "gap_contrib_pct": -0.0002
+        },
+        "ECOC": {
+          "w_pct": 7.33,
+          "w_brvm30_pct": 7.17,
+          "prix_prev": 16510.0,
+          "prix_now": 16745.0,
+          "ret_pct": 1.423,
+          "contrib_pct": 0.1043,
+          "gap_contrib_pct": 0.0023
+        },
+        "SIBC": {
+          "w_pct": 5.57,
+          "w_brvm30_pct": 5.45,
+          "prix_prev": 8845.0,
+          "prix_now": 8850.0,
+          "ret_pct": 0.057,
+          "contrib_pct": 0.0031,
+          "gap_contrib_pct": 0.0001
+        },
+        "ETIT": {
+          "w_pct": 4.81,
+          "w_brvm30_pct": 4.71,
+          "prix_prev": 35.0,
+          "prix_now": 35.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": 0.0
+        },
+        "CBIBF": {
+          "w_pct": 3.58,
+          "w_brvm30_pct": 3.5,
+          "prix_prev": 22300.0,
+          "prix_now": 22295.0,
+          "ret_pct": -0.022,
+          "contrib_pct": -0.0008,
+          "gap_contrib_pct": -0.0
+        },
+        "STBC": {
+          "w_pct": 3.04,
+          "w_brvm30_pct": 2.98,
+          "prix_prev": 22495.0,
+          "prix_now": 22495.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": 0.0
+        },
+        "BOAC": {
+          "w_pct": 2.74,
+          "w_brvm30_pct": 2.68,
+          "prix_prev": 9305.0,
+          "prix_now": 9300.0,
+          "ret_pct": -0.054,
+          "contrib_pct": -0.0015,
+          "gap_contrib_pct": -0.0
+        },
+        "BOAB": {
+          "w_pct": 2.49,
+          "w_brvm30_pct": 2.43,
+          "prix_prev": 8900.0,
+          "prix_now": 8900.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": 0.0
+        },
+        "BICB": {
+          "w_pct": 2.4,
+          "w_brvm30_pct": 2.35,
+          "prix_prev": 5860.0,
+          "prix_now": 5850.0,
+          "ret_pct": -0.171,
+          "contrib_pct": -0.0041,
+          "gap_contrib_pct": -0.0001
+        },
+        "ORGT": {
+          "w_pct": 2.05,
+          "w_brvm30_pct": 2.01,
+          "prix_prev": 2675.0,
+          "prix_now": 2680.0,
+          "ret_pct": 0.187,
+          "contrib_pct": 0.0038,
+          "gap_contrib_pct": 0.0001
+        },
+        "BOAS": {
+          "w_pct": 1.97,
+          "w_brvm30_pct": 1.93,
+          "prix_prev": 7445.0,
+          "prix_now": 7445.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": 0.0
+        },
+        "BOABF": {
+          "w_pct": 1.97,
+          "w_brvm30_pct": 1.93,
+          "prix_prev": 5600.0,
+          "prix_now": 5500.0,
+          "ret_pct": -1.786,
+          "contrib_pct": -0.0352,
+          "gap_contrib_pct": -0.0007
+        },
+        "ONTBF": {
+          "w_pct": 1.61,
+          "w_brvm30_pct": 1.58,
+          "prix_prev": 2730.0,
+          "prix_now": 2730.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": 0.0
+        },
+        "CIEC": {
+          "w_pct": 1.54,
+          "w_brvm30_pct": 1.5,
+          "prix_prev": 4980.0,
+          "prix_now": 4995.0,
+          "ret_pct": 0.301,
+          "contrib_pct": 0.0046,
+          "gap_contrib_pct": 0.0001
+        },
+        "SPHC": {
+          "w_pct": 1.44,
+          "w_brvm30_pct": 1.4,
+          "prix_prev": 7565.0,
+          "prix_now": 7570.0,
+          "ret_pct": 0.066,
+          "contrib_pct": 0.001,
+          "gap_contrib_pct": 0.0
+        },
+        "TTLC": {
+          "w_pct": 1.38,
+          "w_brvm30_pct": 1.35,
+          "prix_prev": 2860.0,
+          "prix_now": 2860.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": 0.0
+        },
+        "SHEC": {
+          "w_pct": 1.11,
+          "w_brvm30_pct": 1.09,
+          "prix_prev": 2170.0,
+          "prix_now": 2140.0,
+          "ret_pct": -1.382,
+          "contrib_pct": -0.0153,
+          "gap_contrib_pct": -0.0003
+        },
+        "BOAM": {
+          "w_pct": 1.04,
+          "w_brvm30_pct": 1.01,
+          "prix_prev": 4550.0,
+          "prix_now": 4550.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": 0.0
+        },
+        "CFAC": {
+          "w_pct": 0.93,
+          "w_brvm30_pct": 2.32,
+          "prix_prev": 1835.0,
+          "prix_now": 1825.0,
+          "ret_pct": -0.545,
+          "contrib_pct": -0.0051,
+          "gap_contrib_pct": 0.0076
+        },
+        "SDSC": {
+          "w_pct": 0.85,
+          "w_brvm30_pct": 0.83,
+          "prix_prev": 2370.0,
+          "prix_now": 2320.0,
+          "ret_pct": -2.11,
+          "contrib_pct": -0.0179,
+          "gap_contrib_pct": -0.0004
+        },
+        "BOAN": {
+          "w_pct": 0.45,
+          "w_brvm30_pct": 0.44,
+          "prix_prev": 3760.0,
+          "prix_now": 3760.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": 0.0
+        },
+        "UNXC": {
+          "w_pct": 0.33,
+          "w_brvm30_pct": 0.32,
+          "prix_prev": 1900.0,
+          "prix_now": 1920.0,
+          "ret_pct": 1.053,
+          "contrib_pct": 0.0035,
+          "gap_contrib_pct": 0.0001
+        },
+        "STAC": {
+          "w_pct": 0.32,
+          "w_brvm30_pct": 0.31,
+          "prix_prev": 3500.0,
+          "prix_now": 3500.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": 0.0
+        },
+        "SCRC": {
+          "w_pct": 0.27,
+          "w_brvm30_pct": 0.27,
+          "prix_prev": 3110.0,
+          "prix_now": 3100.0,
+          "ret_pct": -0.322,
+          "contrib_pct": -0.0009,
+          "gap_contrib_pct": -0.0
+        },
+        "FTSC": {
+          "w_pct": 0.26,
+          "w_brvm30_pct": 0.26,
+          "prix_prev": 2165.0,
+          "prix_now": 2165.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": 0.0
+        },
+        "SEMC": {
+          "w_pct": 0.0,
+          "w_brvm30_pct": 0.39,
+          "prix_prev": 1595.0,
+          "prix_now": 1600.0,
+          "ret_pct": 0.313,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": -0.0012
+        },
+        "SIVC": {
+          "w_pct": 0.0,
+          "w_brvm30_pct": 0.2,
+          "prix_prev": 2665.0,
+          "prix_now": 2665.0,
+          "ret_pct": 0.0,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": -0.0
+        },
+        "NEIC": {
+          "w_pct": 0.0,
+          "w_brvm30_pct": 0.14,
+          "prix_prev": 2300.0,
+          "prix_now": 2340.0,
+          "ret_pct": 1.739,
+          "contrib_pct": 0.0,
+          "gap_contrib_pct": -0.0024
+        }
+      }
     }
   ],
   "open_nav": 243.707
