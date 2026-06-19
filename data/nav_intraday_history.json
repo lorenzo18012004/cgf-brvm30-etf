@@ -1,1 +1,16 @@
-{}
+{
+  "2026-06-19": [
+    {
+      "time": "11:02",
+      "vl": 100000.0,
+      "vl_fcfa": 100000.0,
+      "nav_indice": 243.707,
+      "brvm30_official": 206.83,
+      "perf_since_launch": 0.0,
+      "change_1d_pct": 1.1053,
+      "change_day_pct": 0.0,
+      "aum_mfcfa": 5000.0,
+      "n_prices": 27
+    }
+  ]
+}

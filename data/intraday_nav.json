@@ -1,1 +1,51 @@
-{}
+{
+  "date": "2026-06-19",
+  "snapshots": [
+    {
+      "time": "11:02",
+      "nav_indice": 243.707,
+      "brvm30_official": 206.83,
+      "vl_par_part": 100000.0,
+      "vl_live_fcfa": 100000.0,
+      "perf_since_launch": 0.0,
+      "change_1d_pct": 1.1053,
+      "change_day_pct": 0.0,
+      "aum_mfcfa": 5000.0,
+      "n_prices": 27,
+      "prices_by_ticker": {
+        "SNTS": 28300.0,
+        "ORAC": 16010.0,
+        "SGBC": 39000.0,
+        "ECOC": 16500.0,
+        "SIBC": 8885.0,
+        "ETIT": 34.0,
+        "CBIBF": 22400.0,
+        "STBC": 22450.0,
+        "BOAC": 9490.0,
+        "BOAB": 8950.0,
+        "BICB": 5975.0,
+        "ORGT": 2665.0,
+        "BOAS": 7445.0,
+        "BOABF": 5405.0,
+        "ONTBF": 2750.0,
+        "CIEC": 4995.0,
+        "SPHC": 7575.0,
+        "TTLC": 2800.0,
+        "SHEC": 2105.0,
+        "BOAM": 4525.0,
+        "CFAC": 1800.0,
+        "SDSC": 2370.0,
+        "BOAN": 3765.0,
+        "UNXC": 1900.0,
+        "STAC": 3480.0,
+        "SCRC": 3140.0,
+        "FTSC": 2170.0,
+        "NEIC": 2340.0,
+        "SEMC": 1570.0,
+        "SIVC": 2650.0
+      },
+      "ticker_contributions": {}
+    }
+  ],
+  "open_nav": 243.707
+}
