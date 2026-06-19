@@ -1,139 +1,146 @@
 {
   "annee": 2026,
-  "scraped_at": "2026-06-11T14:05:41",
+  "scraped_at": "2026-06-19T18:27:55",
   "dividendes": [
-    {
-      "nom_sika": "ORANGE CI",
-      "ticker": "ORAC",
-      "date_detach": "2026-06-05",
-      "montant": 800.0,
-      "rendement": 5.06
-    },
-    {
-      "nom_sika": "ONATEL BF",
-      "ticker": "ONTBF",
-      "date_detach": "2026-06-12",
-      "montant": 145.32,
-      "rendement": 4.93
-    },
     {
       "nom_sika": "CORIS BANK INTERNATIONAL BF",
       "ticker": "CBIBF",
       "date_detach": "2026-06-18",
       "montant": 900.0,
-      "rendement": 4.0
+      "rendement": 4.19
     },
     {
       "nom_sika": "PALMCI",
       "ticker": "PALC",
       "date_detach": "2026-06-26",
       "montant": 501.6,
-      "rendement": 5.77
+      "rendement": 5.78
+    },
+    {
+      "nom_sika": "ETI TG",
+      "ticker": "ETIT",
+      "date_detach": "2026-06-29",
+      "montant": 0.93,
+      "rendement": 2.74
+    },
+    {
+      "nom_sika": "BICICI",
+      "ticker": "BICC",
+      "date_detach": "2026-07-03",
+      "montant": 1315.0,
+      "rendement": 4.63
+    },
+    {
+      "nom_sika": "SOLIBRA CI",
+      "ticker": "SLBC",
+      "date_detach": null,
+      "montant": 1871.76,
+      "rendement": 4.82
+    },
+    {
+      "nom_sika": "NSIA BANQUE",
+      "ticker": null,
+      "date_detach": null,
+      "montant": 675.98,
+      "rendement": 3.53
     },
     {
       "nom_sika": "VIVO ENERGY CI",
       "ticker": "VIVC",
       "date_detach": null,
       "montant": 85.07,
-      "rendement": 4.25
+      "rendement": 3.92
     },
     {
       "nom_sika": "CIE CI",
       "ticker": "CIEC",
       "date_detach": null,
       "montant": 205.92,
-      "rendement": 4.2
+      "rendement": 4.12
     },
     {
       "nom_sika": "SMB CI",
       "ticker": "SMBC",
       "date_detach": null,
       "montant": 704.0,
-      "rendement": 4.32
+      "rendement": 4.41
     },
     {
       "nom_sika": "LOTERIE NATIONALE DU BENIN",
       "ticker": "LNBB",
       "date_detach": null,
       "montant": 164.0,
-      "rendement": 4.28
+      "rendement": 4.0
     },
     {
       "nom_sika": "TRACTAFRIC MOTORS CI",
       "ticker": "TTLC",
       "date_detach": null,
       "montant": 183.92,
-      "rendement": 4.38
+      "rendement": 3.91
     },
     {
       "nom_sika": "NESTLE CI",
       "ticker": "NLCI",
       "date_detach": null,
       "montant": 369.6,
-      "rendement": 2.41
+      "rendement": 2.46
     },
     {
       "nom_sika": "TOTAL SENEGAL",
       "ticker": "TOSG",
       "date_detach": null,
       "montant": 169.81,
-      "rendement": 4.99
+      "rendement": 4.85
     },
     {
       "nom_sika": "SERVAIR ABIDJAN CI",
       "ticker": "SAFC",
       "date_detach": null,
       "montant": 120.97,
-      "rendement": 3.6
+      "rendement": 3.52
     },
     {
       "nom_sika": "SODECI",
       "ticker": "SDSC",
       "date_detach": null,
       "montant": 462.0,
-      "rendement": 3.82
+      "rendement": 3.85
     },
     {
       "nom_sika": "NEI CEDA CI",
       "ticker": "NEIC",
       "date_detach": null,
       "montant": 140.39,
-      "rendement": 6.77
+      "rendement": 5.91
     },
     {
       "nom_sika": "SOCIETE IVOIRIENNE DE BANQUE CI",
       "ticker": "SIBC",
       "date_detach": null,
       "montant": 374.0,
-      "rendement": 4.27
+      "rendement": 4.23
     },
     {
       "nom_sika": "SGBCI",
       "ticker": "SGBC",
       "date_detach": null,
       "montant": 2293.28,
-      "rendement": 5.9
-    },
-    {
-      "nom_sika": "ETI TG",
-      "ticker": "ETIT",
-      "date_detach": null,
-      "montant": 0.93,
-      "rendement": 2.91
+      "rendement": 5.86
     },
     {
       "nom_sika": "TOTAL CI",
       "ticker": "TOTC",
       "date_detach": null,
       "montant": 139.77,
-      "rendement": 4.9
+      "rendement": 4.82
     },
     {
       "nom_sika": "SAPH CI",
       "ticker": "SHEC",
       "date_detach": null,
       "montant": 430.32,
-      "rendement": 5.74
+      "rendement": 5.69
     }
   ],
   "historique": {
