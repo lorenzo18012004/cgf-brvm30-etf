@@ -2654,6 +2654,16 @@ def _render_live():
                             marker=dict(size=5),
                             hovertemplate="%{x}<br><b>BRVM30 : %{y:.3f}</b><extra></extra>",
                         ))
+                        star_pts   = [s.get("brvm30_star") for s in _snaps_c]
+                        _star_open = next((v for v in star_pts if v is not None), None)
+                        if _star_open:
+                            star_base100 = [round(v / _star_open * 100, 4) if v is not None else None for v in star_pts]
+                            fig_cmp_intra.add_trace(go.Scatter(
+                                x=times_c, y=star_base100, name="BRVM30*",
+                                mode="lines+markers", line=dict(color="#7c3aed", width=2, dash="dot"),
+                                marker=dict(size=5),
+                                hovertemplate="%{x}<br><b>BRVM30* : %{y:.3f}</b><extra></extra>",
+                            ))
                         fig_cmp_intra.add_hline(y=100, line_dash="dot", line_color="#cbd5e1")
                         fig_cmp_intra.update_layout(**PLOTLY_LAYOUT, height=300,
                             title=f"ETF vs BRVM30 — base 100 à {times_c[0]}",

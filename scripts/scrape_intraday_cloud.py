@@ -166,6 +166,20 @@ class IntradayScraperCloud(BaseScript):
             if _tk not in _prices_now and _tk in live_prices.index:
                 _prices_now[_tk] = round(float(live_prices[_tk]), 0)
 
+        # ── BRVM30* : reconstruction temps réel (poids BRVM30 officiels) ─────
+        _p0_etf_map      = {it["ticker"]: it.get("dernier_prix") for it in _basket}
+        _brvm30_star_ret = 0.0
+        _brvm30_star_w   = 0.0
+        for _tk, _w_b30 in _brvm30_rebal.items():
+            _p0 = _p0_etf_map.get(_tk) or _price_at_rebal.get(_tk)
+            _p1 = _prices_now.get(_tk)
+            if _w_b30 > 0 and _p0 and _p0 > 0 and _p1 and _p1 > 0:
+                _brvm30_star_ret += _w_b30 * (_p1 / _p0 - 1)
+                _brvm30_star_w   += _w_b30
+        if _brvm30_star_w > 0:
+            _brvm30_star_ret /= _brvm30_star_w
+        _brvm30_star = round(_nav_base * (1.0 + _brvm30_star_ret), 4)
+
         _w_etf_map   = {it["ticker"]: it["poids_pct"] / 100 for it in _basket}
         _prev_prices = {}
         _prev_snaps  = [s for s in data.get("snapshots", []) if s.get("prices_by_ticker")]
@@ -211,6 +225,7 @@ class IntradayScraperCloud(BaseScript):
             "time":                now_utc.strftime("%H:%M"),
             "nav_indice":          nav_result["nav_indice"],
             "brvm30_official":     round(brvm30_val, 4) if brvm30_val else None,
+            "brvm30_star":         _brvm30_star,
             "vl_par_part":         nav_result["vl_par_part_fcfa"],
             "vl_live_fcfa":        vl_live,
             "perf_since_launch":   perf_launch,
@@ -240,6 +255,7 @@ class IntradayScraperCloud(BaseScript):
                     "vl_fcfa":             round(vl_live, 0),
                     "nav_indice":          snapshot["nav_indice"],
                     "brvm30_official":     snapshot["brvm30_official"],
+                    "brvm30_star":         snapshot.get("brvm30_star"),
                     "perf_since_launch":   snapshot["perf_since_launch"],
                     "change_1d_pct":       snapshot["change_1d_pct"],
                     "change_day_pct":      snapshot["change_day_pct"],
