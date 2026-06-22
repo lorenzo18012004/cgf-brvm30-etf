@@ -722,52 +722,36 @@ def richbourse_source_info():
 @st.cache_data(ttl=300)
 def detect_recent_splits(lookback_days: int = 10) -> list[dict]:
     """
-    Détecte les splits/ajustements récents via deux méthodes :
-    1. close_adj vs close (si disponible sur Richbourse)
-    2. Variation jour J vs J-1 > 30% sur les dernières séances (split probable)
+    Détecte les splits/ajustements récents depuis sika_history.json.
+    Méthode : variation > 30% entre deux séances consécutives.
     """
-    if not os.path.exists(RICHBOURSE_PATH):
+    sika_path = os.path.join(BRVM30_DIR, "sika_history.json")
+    if not os.path.exists(sika_path):
         return []
     try:
-        with open(RICHBOURSE_PATH, "r", encoding="utf-8") as f:
-            rb = json.load(f)
+        with open(sika_path, "r", encoding="utf-8") as f:
+            sika = json.load(f)
     except Exception:
         return []
 
     splits = []
     cutoff = (pd.Timestamp.now() - pd.Timedelta(days=lookback_days * 3)).strftime("%Y-%m-%d")
 
-    for ticker, days in rb.items():
+    for ticker, days in sika.items():
         recent = {d: v for d, v in days.items() if d >= cutoff}
         if len(recent) < 2:
             continue
         sorted_dates = sorted(recent.keys())
 
-        # Méthode 1 : close_adj vs close (si dispo)
-        for date_str in sorted_dates[-lookback_days:]:
-            v = recent[date_str]
-            if not isinstance(v, dict):
-                continue
-            c  = v.get("close")
-            ca = v.get("close_adj")
-            if c and ca and c > 0 and abs(ca / c - 1.0) > 0.02:
-                splits.append({"ticker": ticker, "date": date_str, "type": "close_adj",
-                               "ratio": round(ca / c, 4), "close": c, "close_adj": ca})
-                break
-
-        # Méthode 2 : variation > 30% entre deux séances consécutives
         prev_close = None
         for date_str in sorted_dates[-lookback_days:]:
             v = recent[date_str]
-            c = v.get("close") if isinstance(v, dict) else (v if isinstance(v, (int, float)) else None)
+            c = v.get("close") if isinstance(v, dict) else (float(v) if isinstance(v, (int, float)) else None)
             if c and prev_close and prev_close > 0:
                 chg = abs(c / prev_close - 1.0)
                 if chg > 0.30:
-                    already = any(s["ticker"] == ticker for s in splits)
-                    if not already:
-                        splits.append({"ticker": ticker, "date": date_str, "type": "variation",
-                                       "ratio": round(c / prev_close, 4),
-                                       "close": c, "close_adj": prev_close})
+                    splits.append({"ticker": ticker, "date": date_str, "type": "variation",
+                                   "ratio": round(c / prev_close, 4), "close": c, "prev_close": prev_close})
                     break
             prev_close = c
 
@@ -822,17 +806,6 @@ def scrape_sika_open():
     except Exception:
         return {}
 
-def _run_pipeline(script_name: str) -> tuple[bool, str]:
-    python = os.path.join(BASE, ".venv", "Scripts", "python.exe")
-    if not os.path.exists(python):
-        python = sys.executable
-    script = os.path.join(BASE, "scripts", script_name)
-    try:
-        r = subprocess.run([python, script], capture_output=True, text=True,
-                           encoding="utf-8", errors="replace", cwd=BASE, timeout=180)
-        return r.returncode == 0, (r.stdout or "") + (r.stderr or "")
-    except subprocess.TimeoutExpired: return False, "Timeout (>3 min)"
-    except Exception as e: return False, str(e)
 
 def to_series(lst):
     if not lst: return pd.Series(dtype=float)
@@ -1018,11 +991,12 @@ def _build_excel_complet(_cache_key: str = "") -> bytes:
 
     return output.getvalue()
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # LANDING
 # ══════════════════════════════════════════════════════════════════════════════
 def _render_landing():
+    st.query_params.update({"page": "live", "section": "situation"})
+    st.rerun()
     # ── Barre de téléchargement (tout en haut) ─────────────────────────────
     import glob as _glob
     _pdf_dir_path    = os.path.join(BRVM30_DIR, "CGF_BRVM30_ETF_Rapport_Direction.pdf")
@@ -1930,21 +1904,7 @@ def _render_live():
                     st.markdown("**Actions requises**")
                     st.markdown(str(alert.get("action_required", "")).replace("\n", "  \n"))
                 st.markdown("---")
-                col_v1, col_v2, col_v3 = st.columns(3)
-                with col_v1:
-                    if st.button("Intégrer + recalculer", type="primary", width='stretch'):
-                        with st.spinner("save_rebal_detail.py..."):
-                            ok1, out1 = _run_pipeline("save_rebal_detail.py")
-                        if ok1:
-                            with st.spinner("calc_nav.py..."):
-                                ok2, out2 = _run_pipeline("calc_nav.py")
-                            if ok2:
-                                st.success("Pipeline mis à jour.")
-                                load_json.clear(); load_json_fresh.clear()
-                            else:
-                                st.error(f"calc_nav.py échoué :\n```\n{out2[-1000:]}\n```")
-                        else:
-                            st.error(f"save_rebal_detail.py échoué :\n```\n{out1[-1000:]}\n```")
+                col_v2, col_v3 = st.columns(2)
                 with col_v2:
                     if st.button("Effacer l'alerte", width='stretch'):
                         try:
@@ -3534,16 +3494,7 @@ def _render_live():
                             with open(os.path.join(BRVM30_DIR, "brvm_composition_latest.json"), "w", encoding="utf-8") as _fh:
                                 json.dump(_dated[-1], _fh, ensure_ascii=False, indent=2)
 
-                        if _do_rerun:
-                            with st.spinner("Recalcul du backtest complet (peut prendre 30–60s)..."):
-                                _ok_pipe, _out_pipe = _run_pipeline("test.py")
-                                _ok_nav,  _out_nav  = _run_pipeline("calc_nav.py")
-                            if _ok_nav:
-                                st.success(f"Composition corrigée + backtest recalculé.")
-                            else:
-                                st.warning(f"Composition sauvegardée mais erreur pipeline : {_out_pipe[-300:]}")
-                        else:
-                            st.success(f"Composition {_ed_label_map.get(_ed_sel, _ed_sel)} corrigée ({_ed_n_new} tickers).")
+                        st.success(f"Composition {_ed_label_map.get(_ed_sel, _ed_sel)} corrigée ({_ed_n_new} tickers).")
 
                         st.cache_data.clear()
                         st.rerun()
@@ -4838,40 +4789,6 @@ def _render_live():
             else:
                 st.info("Historique non disponible — relancer scrape_sika_dividendes.py")
 
-        # ── Outils opérationnels ──────────────────────────────────────────────
-        st.markdown("---")
-        _section("Outils opérationnels")
-        col_p1, col_p2, col_p3, col_p4 = st.columns(4)
-        with col_p1:
-            if st.button("Actualiser cours", width='stretch', help="scrape_sika.py"):
-                with st.spinner("Scraping Sika Finance..."):
-                    ok, out = _run_pipeline("scrape_sika.py")
-                if ok: st.success("Cours mis à jour."); load_json.clear()
-                else: st.error(f"Erreur :\n```\n{out[-800:]}\n```")
-        with col_p2:
-            if st.button("Recalculer VL", width='stretch', help="calc_nav.py"):
-                with st.spinner("Calcul de la VL..."):
-                    ok, out = _run_pipeline("calc_nav.py")
-                if ok:
-                    lines = [l for l in out.splitlines() if l.strip()]
-                    st.success("\n".join(lines[-6:]))
-                    load_json.clear(); load_json_fresh.clear()
-                else: st.error(f"Erreur :\n```\n{out[-800:]}\n```")
-        with col_p3:
-            if st.button("Vérifier composition OCR", width='stretch', help="scrape_brvm_composition.py"):
-                with st.spinner("Scraping brvm.org..."):
-                    ok, out = _run_pipeline("scrape_brvm_composition.py")
-                lines = [l for l in out.splitlines() if l.strip()]
-                st.success("\n".join(lines[-8:])) if ok else st.warning("\n".join(lines[-8:]))
-                load_json_fresh.clear()
-        with col_p4:
-            if st.button("Régénérer rebalancement", width='stretch', help="save_rebal_detail.py"):
-                with st.spinner("Recalcul..."):
-                    ok, out = _run_pipeline("save_rebal_detail.py")
-                lines = [l for l in out.splitlines() if l.strip()]
-                if ok: st.success("\n".join(lines[-5:])); load_json.clear()
-                else: st.error(f"Erreur :\n```\n{out[-800:]}\n```")
-
         # ── Statut daemon iNAV ────────────────────────────────────────────────
         st.markdown("---")
         _section("Daemon iNAV (mise à jour automatique toutes les 15 min)")
@@ -4982,11 +4899,6 @@ def _render_live():
                         st.success("Configuration sauvegardée.")
                     except Exception as _ae:
                         st.error(f"Erreur : {_ae}")
-            with _col_s2:
-                if st.button("Envoyer email test", width='stretch'):
-                    with st.spinner("Envoi en cours..."):
-                        ok_al, out_al = _run_pipeline("send_alert.py --test")
-                    st.success(out_al[-200:]) if ok_al else st.error(out_al[-400:])
             with _col_s3:
                 if st.button("Désactiver alertes", width='stretch'):
                     if _alert_cfg:
