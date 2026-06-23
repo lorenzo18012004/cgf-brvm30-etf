@@ -225,13 +225,14 @@ class ReportGenerator(BaseScript):
         plt.tight_layout(pad=0.3)
         buf = BytesIO(); plt.savefig(buf, format='png', dpi=160, bbox_inches='tight'); plt.close(); buf.seek(0); return buf
 
-    def _chart_base100(self, ih, launch_date, brvm_h, brvm_al, par, cw_pt):
+    def _chart_base100(self, ih, launch_date, brvm_h, brvm_al, par, cw_pt, date_max=None):
         fig, ax = plt.subplots(figsize=(cw_pt/72, 3.4))
         fig.patch.set_facecolor('white'); ax.set_facecolor('white')
         lt = pd.Timestamp(launch_date)
         ep, bp = {lt: 100.0}, {}
         if brvm_al: bp[lt] = 100.0
         for d, pts in sorted(ih.items()):
+            if date_max and d > date_max: continue
             if not pts or pd.Timestamp(d) < lt: continue
             lp = pts[-1]
             vl = lp.get('vl_fcfa') or lp.get('vl')
@@ -449,12 +450,18 @@ class ReportGenerator(BaseScript):
         brvm_al  = float(launch.get('brvm30_index_at_launch') or brvm_h.get(launch_date) or 0) or None
         brvm_now = last.get('brvm30_official')
         if not brvm_now and brvm_h:
-            brvm_now = brvm_h.get(report_date) or float(brvm_h[max(brvm_h.keys())])
+            # Ne jamais utiliser une date postérieure au rapport
+            past = {d: v for d, v in brvm_h.items() if d <= report_date}
+            if past:
+                brvm_now = past.get(report_date) or float(past[max(past.keys())])
         perf_idx = (float(brvm_now)/brvm_al - 1)*100 if brvm_now and brvm_al else None
 
         lt = pd.Timestamp(launch_date)
         ce, ci = {}, {}
         for d, pts in ih.items():
+            # Exclure toute date postérieure au rapport
+            if d > report_date:
+                continue
             if pts and pd.Timestamp(d) >= lt:
                 lp = pts[-1]
                 v2 = lp.get('vl_fcfa') or lp.get('vl')
@@ -561,7 +568,7 @@ class ReportGenerator(BaseScript):
         story.append(PageBreak())
         story += self._header(cw, etf_name, _date_fr(report_date))
 
-        buf2 = self._chart_base100(ih, launch_date, brvm_h, brvm_al, par, cw-28) if nd>=1 else None
+        buf2 = self._chart_base100(ih, launch_date, brvm_h, brvm_al, par, cw-28, date_max=report_date) if nd>=1 else None
         ch_w = cw - 28
         # figsize hauteur = 3.4 in → height en pt = 3.4 * 72 = 244.8
         story.append(self._wrap_card([
