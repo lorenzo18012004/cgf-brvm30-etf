@@ -2086,56 +2086,37 @@ def _render_live():
                     {_kc("Tracking Diff.", _td_str, color=_dc)}
                     {_kc("Tracking Error", _te_str)}
                   </div>
-                  <div style="padding:2px 22px 10px;font-size:0.6rem;color:#7d8fa3;font-style:italic">
-                    TD positive structurelle en période de dividendes (mars–sept.) : l'ETF collecte les coupons,
-                    le BRVM30 (indice de prix) les ignore. Normal et attendu pour un fonds distribuant.
-                  </div>
                 </div>""", unsafe_allow_html=True)
 
-            # Ligne 2 : Ratios | Rebalancement
-            _kpi_r2_l, _kpi_r2_r = st.columns(2)
-            with _kpi_r2_l:
-                _launch_lbl = pd.Timestamp(launch_date).strftime("%d/%m/%Y") if launch_date else "—"
-                _nr_hd = f' <span style="font-size:0.55rem;color:#c9861a;font-weight:400">* {_n_seances}j — non repr. avant 30j</span>' if _non_repr else ""
+            # Ligne 2 : Rebalancement (pleine largeur)
+            if _progress_pct is not None:
+                _dr_txt = f"{_days_remaining}j" if _days_remaining >= 0 else "Dépassé"
                 st.markdown(f"""
                 <div class="kpi-card">
-                  <div class="kpi-card-hd">Ratios de risque — depuis le {_launch_lbl}{_nr_hd}</div>
-                  <div style="display:flex">
-                    {_kc("CAGR ETF", f"{_live_cagr:.2f}%*" if _live_cagr is not None and _non_repr else (f"{_live_cagr:.2f}%" if _live_cagr is not None else "—"))}
-                    {_kc("Sharpe", f"{_live_sharpe:.2f}*" if _live_sharpe is not None and _non_repr else (f"{_live_sharpe:.2f}" if _live_sharpe is not None else "—"))}
-                    {_kc("Max Drawdown", f"{_live_maxdd:.2f}%" if _live_maxdd is not None else "—")}
-                    {_kc("TE live", _te_str)}
+                  <div class="kpi-card-hd">Rebalancement BRVM30</div>
+                  <div style="display:flex;flex-wrap:wrap">
+                    {_kc("Dernier", _last_rebal_dt.strftime("%d/%m/%Y"))}
+                    {_kc("Prochain (est.)", _next_rebal_str)}
+                    {_kc("Jours restants", _dr_txt, color=_dr_color)}
+                    {_kc("Avancement", f"{_progress_pct}%")}
+                  </div>
+                  <div style="padding:0 22px 14px">
+                    <div style="height:3px;background:#e0dbd2;border-radius:1px;overflow:hidden">
+                      <div style="height:100%;width:{_progress_pct}%;background:linear-gradient(90deg,#b8973f,#d4b96a);border-radius:1px"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-top:5px">
+                      <span style="font-size:0.58rem;color:#7d8fa3">{_last_rebal_dt.strftime("%d/%m/%Y")}</span>
+                      <span style="font-size:0.58rem;color:#b8973f;font-weight:600">{_progress_pct}%</span>
+                      <span style="font-size:0.58rem;color:#7d8fa3">{_next_rebal_str}</span>
+                    </div>
                   </div>
                 </div>""", unsafe_allow_html=True)
-            with _kpi_r2_r:
-                if _progress_pct is not None:
-                    _dr_txt = f"{_days_remaining}j" if _days_remaining >= 0 else "Dépassé"
-                    st.markdown(f"""
-                    <div class="kpi-card">
-                      <div class="kpi-card-hd">Rebalancement BRVM30</div>
-                      <div style="display:flex;flex-wrap:wrap">
-                        {_kc("Dernier", _last_rebal_dt.strftime("%d/%m/%Y"))}
-                        {_kc("Prochain (est.)", _next_rebal_str)}
-                        {_kc("Jours restants", _dr_txt, color=_dr_color)}
-                        {_kc("Avancement", f"{_progress_pct}%")}
-                      </div>
-                      <div style="padding:0 22px 14px">
-                        <div style="height:3px;background:#e0dbd2;border-radius:1px;overflow:hidden">
-                          <div style="height:100%;width:{_progress_pct}%;background:linear-gradient(90deg,#b8973f,#d4b96a);border-radius:1px"></div>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;margin-top:5px">
-                          <span style="font-size:0.58rem;color:#7d8fa3">{_last_rebal_dt.strftime("%d/%m/%Y")}</span>
-                          <span style="font-size:0.58rem;color:#b8973f;font-weight:600">{_progress_pct}%</span>
-                          <span style="font-size:0.58rem;color:#7d8fa3">{_next_rebal_str}</span>
-                        </div>
-                      </div>
-                    </div>""", unsafe_allow_html=True)
-                else:
-                    st.markdown("""
-                    <div class="kpi-card">
-                      <div class="kpi-card-hd">Rebalancement BRVM30</div>
-                      <div style="padding:20px 22px;color:#7d8fa3;font-size:0.75rem">Données indisponibles</div>
-                    </div>""", unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div class="kpi-card">
+                  <div class="kpi-card-hd">Rebalancement BRVM30</div>
+                  <div style="padding:20px 22px;color:#7d8fa3;font-size:0.75rem">Données indisponibles</div>
+                </div>""", unsafe_allow_html=True)
 
             # ── Dividendes (Ligne 3) ───────────────────────────────────────────
             _dlog_s   = load_json(os.path.join(BRVM30_DIR, "dividend_log.json")) or {}
@@ -2325,21 +2306,11 @@ def _render_live():
                         legend=dict(orientation="h", y=-0.14))
                     fig_cmp.update_xaxes(tickformat="%d/%m")
 
-                # ── Affichage côte à côte ──────────────────────────────────────
-                _ch_left, _ch_right = st.columns(2)
-                with _ch_left:
-                    _section("VL depuis le lancement")
-                    if not combined.empty:
-                        st.plotly_chart(fig_main, width='stretch')
-                        if intra_snaps and not today_intraday:
-                            st.caption(f"Dernière session disponible : {intra_date}")
-                    else:
-                        st.info("Aucune donnée de VL live disponible.")
-                with _ch_right:
-                    _section("ETF vs BRVM30 — base 100")
-                    if fig_cmp is not None:
-                        st.plotly_chart(fig_cmp, width='stretch')
-                        st.caption("Base 100 = prix d'émission le jour du lancement.")
+                # ── Graphique ETF vs BRVM30 pleine largeur ────────────────────
+                _section("ETF vs BRVM30 — base 100")
+                if fig_cmp is not None:
+                    st.plotly_chart(fig_cmp, width='stretch')
+                    st.caption("Base 100 = prix d'émission le jour du lancement.")
 
                 # ── Tableau récapitulatif (expander pleine largeur) ───────────
                 if fig_cmp is not None:
@@ -2742,7 +2713,7 @@ def _render_live():
                             })
 
                         if _attr_data:
-                            _section("Attribution intraday — explication des mouvements")
+                          with st.expander("Attribution intraday — explication des mouvements", expanded=False):
                             st.caption(
                                 "Cliquez sur une tranche pour voir le detail. "
                                 "Ce qui a bouge l'ETF + pourquoi il ne suit pas exactement l'indice BRVM30. "
