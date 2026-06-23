@@ -1268,11 +1268,11 @@ def _render_backtest():
         st.markdown("---")
         m = dd.get("metrics", {})
         c1, c2, c3, c4, c5, c6 = st.columns(6)
-        c1.metric("TE instantanée",    pct(m.get("te"), sign=False), help="Tracking Error journalière annualisée vs BRVM30 PR")
-        c2.metric("TE progressive",    pct(bm.get("te_prog"), sign=False), help="TE avec exécution étalée")
-        c3.metric("TD net cumulé",     pct(m.get("td")), help="Tracking Difference nette sur toute la période")
-        c4.metric("Frais gestion",     pct(abs(m.get("mgmt_fee_cumul", 0)), sign=False))
-        c5.metric("Coûts transaction", pct(m.get("cost_tx_cumul", 0), sign=False))
+        c1.metric("TE nette",          pct(m.get("te"), sign=False),      help="Tracking Error journalière annualisée vs BRVM30 PR")
+        c2.metric("TE brute",          pct(m.get("te_gross"), sign=False), help="TE avant frais de gestion")
+        c3.metric("TD net cumulé",     pct(m.get("td")),                  help="ETF PR nette vs BRVM30 PR — période complète")
+        c4.metric("TD net /an",        pct(m.get("td_ann")),              help="TD net annualisé")
+        c5.metric("TD brut cumulé",    pct(m.get("td_gross")),            help="Panier PR brut vs BRVM30 PR")
         c6.metric("Rebalancements",    str(bm.get("n_rebal", "—")))
 
         col1, col2 = st.columns(2)
@@ -1283,9 +1283,44 @@ def _render_backtest():
             c3b.metric("Titres max.", str(bm.get("n_titres_max", "—")))
         with col2:
             c1c, c2c, c3c = st.columns(3)
-            c1c.metric("Turnover moy.",    pct(bm.get("turnover_avg", 0), sign=False))
-            c2c.metric("TD structurel/an", pct(bm.get("td_structural_ann", 0)))
-            c3c.metric("Coût tx/an",       pct(bm.get("cost_tx_ann", 0), sign=False))
+            c1c.metric("Turnover moy.", pct(bm.get("turnover_avg", 0), sign=False))
+            c2c.metric("Frais gestion", pct(abs(m.get("mgmt_fee_cumul", 0)), sign=False))
+            c3c.metric("Coût tx/an",    pct(bm.get("cost_tx_ann", 0), sign=False))
+
+        # ── Règles de sélection du panier ─────────────────────────────────
+        sp = bm.get("selection_params", {})
+        if sp:
+            _section("Règles de sélection du panier (appliquées dans le backtest)")
+            col_r1, col_r2 = st.columns(2)
+            with col_r1:
+                st.markdown("""
+**Inclusion forcée** — si le titre représente ≥ **%.0f%%** du poids de l'indice BRVM30,
+il est inclus dans le panier quelles que soient sa liquidité ou la fréquence de ses cotations.
+
+**Exclusion stale** — si ≥ **%.0f%%** des jours ouvrés sur les **%d derniers jours** (3 mois)
+ne présentent aucune transaction, le titre est exclu *(sauf si forcé par le poids)*.
+
+**Float minimum** — les titres avec un flottant < **%d Md FCFA** sont exclus
+indépendamment de leur liquidité apparente.
+""" % (sp.get("force_weight_pct", 3),
+       sp.get("stale_threshold_pct", 70),
+       sp.get("stale_window_days", 63),
+       sp.get("float_min_mfcfa", 7000) // 1000))
+            with col_r2:
+                st.markdown("""
+**Exclusion ADV — nouveaux entrants** — si l'exécution du trade dépasse
+**%d jours** sans impact marché, le titre n'entre pas dans le panier.
+L'ETF privilégie un bloc OTC pour ces positions.
+
+**Exclusion ADV — titres existants** — si le titre nécessite > **%d jours**
+d'exécution sur **%d rebalancements consécutifs**, il est retiré du panier.
+
+**Poids minimum** — après redistribution des exclusions, tout titre
+représentant < **%.1f%%** du panier est écarté (coût de transaction > apport en tracking).
+""" % (sp.get("max_exec_new_days", 100),
+       sp.get("max_exec_exist_days", 32),
+       sp.get("consec_rebals_exit", 2),
+       sp.get("min_basket_weight_pct", 0.1)))
 
         nav_e = nav_e_full.loc[start_dt:end_dt]
         nav_b = nav_b_full.loc[start_dt:end_dt]
@@ -1422,6 +1457,15 @@ def _render_backtest():
             sel_date = st.selectbox("Date de rebalancement", dates_wh, index=len(dates_wh) - 1)
             w = pd.Series(wh[sel_date]).sort_values(ascending=False)
 
+            # Charger rebal_detail pour cette date (exclusions + cause)
+            _rd_comp = load_json(os.path.join(BRVM30_DIR, "rebal_detail.json")) or {}
+            _rebal_sel = next(
+                (r for r in _rd_comp.get("rebalancings", []) if r.get("date") == sel_date),
+                None)
+            _excluded_sel = _rebal_sel.get("excluded", []) if _rebal_sel else []
+            _basket_sel   = _rebal_sel.get("basket",   []) if _rebal_sel else []
+            _forced_tks   = {b["ticker"] for b in _basket_sel if b.get("force")}
+
             col1, col2 = st.columns([1.2, 1])
             with col1:
                 fig_pie = go.Figure(go.Pie(
@@ -1438,12 +1482,57 @@ def _render_backtest():
                 )
                 st.plotly_chart(fig_pie, width='stretch')
             with col2:
-                st.dataframe(pd.DataFrame({
-                    "Titre":  w.index,
-                    "Poids":  [f"{v * 100:.2f}%" for v in w.values],
-                }), width='stretch', hide_index=True, height=360)
+                _basket_rows = []
+                for tk, v in w.items():
+                    _bi = next((b for b in _basket_sel if b["ticker"] == tk), {})
+                    _tag = " ⚡" if tk in _forced_tks else ""
+                    _basket_rows.append({
+                        "Titre": tk + _tag,
+                        "Poids ETF": f"{v*100:.2f}%",
+                        "Poids indice": f"{_bi.get('w_brvm30', 0)*100:.2f}%" if _bi else "—",
+                        "ADV (M FCFA)": f"{_bi.get('adv_mfcfa', 0):.1f}" if _bi else "—",
+                    })
+                st.caption("⚡ = forcé malgré ADV insuffisant (poids indice ≥ 3%)")
+                st.dataframe(pd.DataFrame(_basket_rows), width='stretch', hide_index=True, height=360)
 
-            _section("Evolution des poids par rebalancement")
+            # ── Titres exclus ──────────────────────────────────────────────
+            if _excluded_sel:
+                _section("Titres exclus de ce rebalancement — cause détaillée")
+
+                def _excl_cause(e):
+                    r = e.get("raison", "")
+                    w_b = e.get("w_brvm30", 0)
+                    adv  = e.get("adv_mfcfa", 0)
+                    req  = e.get("adv_req", 0)
+                    exec_d = e.get("exec_days") or (e.get("trade_mfcfa", 0) / adv if adv > 0 else None)
+                    stale  = e.get("stale_ratio")
+                    if "Float" in r:
+                        return "Float trop petit (< 7 Md FCFA)"
+                    if "Absent" in r:
+                        return "Absent de l'indice BRVM30 à cette date"
+                    if stale is not None and stale >= 0.70:
+                        return f"Prix stale : {stale*100:.0f}% de jours sans cotation sur 3 mois"
+                    if "ADV limité" in r or "ADV insuffisant" in r:
+                        return r
+                    if "consécutifs" in r:
+                        return r
+                    if adv > 0 and req > 0 and adv < req:
+                        if exec_d:
+                            return f"Liquidité insuffisante — {exec_d:.0f}j d'exécution (seuil : 32j) | ADV {adv:.1f} M FCFA"
+                        return f"ADV {adv:.1f} M FCFA < requis {req:.1f} M FCFA"
+                    return r if r else "Liquidité insuffisante"
+
+                _excl_rows = []
+                for e in sorted(_excluded_sel, key=lambda x: x.get("w_brvm30", 0), reverse=True):
+                    _excl_rows.append({
+                        "Titre":       e.get("ticker", ""),
+                        "Poids indice": f"{e.get('w_brvm30', 0)*100:.2f}%",
+                        "ADV (M FCFA)": f"{e.get('adv_mfcfa', 0):.1f}" if e.get("adv_mfcfa") else "—",
+                        "Cause":        _excl_cause(e),
+                    })
+                st.dataframe(pd.DataFrame(_excl_rows), width='stretch', hide_index=True)
+
+            _section("Évolution des poids par rebalancement")
             all_w = pd.DataFrame({d: pd.Series(wh[d]) for d in dates_wh}).T.fillna(0)
             all_w.index = pd.to_datetime(all_w.index)
             fig_bar = go.Figure()
