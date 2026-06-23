@@ -148,9 +148,9 @@ class ReportGenerator(BaseScript):
     def S(self):
         return {
             'h_name': ParagraphStyle('hn', fontName='Helvetica-Bold', fontSize=11,
-                      textColor=WHITE, alignment=TA_RIGHT, leading=14),
+                      textColor=BLACK, alignment=TA_RIGHT, leading=14),
             'h_sub':  ParagraphStyle('hs', fontName='Helvetica', fontSize=7.5,
-                      textColor=colors.HexColor('#bbbbbb'), alignment=TA_RIGHT, leading=10),
+                      textColor=DKGRAY, alignment=TA_RIGHT, leading=10),
             'clbl':   ParagraphStyle('cl', fontName='Helvetica', fontSize=6.5,
                       textColor=GRAY, leading=9, spaceBefore=0),
             'clbl_r': ParagraphStyle('clr', fontName='Helvetica', fontSize=6.5,
@@ -485,12 +485,11 @@ class ReportGenerator(BaseScript):
                  Paragraph(f'Bulletin de valeur liquidative  ·  {date_str}', s['h_sub'])]
         hdr = Table([[logo, right]], colWidths=[4*cm, cw-4*cm])
         hdr.setStyle(TableStyle([
-            ('BACKGROUND',    (0,0),(-1,-1), BLACK),
             ('VALIGN',        (0,0),(-1,-1), 'MIDDLE'),
-            ('TOPPADDING',    (0,0),(-1,-1), 9),
-            ('BOTTOMPADDING', (0,0),(-1,-1), 9),
-            ('LEFTPADDING',   (0,0),(0,0),   12),
-            ('RIGHTPADDING',  (1,0),(1,0),   12),
+            ('TOPPADDING',    (0,0),(-1,-1), 6),
+            ('BOTTOMPADDING', (0,0),(-1,-1), 6),
+            ('LEFTPADDING',   (0,0),(0,0),   0),
+            ('RIGHTPADDING',  (1,0),(1,0),   0),
         ]))
         return [hdr, Spacer(1, 16)]
 
