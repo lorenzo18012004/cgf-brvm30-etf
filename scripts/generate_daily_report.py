@@ -581,9 +581,8 @@ class ReportGenerator(BaseScript):
         s  = self.S()
         cw = self.PAGE_W - 2*self.M
         footer_note = (
-            f'Document à usage interne  ·  CGF Gestion — Agréé CREPMF  ·  '
-            f'Généré le {datetime.now().strftime("%d/%m/%Y %H:%M")} UTC  ·  '
-            f'Source : sikafinance.com  ·  Les performances passées ne préjugent pas des performances futures.'
+            f'CGF Gestion — Agréé CREPMF  ·  Source : sikafinance.com  ·  '
+            f'Les performances passées ne préjugent pas des performances futures.'
         )
 
         doc = SimpleDocTemplate(pdf_path, pagesize=A4,
