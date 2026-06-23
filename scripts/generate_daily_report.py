@@ -697,7 +697,7 @@ class ReportGenerator(BaseScript):
 
         story.append(Paragraph(
             f'COMPOSITION DU PORTEFEUILLE  ·  {len(basket)} titres  ·  '
-            f'NAV {nl.get("calc_date","—")}  ·  AUM {aum:,.1f} M FCFA', s['clbl']))
+            f'NAV {report_date}  ·  AUM {aum:,.1f} M FCFA', s['clbl']))
         story.append(Spacer(1,5))
 
         cws_t = [cw*x for x in [0.10, 0.08, 0.12, 0.095, 0.12, 0.09, 0.395]]
