@@ -582,6 +582,12 @@ class ReportGenerator(BaseScript):
         cw = self.PAGE_W - 2*self.M
 
 
+        def _bg(canvas, doc):
+            canvas.saveState()
+            canvas.setFillColor(colors.HexColor('#f7f7f7'))
+            canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
+            canvas.restoreState()
+
         doc = SimpleDocTemplate(pdf_path, pagesize=A4,
             leftMargin=self.M, rightMargin=self.M,
             topMargin=0.8*cm, bottomMargin=0.8*cm,
@@ -893,7 +899,7 @@ class ReportGenerator(BaseScript):
             Spacer(1,10),
         ]))
 
-        doc.build(story)
+        doc.build(story, onFirstPage=_bg, onLaterPages=_bg)
         print(f'PDF : {pdf_path}')
         return pdf_path
 
