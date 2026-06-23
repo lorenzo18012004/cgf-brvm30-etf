@@ -1213,7 +1213,7 @@ elif _page == "live":
 if _page in ("live", "backtest"):
     import glob as _glob
     _today_pname = f"rapport_journalier_{pd.Timestamp.now(tz='UTC').strftime('%Y-%m-%d')}.pdf"
-    _pdf_found   = sorted(_glob.glob(os.path.join(BRVM30_DIR, "data", "pdfs", "journalier", "**", "rapport_journalier_*.pdf"), recursive=True), reverse=True)
+    _pdf_found   = sorted(_glob.glob(os.path.join(BASE, "data", "pdfs", "journalier", "**", "rapport_journalier_*.pdf"), recursive=True), reverse=True)
     _today_pp    = next((p for p in _pdf_found if _today_pname in p), None)
     _latest_dp   = _today_pp if _today_pp else (_pdf_found[0] if _pdf_found else None)
     _hdr1, _hdr2 = st.columns(2)
