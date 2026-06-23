@@ -35,35 +35,7 @@ jobs:
         run: python scripts/calc_nav_cloud.py
 
       - name: Mettre à jour brvm30_index_history
-        run: |
-          python - <<'EOF'
-          import json, os
-          from datetime import datetime, timezone
-
-          ih_path   = "data/nav_intraday_history.json"
-          brvm_path = "data/brvm30_index_history.json"
-
-          if not os.path.exists(ih_path) or not os.path.exists(brvm_path):
-              print("Fichiers manquants, skip.")
-              exit(0)
-
-          ih     = json.load(open(ih_path, encoding="utf-8"))
-          brvm_h = json.load(open(brvm_path, encoding="utf-8"))
-
-          dates_sorted = sorted(ih.keys())
-          for i, date in enumerate(dates_sorted):
-              if i + 1 < len(dates_sorted):
-                  next_snaps = ih.get(dates_sorted[i + 1], [])
-                  if next_snaps:
-                      val = next_snaps[0].get("brvm30_official")
-                      if val and date not in brvm_h:
-                          brvm_h[date] = float(val)
-                          print(f"  Ajout {date}: {val}")
-
-          with open(brvm_path, "w", encoding="utf-8") as f:
-              json.dump(brvm_h, f, ensure_ascii=False)
-          print("brvm30_index_history.json mis a jour.")
-          EOF
+        run: python scripts/update_brvm30_history.py
 
       - name: Commit et push
         uses: stefanzweifel/git-auto-commit-action@v5
