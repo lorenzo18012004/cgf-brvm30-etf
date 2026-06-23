@@ -527,14 +527,15 @@ class ReportGenerator(BaseScript):
         ], [vl_w, var_w], pad=18))
         story.append(Spacer(1, 6))
 
-        td_bps = f'{int(round(td*100)):+d} bps' if td is not None else '—'
+        te_val  = f'{te:.2f}%'                          if te is not None else '—'
+        td_bps  = f'{int(round(td*100)):+d} bps'        if td is not None else '—'
         story.append(self._cards_row([
             self._card_cell('ETF CGF BRVM30', self._pct(perf_l),
                             f'depuis le {_dfr(launch_date)}', val_size='med'),
             self._card_cell('BRVM30', self._pct(perf_idx),
                             'indice de cours', val_size='med'),
-            self._card_cell('TRACKING DIFF.', td_bps,
-                            'TD structurelle en dividendes', val_size='med'),
+            self._card_cell('TRACKING ERROR', te_val,
+                            f'annualisée  ·  {nd} séance(s)', val_size='med'),
             self._card_cell('ACTIF NET', f'{aum:,.1f} M',
                             f'FCFA  ·  {n_parts:,} parts', val_size='med'),
         ], [cw/4]*4, pad=14))
@@ -554,11 +555,11 @@ class ReportGenerator(BaseScript):
             ], cw))
         story.append(Spacer(1, 10))
 
-        te_str  = f'TE {te:.2f}%  ·  ' if te else ''
+        td_str  = f'TD {td_bps}  ·  ' if td is not None else ''
         reb_str = f'Prochain rebalancement le {next_r_str} ({days_r}j)' if days_r is not None else ''
         brv_str = f'  ·  BRVM30 {float(brvm_now):.2f}' if brvm_now else ''
         story.append(Paragraph(
-            f'{n_parts:,} parts  ·  {aum:,.1f} M FCFA actif net  ·  {te_str}{reb_str}{brv_str}',
+            f'{n_parts:,} parts  ·  {aum:,.1f} M FCFA actif net  ·  {td_str}{reb_str}{brv_str}',
             s['body']))
         story.append(Spacer(1,6))
         story.append(HRFlowable(width=cw, thickness=0.4, color=colors.HexColor('#cccccc'), spaceAfter=4))
