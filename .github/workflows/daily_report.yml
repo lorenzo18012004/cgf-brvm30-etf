@@ -2,8 +2,8 @@ name: Rapport Journalier 16h
 
 on:
   schedule:
-    # 16h05 UTC, lundi-vendredi (marché BRVM fermé depuis 15h30)
-    - cron: '5 16 * * 1-5'
+    # Planifié à 13h UTC — GitHub Actions décale souvent de 2-3h, cible réelle ~16h
+    - cron: '5 13 * * 1-5'
   workflow_dispatch:
 
 jobs:
