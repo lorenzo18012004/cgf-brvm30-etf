@@ -1,1 +1,134 @@
-{}
+{
+  "stress_tests": [
+    {
+      "name": "Trimestriel (référence)",
+      "te": 0.022383,
+      "td": 0.052382,
+      "turnover": 0.116333
+    },
+    {
+      "name": "Mensuel",
+      "te": 0.023347,
+      "td": 0.112872,
+      "turnover": 0.038778
+    },
+    {
+      "name": "Semestriel",
+      "te": 0.025105,
+      "td": 0.062164,
+      "turnover": 0.151332
+    },
+    {
+      "name": "Annuel",
+      "te": 0.037083,
+      "td": 0.017742,
+      "turnover": 0.180991
+    },
+    {
+      "name": "Trimestriel +frais ×2",
+      "te": 0.02239,
+      "td": 0.031898,
+      "turnover": 0.116333
+    },
+    {
+      "name": "Trimestriel 0-frais",
+      "te": 0.022378,
+      "td": 0.073146,
+      "turnover": 0.116333
+    }
+  ],
+  "ewma_sensitivity": [
+    {
+      "threshold": 0.05,
+      "te": 0.022383,
+      "td": 0.052382,
+      "turnover": 0.116333,
+      "n_rebal": 13
+    },
+    {
+      "threshold": 0.08,
+      "te": 0.023081,
+      "td": 0.057557,
+      "turnover": 0.134471,
+      "n_rebal": 10
+    },
+    {
+      "threshold": 0.1,
+      "te": 0.02753,
+      "td": 0.06148,
+      "turnover": 0.151468,
+      "n_rebal": 6
+    },
+    {
+      "threshold": 0.12,
+      "te": 0.030876,
+      "td": 0.035922,
+      "turnover": 0.208631,
+      "n_rebal": 3
+    },
+    {
+      "threshold": 0.15,
+      "te": 0.03038,
+      "td": 0.070801,
+      "turnover": 0.244829,
+      "n_rebal": 2
+    },
+    {
+      "threshold": 0.2,
+      "te": 0.03736,
+      "td": 0.034416,
+      "turnover": 0.304284,
+      "n_rebal": 1
+    },
+    {
+      "threshold": 0.25,
+      "te": 0.03736,
+      "td": 0.034416,
+      "turnover": 0.304284,
+      "n_rebal": 1
+    }
+  ],
+  "bootstrap": {
+    "n_sim": 500,
+    "te_med": 0.022369,
+    "te_p5": 0.020444,
+    "te_p95": 0.024363
+  },
+  "walk_forward": [
+    {
+      "label": "Jan–Déc 2023",
+      "te_is": 0.030282,
+      "te_oos": 0.015796,
+      "td_oos": 0.047332,
+      "delta_te": -0.014486
+    },
+    {
+      "label": "Jan–Déc 2024",
+      "te_is": 0.015796,
+      "te_oos": 0.020687,
+      "td_oos": 0.050097,
+      "delta_te": 0.004891
+    },
+    {
+      "label": "Jan–Déc 2025",
+      "te_is": 0.020687,
+      "te_oos": 0.012349,
+      "td_oos": 0.052382,
+      "delta_te": -0.008338
+    },
+    {
+      "label": "2023–2024 IS / 2025 OOS",
+      "te_is": 0.024082,
+      "te_oos": 0.020687,
+      "td_oos": 0.050097,
+      "delta_te": -0.003395
+    },
+    {
+      "label": "2023–2025 IS / 2026 OOS",
+      "te_is": 0.023036,
+      "te_oos": 0.012349,
+      "td_oos": 0.052382,
+      "delta_te": -0.010688
+    }
+  ]
+}
