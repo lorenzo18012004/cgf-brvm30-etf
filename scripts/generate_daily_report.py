@@ -662,7 +662,7 @@ class ReportGenerator(BaseScript):
         story.append(Spacer(1,6))
 
         # ── Courbes TE glissant + MDD glissant (côte à côte) ──────────
-        te_target = float(launch.get('te_target_pct', 1.0))
+        te_target = float(launch.get('te_target_pct', 2.5))
         hw = (cw - 6) / 2
         buf_te  = self._chart_te_rolling(ec, ic, hw - 28, te_target=te_target) if len(ec) >= 2 else None
         buf_mdd = self._chart_mdd_rolling(ec, par, hw - 28) if len(ec) >= 2 else None
