@@ -4143,7 +4143,7 @@ def _render_live():
             if basket_now:
                 # Calcul live depuis sika_history (63 jours ouvrés = 3 mois)
                 _sh_liq = load_json(rh_path) or {}
-                _today  = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                _today  = datetime.utcnow().strftime("%Y-%m-%d")
                 _aum    = (nl_mgmt or {}).get("aum_mfcfa") or 5000.0
 
                 def _live_adv(ticker):
