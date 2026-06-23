@@ -274,9 +274,12 @@ class ReportGenerator(BaseScript):
             ret_etf = etf_cl.pct_change().dropna()
             ret_idx = idx_cl.pct_change().dropna()
             common  = ret_etf.index.intersection(ret_idx.index)
-            if len(common) >= 2:
+            if len(common) >= 1:
                 active = ret_etf.loc[common] - ret_idx.loc[common]
-                te = float(active.std() * np.sqrt(252) * 100)
+                if len(common) >= 2:
+                    te = float(active.std() * np.sqrt(252) * 100)
+                else:
+                    te = float(abs(active.iloc[0]) * np.sqrt(252) * 100)
             if brvm30_at_launch and not etf_cl.empty and not idx_cl.empty:
                 etf_cum = etf_cl.iloc[-1] / par
                 idx_cum = idx_cl.iloc[-1] / brvm30_at_launch
