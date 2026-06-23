@@ -19,7 +19,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    Image, HRFlowable, PageBreak, KeepTogether,
+    Image, PageBreak, KeepTogether,
 )
 from base import BaseScript
 
@@ -580,10 +580,7 @@ class ReportGenerator(BaseScript):
         print("PDF...")
         s  = self.S()
         cw = self.PAGE_W - 2*self.M
-        footer_note = (
-            f'CGF Gestion — Agréé CREPMF  ·  Source : sikafinance.com  ·  '
-            f'Les performances passées ne préjugent pas des performances futures.'
-        )
+
 
         doc = SimpleDocTemplate(pdf_path, pagesize=A4,
             leftMargin=self.M, rightMargin=self.M,
@@ -641,9 +638,6 @@ class ReportGenerator(BaseScript):
             f'{n_parts:,} parts  ·  {aum:,.1f} M FCFA actif net  ·  {td_str}{reb_str}{brv_str}',
             s['body']))
         story.append(Spacer(1,6))
-        story.append(HRFlowable(width=cw, thickness=0.4, color=colors.HexColor('#cccccc'), spaceAfter=4))
-        story.append(Paragraph(footer_note, s['note']))
-
         # ══ PAGE 2 : Base100 + Composition ════════════════════════════
         story.append(PageBreak())
         story += self._header(cw, etf_name, _date_fr(report_date))
@@ -775,13 +769,8 @@ class ReportGenerator(BaseScript):
             ]))
             story.append(KeepTogether([
                 Paragraph('TOP MOUVEMENTS DU JOUR', s['clbl']),
-                Spacer(1,5), movers, Spacer(1,10),
-                HRFlowable(width=cw,thickness=0.4,color=colors.HexColor('#cccccc'),spaceAfter=4),
-                Paragraph(footer_note, s['note']),
+                Spacer(1,5), movers,
             ]))
-        else:
-            story.append(HRFlowable(width=cw,thickness=0.4,color=colors.HexColor('#cccccc'),spaceAfter=4))
-            story.append(Paragraph(footer_note, s['note']))
 
         # ══ PAGE 3 : ALLOCATION SECTORIELLE, GÉOGRAPHIQUE, TOP 10 ══════
         story.append(PageBreak())
@@ -902,8 +891,6 @@ class ReportGenerator(BaseScript):
                 self._card_cell('CONCENTRATION TOP 5', f'{top5_w:.1f}%', top5_lbl, val_size='small'),
             ], [cw/2, cw/2], pad=14),
             Spacer(1,10),
-            HRFlowable(width=cw, thickness=0.4, color=colors.HexColor('#cccccc'), spaceAfter=4),
-            Paragraph(footer_note, s['note']),
         ]))
 
         doc.build(story)
