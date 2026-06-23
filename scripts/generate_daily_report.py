@@ -478,9 +478,9 @@ class ReportGenerator(BaseScript):
         # ── Bloc identification fonds ──────────────────────────────────
         id_data = [
             ['Gestionnaire', 'CGF Gestion',
-             'Type de fonds', 'OPCVM indiciel coté (ETF)'],
+             'Type de fonds', 'OPCVM indiciel coté (ETF) — Distribuant'],
             ['Marché de cotation', 'BRVM — Bourse Régionale des Valeurs Mobilières',
-             'Indice de référence', 'BRVM30 Price Return'],
+             'Indice de référence', 'BRVM30 (indice de cours — dividendes collectés et redistribués aux porteurs)'],
             ['Prix d\'émission', f'{par:,.0f} FCFA / part',
              'Date de lancement', _date_fr_short(launch_date)],
         ]
@@ -541,7 +541,7 @@ class ReportGenerator(BaseScript):
         perf_row = [
             self._kpi_cell(self._pct(perf_launch), 'ETF CGF BRVM30',
                            self._ks(perf_launch, 'med')),
-            self._kpi_cell(self._pct(perf_idx), 'BRVM30 (indice officiel)',
+            self._kpi_cell(self._pct(perf_idx), 'BRVM30 indice de cours',
                            self._ks(perf_idx, 'med')),
             self._kpi_cell(perf_td_str, 'Tracking Difference (TD)',
                            self._ks(td, 'med')),
@@ -564,7 +564,14 @@ class ReportGenerator(BaseScript):
             ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
         ]))
         story.append(perf_tbl)
-        story.append(Spacer(1, 8))
+        story.append(Spacer(1, 2))
+        story.append(Paragraph(
+            'Note : Fonds distribuant — les dividendes collectés sur le panier sont versés aux porteurs. '
+            'La Tracking Difference (TD) est structurellement positive en période de dividendes (mars–sept.) '
+            'car l\'ETF perçoit les coupons tandis que l\'indice de cours BRVM30 ne les intègre pas.',
+            S['note'],
+        ))
+        story.append(Spacer(1, 6))
 
         # ── Indicateurs de réplication et de risque ────────────────────
         story += self._section_line(
