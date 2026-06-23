@@ -92,9 +92,11 @@ def _get_old_weights(wh, dt):
 
 print("[3/4] Application des nouvelles règles de sélection…")
 
-new_w_history   = {}
-excess_days_cnt = {}   # {ticker: nb rebals consécutifs > MAX_EXEC_EXIST_DAYS}
-prev_basket     = set()
+new_w_history       = {}
+new_excluded_by_date = {}
+new_basket_by_date   = {}
+excess_days_cnt     = {}
+prev_basket         = set()
 
 report_lines = []
 
@@ -177,6 +179,25 @@ for i, dt in enumerate(sorted(universes.keys())):
     new_w_history[dt] = basket_weights
     prev_basket = set(basket_weights.keys())
 
+    # Sauvegarder les exclusions pour mise à jour de rebal_detail.json
+    new_excluded_by_date[dt] = [
+        {'ticker': tk, 'w_brvm30': round(w_b30, 6), 'raison': raison,
+         'adv_mfcfa': round(compute_adv(tk, dt), 1),
+         'stale_ratio': round(compute_stale(tk, dt), 3),
+         'secteur': univ.get(tk, {}).get('secteur', '—')}
+        for tk, w_b30, raison in excluded
+    ]
+    new_basket_by_date[dt] = [
+        {'ticker': tk,
+         'w_etf': basket_weights[tk],
+         'w_brvm30': round(univ.get(tk, {}).get('w_brvm30', 0), 6),
+         'force': univ.get(tk, {}).get('w_brvm30', 0) >= FORCE_WEIGHT,
+         'adv_mfcfa': round(compute_adv(tk, dt), 1),
+         'stale_ratio': round(compute_stale(tk, dt), 3),
+         'secteur': univ.get(tk, {}).get('secteur', '—')}
+        for tk in basket_weights
+    ]
+
     # Rapport
     n_forced  = sum(1 for tk, w in forced   if tk in basket_weights)
     n_incl    = sum(1 for tk, w in included if tk in basket_weights)
@@ -221,10 +242,26 @@ def _get_old_weights(wh, dt):
 
 # ── Mise à jour dashboard_data.json ──────────────────────────────────────────
 print()
-print("[4/4] Mise à jour dashboard_data.json…")
+print("[4/4] Mise à jour dashboard_data.json et rebal_detail.json…")
+
+# Mise à jour w_history dans dashboard_data.json
 dd['w_history'] = new_w_history
 json.dump(dd, open(DD_PATH, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 print("   w_history mis à jour —", len(new_w_history), "rebalancements")
+
+# Mise à jour rebal_detail.json avec les nouvelles exclusions et basket
+for r in rd.get('rebalancings', []):
+    dt = r.get('date')
+    if dt in new_basket_by_date:
+        r['basket']   = new_basket_by_date[dt]
+        r['excluded'] = new_excluded_by_date[dt]
+        r['basket_n'] = len(new_basket_by_date[dt])
+        r['excl_n']   = len(new_excluded_by_date[dt])
+        r['excl_w']   = round(sum(e['w_brvm30'] for e in new_excluded_by_date[dt]), 4)
+        r['coverage'] = round(sum(b['w_brvm30'] for b in new_basket_by_date[dt]), 4)
+
+json.dump(rd, open(RD_PATH, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+print("   rebal_detail.json mis à jour")
 
 # ── Relancer la validation complète ──────────────────────────────────────────
 print()
