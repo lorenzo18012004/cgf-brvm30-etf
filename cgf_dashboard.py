@@ -4140,17 +4140,36 @@ def _render_live():
 
         # ── Onglet Liquidité ──────────────────────────────────────────────────
         with _tab_liq:
-            if last_rb.get("basket"):
-                df_liq = pd.DataFrame(last_rb["basket"])
-                # Colonnes optionnelles absentes des anciens rebals (avant règles de sélection)
-                for _col in ("adv_mfcfa", "trade_mfcfa", "days_exec"):
-                    if _col not in df_liq.columns:
-                        df_liq[_col] = 0.0
-                df_liq["liq_ratio"] = (df_liq["trade_mfcfa"].abs() /
-                                       df_liq["adv_mfcfa"].replace(0, float("nan"))).round(2)
-                df_liq["adv_mfcfa"]   = df_liq["adv_mfcfa"].round(1)
-                df_liq["trade_mfcfa"] = df_liq["trade_mfcfa"].round(1)
-                df_liq["days_exec"]   = df_liq["days_exec"].round(1)
+            if basket_now:
+                # Calcul live depuis sika_history (63 jours ouvrés = 3 mois)
+                _sh_liq = load_json(rh_path) or {}
+                _today  = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                _aum    = (nl_mgmt or {}).get("aum_mfcfa") or 5000.0
+
+                def _live_adv(ticker):
+                    hist  = _sh_liq.get(ticker, {})
+                    dates = sorted(d for d in hist if d < _today)[-63:]
+                    vals  = [(hist[d].get("volume") or 0) * (hist[d].get("close") or 0) / 1e6
+                             for d in dates
+                             if (hist[d].get("volume") or 0) > 0 and (hist[d].get("close") or 0) > 0]
+                    return float(sum(vals) / len(vals)) if vals else 0.0
+
+                _liq_rows = []
+                for b in basket_now:
+                    tk       = b["ticker"]
+                    pv       = b.get("pv_mfcfa") or b.get("poids_pct", 0) / 100 * _aum
+                    adv      = _live_adv(tk)
+                    days     = round(pv / adv if adv > 0 else 0.0, 1)
+                    liq_r    = round(pv / adv if adv > 0 else 0.0, 2)
+                    _liq_rows.append({
+                        "ticker":      tk,
+                        "adv_mfcfa":   round(adv, 1),
+                        "trade_mfcfa": round(pv, 1),
+                        "days_exec":   days,
+                        "liq_ratio":   liq_r,
+                    })
+
+                df_liq   = pd.DataFrame(_liq_rows)
                 df_liq_s = df_liq.sort_values("days_exec", ascending=False)
                 n_illiq    = int((df_liq["days_exec"] > 5).sum())
                 avg_days   = float(df_liq["days_exec"].mean())
