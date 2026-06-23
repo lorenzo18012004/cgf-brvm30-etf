@@ -485,6 +485,7 @@ class ReportGenerator(BaseScript):
                  Paragraph(f'Bulletin de valeur liquidative  ·  {date_str}', s['h_sub'])]
         hdr = Table([[logo, right]], colWidths=[4*cm, cw-4*cm])
         hdr.setStyle(TableStyle([
+            ('BACKGROUND',    (0,0),(-1,-1), colors.HexColor('#f7f7f7')),
             ('VALIGN',        (0,0),(-1,-1), 'MIDDLE'),
             ('TOPPADDING',    (0,0),(-1,-1), 6),
             ('BOTTOMPADDING', (0,0),(-1,-1), 6),
