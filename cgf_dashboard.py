@@ -4275,10 +4275,25 @@ def _render_live():
 
         # ── 6. Performance & Tracking LIVE ───────────────────────────────────
         _nl_an     = load_json(nav_latest_path) or {}
-        _ls_series = _nl_an.get("nav_live_series", [])
         _idx_hist  = load_json(os.path.join(BRVM30_DIR, "brvm30_index_history.json")) or {}
         _par_fcfa  = float(launch.get("par_fcfa", 100000))
         _idx_launch_v = float(_idx_hist.get(launch_date, 0)) if launch_date and launch_date in _idx_hist else 0
+
+        # Construire nav_live_series depuis intraday history (dernier snapshot de chaque jour)
+        _ih_live = load_json(os.path.join(BRVM30_DIR, "nav_intraday_history.json")) or {}
+        _ls_series = _nl_an.get("nav_live_series", [])
+        if not _ls_series and _ih_live and launch_date:
+            _ls_series = []
+            for _d in sorted(_ih_live.keys()):
+                if _d < launch_date:
+                    continue
+                _pts = _ih_live[_d]
+                if not _pts:
+                    continue
+                _last_pt = _pts[-1]
+                _vl = _last_pt.get("vl_fcfa") or _last_pt.get("vl")
+                if _vl:
+                    _ls_series.append([_d, float(_vl)])
 
         if len(_ls_series) >= 2 and _idx_launch_v > 0:
             st.markdown("---")
