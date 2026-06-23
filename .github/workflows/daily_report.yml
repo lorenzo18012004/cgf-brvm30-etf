@@ -71,6 +71,6 @@ jobs:
             data/intraday_nav.json
             data/nav_intraday_history.json
             data/brvm30_index_history.json
-            data/pdfs/
+            data/pdfs/journalier/
           commit_user_name: cgf-bot
           commit_user_email: bot@cgf-bourse.ci

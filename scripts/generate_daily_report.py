@@ -109,8 +109,12 @@ class ReportGenerator(BaseScript):
         super().__init__()
         self.PAGE_W, self.PAGE_H = A4
         self.M = 1.8 * cm
-        self.PDFS_DIR = os.path.join(self.data_dir, 'pdfs')
         self.LOGO = os.path.join(self.root_dir, '1780762763961.jpg')
+
+    def _pdfs_dir(self, report_date):
+        t = pd.Timestamp(report_date)
+        return os.path.join(self.data_dir, 'pdfs', 'journalier',
+                            str(t.year), t.strftime('%Y-%m'))
 
     def _load(self, f):
         p = os.path.join(self.data_dir, f)
@@ -412,10 +416,11 @@ class ReportGenerator(BaseScript):
 
     # ── génération principale ───────────────────────────────────────
     def generate(self, report_date=None, force=False):
-        os.makedirs(self.PDFS_DIR, exist_ok=True)
         if report_date is None:
             report_date = datetime.now().strftime('%Y-%m-%d')
-        pdf_path = os.path.join(self.PDFS_DIR, f'rapport_journalier_{report_date}.pdf')
+        pdfs_dir = self._pdfs_dir(report_date)
+        os.makedirs(pdfs_dir, exist_ok=True)
+        pdf_path = os.path.join(pdfs_dir, f'rapport_journalier_{report_date}.pdf')
         if os.path.exists(pdf_path) and not force:
             print(f"Existant : {pdf_path}"); return pdf_path
 
