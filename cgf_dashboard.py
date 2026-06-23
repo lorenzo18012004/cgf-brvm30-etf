@@ -4078,7 +4078,8 @@ def _render_live():
                     fig_liq.add_vline(x=5,  line_dash="dot",   line_color=NEG_COLOR, annotation_text="5j")
                     fig_liq.add_vline(x=35, line_dash="solid", line_color=NEG_COLOR, line_width=2,
                                       annotation_text="Cap 35j", annotation_font_color=NEG_COLOR)
-                    fig_liq.update_layout(**PLOTLY_LAYOUT, height=440,
+                    _liq_h = max(440, len(df_liq_s) * 26 + 60)
+                    fig_liq.update_layout(**PLOTLY_LAYOUT, height=_liq_h,
                         title="Jours d'exécution estimés", xaxis_title="Jours", showlegend=False)
                     st.plotly_chart(fig_liq, width='stretch')
                 with col_liq2:
@@ -4091,7 +4092,7 @@ def _render_live():
                             "days_exec":   st.column_config.NumberColumn("J. exec.", format="%.1f"),
                             "liq_ratio":   st.column_config.NumberColumn("Ratio liq.", format="%.2f"),
                         },
-                        hide_index=True, height=440, use_container_width=True
+                        hide_index=True, height=_liq_h, use_container_width=True
                     )
             else:
                 st.info("Données de rebalancement non disponibles.")
