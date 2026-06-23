@@ -59,5 +59,16 @@
     }
   ],
   "td_gross": 0.073146,
-  "td_gross_ann": 0.021302
+  "td_gross_ann": 0.021302,
+  "selection_params": {
+    "force_weight_pct": 3.0,
+    "stale_threshold_pct": 70.0,
+    "stale_window_days": 63,
+    "max_exec_new_days": 100,
+    "max_exec_exist_days": 32,
+    "consec_rebals_exit": 2,
+    "float_min_mfcfa": 7000,
+    "min_basket_weight_pct": 0.1,
+    "mgmt_fee_ann_pct": 0.6
+  }
 }
