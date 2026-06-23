@@ -313,6 +313,42 @@ class ReportGenerator(BaseScript):
         plt.tight_layout(pad=0.5)
         buf = BytesIO(); plt.savefig(buf, format='png', dpi=160, bbox_inches='tight'); plt.close(); buf.seek(0); return buf
 
+    def _basket_for_date(self, basket_latest, snap):
+        """Recalcule poids réels depuis les prix du snapshot de la date cible."""
+        tc = snap.get('ticker_contributions', {})
+        if not tc:
+            return basket_latest
+        # Déduire les quantités depuis nav_latest (pv_mfcfa / dernier_prix)
+        qty_map = {}
+        for r in basket_latest:
+            tk  = r['ticker'].upper()
+            pv  = r.get('pv_mfcfa', 0)
+            px  = r.get('dernier_prix')
+            if pv and px:
+                qty_map[tk] = pv * 1e6 / px
+        # Recalculer la valeur de marché avec les prix du snapshot
+        pvs = {}
+        for tk, qty in qty_map.items():
+            info = tc.get(tk, {})
+            prix = info.get('prix_now')
+            if prix:
+                pvs[tk] = qty * float(prix)
+        total = sum(pvs.values())
+        if total == 0:
+            return basket_latest
+        result = []
+        for r in basket_latest:
+            tk = r['ticker'].upper()
+            if tk in pvs:
+                info = tc.get(tk, {})
+                result.append({
+                    **r,
+                    'poids_pct': round(pvs[tk] / total * 100, 4),
+                    'pv_mfcfa':  round(pvs[tk] / 1e6, 2),
+                    'dernier_prix': info.get('prix_now', r.get('dernier_prix')),
+                })
+        return result if result else basket_latest
+
     def _alloc_dicts(self, basket):
         """Agrège poids par secteur et par pays."""
         sec, pays = {}, {}
@@ -446,7 +482,8 @@ class ReportGenerator(BaseScript):
             except: pass
 
         print("Scraping Sika..."); sika = self._scrape_sika()
-        basket = nl.get('basket', [])
+        # Basket avec poids recalculés aux prix du jour (pas les arrondis de nav_latest)
+        basket = self._basket_for_date(nl.get('basket', []), last)
 
         print("PDF...")
         s  = self.S()
