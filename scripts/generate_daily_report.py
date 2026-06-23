@@ -245,7 +245,12 @@ class ReportGenerator(BaseScript):
         n_prices    = int(last_snap.get('n_prices') or 0)
         heure_cloture = last_snap.get('time', '—')
 
-        perf_idx = (nav_indice / nav_at_launch - 1) * 100 if nav_at_launch and nav_indice else None
+        brvm30_hist      = self._load('brvm30_index_history.json') or {}
+        brvm30_at_launch = float(brvm30_hist[launch_date]) if launch_date in brvm30_hist else None
+        brvm30_now       = last_snap.get('brvm30_official')
+        if not brvm30_now and brvm30_hist:
+            brvm30_now = brvm30_hist.get(report_date) or float(brvm30_hist[max(brvm30_hist.keys())])
+        perf_idx = (float(brvm30_now) / brvm30_at_launch - 1) * 100 if brvm30_now and brvm30_at_launch else None
 
         launch_ts  = pd.Timestamp(launch_date)
         closes_etf = {}
@@ -254,9 +259,12 @@ class ReportGenerator(BaseScript):
             if pts and pd.Timestamp(d) >= launch_ts:
                 lp = pts[-1]
                 vl = lp.get('vl_fcfa') or lp.get('vl')
-                ni = lp.get('nav_indice')
+                bv = lp.get('brvm30_official')
                 if vl: closes_etf[d] = float(vl)
-                if ni: closes_idx[d] = float(ni)
+                if bv:
+                    closes_idx[d] = float(bv)
+                elif d in brvm30_hist:
+                    closes_idx[d] = float(brvm30_hist[d])
 
         te = td = None
         etf_cl   = pd.Series(closes_etf).sort_index()
@@ -269,9 +277,9 @@ class ReportGenerator(BaseScript):
             if len(common) >= 2:
                 active = ret_etf.loc[common] - ret_idx.loc[common]
                 te = float(active.std() * np.sqrt(252) * 100)
-            if nav_at_launch and not etf_cl.empty and not idx_cl.empty:
+            if brvm30_at_launch and not etf_cl.empty and not idx_cl.empty:
                 etf_cum = etf_cl.iloc[-1] / par
-                idx_cum = idx_cl.iloc[-1] / nav_at_launch
+                idx_cum = idx_cl.iloc[-1] / brvm30_at_launch
                 td = (etf_cum / idx_cum - 1) * 100
 
         last_rebal = nl.get('last_rebal_date')

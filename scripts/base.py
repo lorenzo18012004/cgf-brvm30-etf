@@ -11,7 +11,7 @@ class BaseScript:
         self.scripts_dir = os.path.dirname(os.path.abspath(__file__))
         self.root_dir    = os.path.normpath(os.path.join(self.scripts_dir, ".."))
         self.data_dir    = os.path.join(self.root_dir, "data")
-        self.prix_file   = os.path.join(self.root_dir, "BRVM_Consolidated_Kendall_updated.xlsx")
+        self.prix_file   = os.path.join(self.root_dir, "excel", "BRVM_Consolidated_Kendall_updated.xlsx")
 
     # ------------------------------------------------------------------ #
     # JSON helpers                                                         #

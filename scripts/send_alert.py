@@ -54,6 +54,10 @@ class AlertSender(BaseScript):
         if not cfg:
             print("[WARN] alert_config.json introuvable -- alertes desactivees.")
             return []
+        if os.environ.get("GMAIL_USER"):
+            cfg["smtp_user"] = os.environ["GMAIL_USER"]
+        if os.environ.get("GMAIL_APP_PASSWORD"):
+            cfg["smtp_password"] = os.environ["GMAIL_APP_PASSWORD"]
         secrets_path = os.path.join(self.scripts_dir, "secrets.json")
         if os.path.exists(secrets_path):
             try:
