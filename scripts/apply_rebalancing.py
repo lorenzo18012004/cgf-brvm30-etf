@@ -32,21 +32,25 @@ class RebalancingApplier(BaseScript):
             print(f"[ERREUR] Statut inattendu dans rebal_pending.json : {status!r}")
             return False
 
-        rebal_date  = pending["proposed_rebal_date"]
-        new_basket  = pending["new_basket"]
-        entries     = pending.get("entries", [])
-        exits       = pending.get("exits",   [])
-        turnover    = pending.get("turnover_pct", 0.0)
+        rebal_date   = pending["proposed_rebal_date"]
+        new_basket   = pending["new_basket"]       # liste complète avec adv_mfcfa, days_exec…
+        excluded     = pending.get("excluded", [])
+        entries      = pending.get("entries", [])
+        exits        = pending.get("exits",   [])
+        turnover     = pending.get("turnover_pct", 0.0)
+        excess_cnt   = pending.get("excess_days_cnt", {})
 
         print(f"[OK] Application du rebalancement {rebal_date}...")
         print(f"  Entrants : {entries or 'aucun'}")
         print(f"  Sortants : {exits or 'aucun'}")
+        print(f"  Panier ETF : {len(new_basket)} titres")
+        print(f"  Exclus ({len(excluded)}) :")
+        for e in excluded:
+            print(f"    {e['ticker']:8s} ({e.get('w_brvm30',0)*100:.2f}%) — {e.get('raison','?')}")
         print(f"  Turnover estimé : {turnover}%")
-        print(f"  Tickers : {[b['ticker'] for b in new_basket]}")
 
         rd = self.load_json("rebal_detail.json", {"rebalancings": []})
 
-        # Vérifier que ce rebalancement n'existe pas déjà
         existing_dates = [r["date"] for r in rd.get("rebalancings", [])]
         if rebal_date in existing_dates:
             print(f"[WARN] Rebalancement {rebal_date} déjà présent dans rebal_detail.json.")
@@ -55,29 +59,25 @@ class RebalancingApplier(BaseScript):
             self.save_json("rebal_pending.json", pending)
             return False
 
+        excl_w   = round(sum(e.get("w_brvm30", 0) for e in excluded), 4)
+        coverage = round(sum(b.get("w_brvm30", 0) for b in new_basket), 4)
+
         new_entry = {
-            "date":       rebal_date,
-            "date_label": rebal_date,
-            "skipped":    False,
-            "basket_n":   len(new_basket),
-            "excl_n":     0,
-            "excl_w":     0.0,
-            "turnover":   round(turnover / 100, 4),
-            "entries":    entries,
-            "exits":      exits,
-            "basket": [
-                {
-                    "ticker":   b["ticker"],
-                    "w_etf":    b["w_etf"],
-                    "w_brvm30": b["w_etf"],
-                    "delta":    0.0,
-                    "source":   "auto_proposal",
-                }
-                for b in new_basket
-            ],
-            "excluded":   [],
-            "applied_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-            "source":     "auto_proposal",
+            "date":            rebal_date,
+            "date_label":      rebal_date,
+            "skipped":         False,
+            "basket_n":        len(new_basket),
+            "excl_n":          len(excluded),
+            "excl_w":          excl_w,
+            "coverage":        coverage,
+            "turnover":        round(turnover / 100, 4),
+            "entries":         entries,
+            "exits":           exits,
+            "excess_days_cnt": excess_cnt,
+            "basket":          new_basket,
+            "excluded":        excluded,
+            "applied_at":      datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+            "source":          "auto_proposal",
         }
 
         rd["rebalancings"].append(new_entry)

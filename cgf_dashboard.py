@@ -3696,8 +3696,11 @@ def _render_live():
                                 st.markdown("<br>", unsafe_allow_html=True)
                                 df_b = pd.DataFrame(rebal["basket"])
                                 df_b["w_etf"]       = (df_b["w_etf"] * 100).round(4)
-                                df_b["w_brvm30"]    = (df_b["w_brvm30"] * 100).round(4)
-                                df_b["delta"]       = (df_b["delta"] * 100).round(4)
+                                df_b["w_brvm30"]    = (df_b.get("w_brvm30", df_b["w_etf"]) * 100).round(4)
+                                df_b["delta"]       = (df_b["delta"] * 100).round(4) if "delta" in df_b.columns else 0.0
+                                if "trade_mfcfa" not in df_b.columns: df_b["trade_mfcfa"] = 0.0
+                                if "days_exec"   not in df_b.columns: df_b["days_exec"]   = 0.0
+                                if "force"       not in df_b.columns: df_b["force"]       = False
                                 df_b["trade_mfcfa"] = df_b["trade_mfcfa"].round(1)
                                 df_b["force"]       = df_b["force"].map(lambda v: "F" if v else "")
                                 _esnap = set(etf_entries)
@@ -3717,8 +3720,8 @@ def _render_live():
                                     column_order=["Ticker", "Poids %", "BRVM30 %", "Delta %",
                                                   "Trade (MFCFA)", "J.", "Mvt"],
                                 )
-                                total_buy  = sum(b["trade_mfcfa"] for b in rebal["basket"] if b["trade_mfcfa"] > 0)
-                                total_sell = sum(b["trade_mfcfa"] for b in rebal["basket"] if b["trade_mfcfa"] < 0)
+                                total_buy  = sum(b.get("trade_mfcfa", 0) for b in rebal["basket"] if b.get("trade_mfcfa", 0) > 0)
+                                total_sell = sum(b.get("trade_mfcfa", 0) for b in rebal["basket"] if b.get("trade_mfcfa", 0) < 0)
                                 tc1, tc2, tc3 = st.columns(3)
                                 tc1.metric("Achats", f"+{total_buy:,.1f} MFCFA")
                                 tc2.metric("Ventes", f"{total_sell:,.1f} MFCFA")
@@ -4139,6 +4142,10 @@ def _render_live():
         with _tab_liq:
             if last_rb.get("basket"):
                 df_liq = pd.DataFrame(last_rb["basket"])
+                # Colonnes optionnelles absentes des anciens rebals (avant règles de sélection)
+                for _col in ("adv_mfcfa", "trade_mfcfa", "days_exec"):
+                    if _col not in df_liq.columns:
+                        df_liq[_col] = 0.0
                 df_liq["liq_ratio"] = (df_liq["trade_mfcfa"].abs() /
                                        df_liq["adv_mfcfa"].replace(0, float("nan"))).round(2)
                 df_liq["adv_mfcfa"]   = df_liq["adv_mfcfa"].round(1)
@@ -4938,8 +4945,13 @@ def _render_live():
                 if last.get("basket"):
                     df_b = pd.DataFrame(last["basket"])
                     df_b["w_etf"]       = (df_b["w_etf"] * 100).round(4)
-                    df_b["w_brvm30"]    = (df_b["w_brvm30"] * 100).round(4)
-                    df_b["delta"]       = (df_b["delta"] * 100).round(4)
+                    df_b["w_brvm30"]    = (df_b.get("w_brvm30", df_b["w_etf"]) * 100).round(4)
+                    df_b["delta"]       = (df_b["delta"] * 100).round(4) if "delta" in df_b.columns else 0.0
+                    if "trade_mfcfa" not in df_b.columns: df_b["trade_mfcfa"] = 0.0
+                    if "days_exec"   not in df_b.columns: df_b["days_exec"]   = 0.0
+                    if "adv_mfcfa"   not in df_b.columns: df_b["adv_mfcfa"]   = 0.0
+                    if "force"       not in df_b.columns: df_b["force"]       = False
+                    if "secteur"     not in df_b.columns: df_b["secteur"]     = "—"
                     df_b["force"]       = df_b["force"].map(lambda v: "Forcé" if v else "")
                     df_b["trade_mfcfa"] = df_b["trade_mfcfa"].round(1)
                     # Ratio |trade| / ADV — mesure de liquidité (< 0.1 = liquide, > 0.5 = risqué)
@@ -4968,8 +4980,8 @@ def _render_live():
                                       "Trade (MFCFA)", "ADV (MFCFA)", "Liq.", "J. exec.", "Statut"],
                     )
                     st.caption("Liq. = |Trade| / ADV")
-                    total_buy  = sum(b["trade_mfcfa"] for b in last["basket"] if b["trade_mfcfa"] > 0)
-                    total_sell = sum(b["trade_mfcfa"] for b in last["basket"] if b["trade_mfcfa"] < 0)
+                    total_buy  = sum(b.get("trade_mfcfa", 0) for b in last["basket"] if b.get("trade_mfcfa", 0) > 0)
+                    total_sell = sum(b.get("trade_mfcfa", 0) for b in last["basket"] if b.get("trade_mfcfa", 0) < 0)
                     tc1, tc2, tc3 = st.columns(3)
                     tc1.metric("Achats", f"+{total_buy:,.0f} MFCFA")
                     tc2.metric("Ventes", f"{total_sell:,.0f} MFCFA")
@@ -4978,6 +4990,8 @@ def _render_live():
                 if last.get("excluded"):
                     df_e = pd.DataFrame(last["excluded"])
                     df_e["w_brvm30"]    = (df_e["w_brvm30"] * 100).round(2)
+                    if "trade_mfcfa" not in df_e.columns: df_e["trade_mfcfa"] = 0.0
+                    if "days_exec"   not in df_e.columns: df_e["days_exec"]   = 0.0
                     df_e["trade_mfcfa"] = df_e["trade_mfcfa"].round(1)
                     st.dataframe(df_e.rename(columns={
                         "ticker": "Ticker", "secteur": "Secteur",
