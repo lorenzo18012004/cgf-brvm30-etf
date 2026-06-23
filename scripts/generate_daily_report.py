@@ -35,13 +35,35 @@ def _dfr(s):
     t = pd.Timestamp(s)
     return f"{t.day:02d}/{t.month:02d}/{t.year}"
 
-# ── palette noir & blanc ────────────────────────────────────────────
+# ── palette ─────────────────────────────────────────────────────────
 BLACK  = colors.HexColor("#111111")
 DKGRAY = colors.HexColor("#444444")
 GRAY   = colors.HexColor("#777777")
 LGRAY  = colors.HexColor("#f2f2f2")
 BORDER = colors.HexColor("#111111")
 WHITE  = colors.white
+NAVY   = colors.HexColor("#1a3557")
+GOLD   = colors.HexColor("#b8922f")
+GREEN  = colors.HexColor("#166534")
+RED    = colors.HexColor("#991b1b")
+
+# ── couleurs pour graphiques d'allocation ────────────────────────────
+SECTOR_COLORS = {
+    'Finance':    '#1a3557',
+    'Télécoms':   '#b8922f',
+    'Énergie':    '#2d6a4f',
+    'Agriculture':'#7c4a03',
+    'Industries': '#5a5a8a',
+}
+COUNTRY_COLORS = {
+    "Côte d'Ivoire": '#1a3557',
+    'Sénégal':       '#b8922f',
+    'Burkina Faso':  '#2d6a4f',
+    'Bénin':         '#8b0000',
+    'Togo':          '#5a5a8a',
+    'Mali':          '#7c4a03',
+    'Niger':         '#888888',
+}
 
 # ── métadonnées fondamentales des 30 titres BRVM30 ──────────────────
 # (secteur, pays, nom complet)
@@ -79,9 +101,6 @@ TICKER_META = {
     'STAC':  ('Industries',    "Côte d'Ivoire",  'SETAO CI'),
     'FTSC':  ('Industries',    "Côte d'Ivoire",  'Filtisac CI'),
 }
-
-# Grayscale pour matplotlib (6 niveaux bien distincts)
-_GS = [0.10, 0.28, 0.46, 0.62, 0.76, 0.88]
 
 
 class ReportGenerator(BaseScript):
@@ -151,9 +170,9 @@ class ReportGenerator(BaseScript):
             'td':     ParagraphStyle('td', fontName='Helvetica', fontSize=7.5,
                       textColor=BLACK, alignment=TA_CENTER, leading=10),
             'td_pos': ParagraphStyle('tdp', fontName='Helvetica-Bold', fontSize=7.5,
-                      textColor=BLACK, alignment=TA_CENTER, leading=10),
+                      textColor=GREEN, alignment=TA_CENTER, leading=10),
             'td_neg': ParagraphStyle('tdn', fontName='Helvetica', fontSize=7.5,
-                      textColor=DKGRAY, alignment=TA_CENTER, leading=10),
+                      textColor=RED, alignment=TA_CENTER, leading=10),
             # tableau détail allocation
             'al_lbl': ParagraphStyle('all', fontName='Helvetica-Bold', fontSize=7.5,
                       textColor=BLACK, leading=10),
@@ -203,7 +222,7 @@ class ReportGenerator(BaseScript):
         buf = BytesIO(); plt.savefig(buf, format='png', dpi=160, bbox_inches='tight'); plt.close(); buf.seek(0); return buf
 
     def _chart_base100(self, ih, launch_date, brvm_h, brvm_al, par, cw_pt):
-        fig, ax = plt.subplots(figsize=(cw_pt/72, 2.0))
+        fig, ax = plt.subplots(figsize=(cw_pt/72, 3.4))
         fig.patch.set_facecolor('white'); ax.set_facecolor('white')
         lt = pd.Timestamp(launch_date)
         ep, bp = {lt: 100.0}, {}
@@ -217,11 +236,18 @@ class ReportGenerator(BaseScript):
             if bv and brvm_al: bp[pd.Timestamp(d)] = float(bv)/brvm_al*100
         es = pd.Series(ep).sort_index(); bs = pd.Series(bp).sort_index()
         xs = list(range(len(es)))
-        ax.plot(xs, es.values, color='black', lw=2.0, marker='o', ms=4, label='CGF BRVM30 ETF')
+        ax.plot(xs, es.values, color='#1a3557', lw=2.2, marker='o', ms=5, label='CGF BRVM30 ETF')
         if not bs.empty:
-            ax.plot(xs, bs.reindex(es.index).values, color='#888888', lw=1.5,
-                    ls='--', marker='s', ms=3, label='BRVM30')
-        ax.axhline(100, color='#cccccc', ls=':', lw=0.7)
+            bv_aligned = bs.reindex(es.index)
+            ax.plot(xs, bv_aligned.values, color='#b8922f', lw=1.8,
+                    ls='--', marker='s', ms=4, label='BRVM30')
+        ax.axhline(100, color='#cccccc', ls=':', lw=0.8)
+        # y-axis : padding de ±15% de l'amplitude pour éviter l'aplatissement
+        all_vals = list(es.values)
+        if not bs.empty: all_vals += [v for v in bs.reindex(es.index).values if not np.isnan(v)]
+        v_min, v_max = min(all_vals), max(all_vals)
+        amp = max(v_max - v_min, 0.5)
+        ax.set_ylim(v_min - amp * 0.35, v_max + amp * 0.35)
         labels = [d.strftime('%d/%m') for d in es.index]
         ax.set_xticks(xs); ax.set_xticklabels(labels, fontsize=9)
         ax.set_ylabel('Base 100', fontsize=7.5, color='#777777')
@@ -233,23 +259,23 @@ class ReportGenerator(BaseScript):
         buf = BytesIO(); plt.savefig(buf, format='png', dpi=160, bbox_inches='tight'); plt.close(); buf.seek(0); return buf
 
     # ── graphiques d'allocation ──────────────────────────────────────
-    def _chart_hbar(self, labels, values, fig_w_pt, fig_h_in=2.6, title=''):
-        """Barres horizontales en niveaux de gris — labels à droite avec %."""
+    def _chart_hbar(self, labels, values, fig_w_pt, fig_h_in=2.6, bar_colors=None):
+        """Barres horizontales colorées — labels à droite avec %."""
         n = len(labels)
-        grays = [str(round(_GS[i % len(_GS)], 2)) for i in range(n)]
+        if bar_colors is None:
+            bar_colors = ['#1a3557','#b8922f','#2d6a4f','#8b0000','#5a5a8a','#7c4a03','#888888']
+        clrs = [bar_colors[i % len(bar_colors)] for i in range(n)]
         fig, ax = plt.subplots(figsize=(fig_w_pt/72, fig_h_in))
         fig.patch.set_facecolor('white'); ax.set_facecolor('white')
         ys = list(range(n-1, -1, -1))  # inversé : plus grand en haut
-        bars = ax.barh(ys, values, height=0.55, color=grays, edgecolor='#333333', linewidth=0.4)
+        bars = ax.barh(ys, values, height=0.55, color=clrs, edgecolor='white', linewidth=0.4)
         ax.set_yticks(ys)
         ax.set_yticklabels(labels, fontsize=9, color='#111111')
-        ax.set_xlim(0, max(values)*1.18)
-        # annotations valeur à droite de chaque barre
+        ax.set_xlim(0, max(values)*1.22)
         for bar, val in zip(bars, values):
             ax.text(bar.get_width() + max(values)*0.02, bar.get_y() + bar.get_height()/2,
                     f'{val:.1f}%', va='center', ha='left', fontsize=9,
                     fontweight='bold', color='#111111')
-        ax.set_xlabel('')
         ax.xaxis.set_visible(False)
         for sp in ['top','right','bottom']: ax.spines[sp].set_visible(False)
         ax.spines['left'].set_color('#cccccc'); ax.spines['left'].set_linewidth(0.5)
@@ -258,26 +284,28 @@ class ReportGenerator(BaseScript):
         buf = BytesIO(); plt.savefig(buf, format='png', dpi=160, bbox_inches='tight'); plt.close(); buf.seek(0); return buf
 
     def _chart_top10(self, basket, fig_w_pt):
-        """Barres horizontales top 10 titres."""
+        """Barres horizontales top 10 titres — dégradé navy vers bleu clair."""
         top = sorted(basket, key=lambda r: r['poids_pct'], reverse=True)[:10]
         labels = [r['ticker'].upper() for r in top]
         values = [r['poids_pct'] for r in top]
         n = len(labels)
-        # gradient de noir vers gris clair
-        grays = [str(round(0.12 + 0.72 * i/(n-1), 2)) for i in range(n)]
-        fig, ax = plt.subplots(figsize=(fig_w_pt/72, 2.4))
+        # Dégradé de navy foncé vers bleu-gris clair
+        import matplotlib.cm as cm
+        cmap = cm.get_cmap('Blues_r')
+        clrs = [cmap(0.15 + 0.55 * i / (n-1)) for i in range(n)]
+        fig, ax = plt.subplots(figsize=(fig_w_pt/72, 2.6))
         fig.patch.set_facecolor('white'); ax.set_facecolor('white')
         ys = list(range(n-1, -1, -1))
-        bars = ax.barh(ys, values, height=0.55, color=grays, edgecolor='#333333', linewidth=0.4)
+        bars = ax.barh(ys, values, height=0.55, color=clrs, edgecolor='white', linewidth=0)
         ax.set_yticks(ys)
         ax.set_yticklabels(labels, fontsize=8.5, color='#111111', fontweight='bold')
-        ax.set_xlim(0, max(values)*1.20)
+        ax.set_xlim(0, max(values)*1.32)
         for bar, val, r in zip(bars, values, top):
             meta = TICKER_META.get(r['ticker'].upper(), ('', '', r['ticker']))
             nom  = meta[2] if meta[2] != r['ticker'] else ''
             lbl  = f'{val:.1f}%  {nom}' if nom else f'{val:.1f}%'
             ax.text(bar.get_width() + max(values)*0.015, bar.get_y() + bar.get_height()/2,
-                    lbl, va='center', ha='left', fontsize=8, color='#111111')
+                    lbl, va='center', ha='left', fontsize=8, color='#333333')
         ax.xaxis.set_visible(False)
         for sp in ['top','right','bottom']: ax.spines[sp].set_visible(False)
         ax.spines['left'].set_color('#cccccc'); ax.spines['left'].set_linewidth(0.5)
@@ -493,12 +521,13 @@ class ReportGenerator(BaseScript):
 
         buf2 = self._chart_base100(ih, launch_date, brvm_h, brvm_al, par, cw-28) if nd>=1 else None
         ch_w = cw - 28
+        # figsize hauteur = 3.4 in → height en pt = 3.4 * 72 = 244.8
         story.append(self._wrap_card([
             Paragraph('PERFORMANCE RELATIVE', s['clbl']),
             Spacer(1,3),
             Paragraph(f'Base 100 au {_dfr(launch_date)}  ·  {nd} séance(s)', s['csub']),
             Spacer(1,8),
-            Image(buf2, width=ch_w, height=ch_w*1.15/7.22) if buf2 else Paragraph('—', s['body']),
+            Image(buf2, width=ch_w, height=3.4*72) if buf2 else Paragraph('—', s['body']),
         ], cw))
         story.append(Spacer(1,6))
 
@@ -606,10 +635,14 @@ class ReportGenerator(BaseScript):
         h_pays = max(1.8, n_pays * 0.38)
         h_both = max(h_sec, h_pays)       # même hauteur pour les 2 graphiques
 
+        sec_clrs  = [SECTOR_COLORS.get(l, '#888888') for l,_ in sec_data]
+        pays_clrs = [COUNTRY_COLORS.get(l, '#888888') for l,_ in pays_data]
         buf_sec  = self._chart_hbar([l for l,_ in sec_data],
-                                    [v for _,v in sec_data], ch_sec, fig_h_in=h_both)
+                                    [v for _,v in sec_data], ch_sec,
+                                    fig_h_in=h_both, bar_colors=sec_clrs)
         buf_pays = self._chart_hbar([l for l,_ in pays_data],
-                                    [v for _,v in pays_data], ch_pays, fig_h_in=h_both)
+                                    [v for _,v in pays_data], ch_pays,
+                                    fig_h_in=h_both, bar_colors=pays_clrs)
 
         def _alloc_detail_rows(data, s):
             """Tableau texte récap sous le graphique (secteur ou pays)."""
@@ -691,26 +724,19 @@ class ReportGenerator(BaseScript):
         ], cw))
         story.append(Spacer(1,6))
 
-        # ── Carte : Métriques de concentration ─────────────────────────
-        weights = sorted([r['poids_pct'] for r in basket], reverse=True)
-        top3_w  = sum(weights[:3])
-        top5_w  = sum(weights[:5])
-        hhi     = sum((w/100)**2 for w in weights) * 10000
-        n_eff   = 10000 / hhi if hhi > 0 else 0
+        # ── Carte : Concentration ──────────────────────────────────────
+        weights  = sorted([r['poids_pct'] for r in basket], reverse=True)
+        top3_w   = sum(weights[:3])
+        top5_w   = sum(weights[:5])
+        sorted_b = sorted(basket, key=lambda x: x['poids_pct'], reverse=True)
+        top3_lbl = '  ·  '.join(r['ticker'].upper() for r in sorted_b[:3])
+        top5_lbl = '  ·  '.join(r['ticker'].upper() for r in sorted_b[:5])
 
         story.append(KeepTogether([
             self._cards_row([
-                self._card_cell('CONCENTRATION TOP 3', f'{top3_w:.1f}%',
-                                f'{[r["ticker"].upper() for r in sorted(basket,key=lambda x:x["poids_pct"],reverse=True)[:3]]}'
-                                .replace("'","").replace("[","").replace("]",""), val_size='small'),
-                self._card_cell('CONCENTRATION TOP 5', f'{top5_w:.1f}%',
-                                f'{[r["ticker"].upper() for r in sorted(basket,key=lambda x:x["poids_pct"],reverse=True)[:5]]}'
-                                .replace("'","").replace("[","").replace("]",""), val_size='small'),
-                self._card_cell('INDICE HHI', f'{hhi:.0f}',
-                                'Herfindahl-Hirschman (>2500=concentré)', val_size='small'),
-                self._card_cell('NB TITRES EFFECTIFS', f'{n_eff:.1f}',
-                                '10 000 / HHI — diversification équivalente', val_size='small'),
-            ], [cw/4]*4, pad=12),
+                self._card_cell('CONCENTRATION TOP 3', f'{top3_w:.1f}%', top3_lbl, val_size='small'),
+                self._card_cell('CONCENTRATION TOP 5', f'{top5_w:.1f}%', top5_lbl, val_size='small'),
+            ], [cw/2, cw/2], pad=14),
             Spacer(1,10),
             HRFlowable(width=cw, thickness=0.4, color=colors.HexColor('#cccccc'), spaceAfter=4),
             Paragraph(footer_note, s['note']),
