@@ -3863,7 +3863,7 @@ def _render_live():
         rebals_an  = [r for r in (rd_data or {}).get("rebalancings", []) if not r.get("skipped", False)]
         last_rb    = rebals_an[-1] if rebals_an else {}
         launch_date = launch.get("launch_date")
-        rh_path    = os.path.join(BRVM30_DIR, "richbourse_history.json")
+        rh_path    = os.path.join(BRVM30_DIR, "sika_history.json")
         rh         = load_json(rh_path) or {}
 
         # ── 1. Composition du panier ──────────────────────────────────────────
