@@ -1500,27 +1500,30 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
                 _section("Titres exclus de ce rebalancement — cause détaillée")
 
                 def _excl_cause(e):
-                    r = e.get("raison", "")
-                    w_b = e.get("w_brvm30", 0)
+                    r    = e.get("raison", "")
+                    w_b  = e.get("w_brvm30", 0)
                     adv  = e.get("adv_mfcfa", 0)
-                    req  = e.get("adv_req", 0)
+                    req  = e.get("adv_req",   0)
+                    ratio = adv / req if req > 0 else 0
                     exec_d = e.get("exec_days") or (e.get("trade_mfcfa", 0) / adv if adv > 0 else None)
                     stale  = e.get("stale_ratio")
+                    # Raisons explicites
                     if "Float" in r:
                         return "Float trop petit (< 7 Md FCFA)"
                     if "Absent" in r:
                         return "Absent de l'indice BRVM30 à cette date"
                     if stale is not None and stale >= 0.70:
-                        return f"Prix stale : {stale*100:.0f}% de jours sans cotation sur 3 mois"
-                    if "ADV limité" in r or "ADV insuffisant" in r:
+                        return f"Prix stale : {stale*100:.0f}% de jours sans cotation (3 mois)"
+                    if "ADV limité" in r or "ADV insuffisant" in r or "consécutifs" in r:
                         return r
-                    if "consécutifs" in r:
-                        return r
+                    # 'OK' = exclusion ADV standard dans l'ancien backtest
                     if adv > 0 and req > 0 and adv < req:
-                        if exec_d:
-                            return f"Liquidité insuffisante — {exec_d:.0f}j d'exécution (seuil : 32j) | ADV {adv:.1f} M FCFA"
-                        return f"ADV {adv:.1f} M FCFA < requis {req:.1f} M FCFA"
-                    return r if r else "Liquidité insuffisante"
+                        days_str = f" — {exec_d:.0f}j d'exécution estimés" if exec_d else ""
+                        forced_note = " ⚠️ aurait dû être forcé (≥ 3%)" if w_b >= 0.03 else ""
+                        return f"ADV insuffisant : {adv:.1f} M FCFA (requis {req:.1f} M FCFA, ratio {ratio:.2f}){days_str}{forced_note}"
+                    if adv > 0 and req > 0 and adv >= req:
+                        return f"ADV OK ({adv:.1f}/{req:.1f}) — exclu pour autre raison"
+                    return "ADV insuffisant (détail non disponible)"
 
                 _excl_rows = []
                 for e in sorted(_excluded_sel, key=lambda x: x.get("w_brvm30", 0), reverse=True):
