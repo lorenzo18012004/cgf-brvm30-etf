@@ -3999,11 +3999,9 @@ def _render_live():
                 st.plotly_chart(fig_bw, width='stretch')
             top5  = df_bask.nlargest(5,  "poids_pct")["poids_pct"].sum()
             top10 = df_bask.nlargest(10, "poids_pct")["poids_pct"].sum()
-            hhi   = float((df_bask["poids_pct"] ** 2).sum())
             _kpi_html(
                 ("Top 5 titres",  f"{top5:.1f}%"),
                 ("Top 10 titres", f"{top10:.1f}%"),
-                ("HHI", f"{hhi:.0f} pts"),
                 ("Nb titres", str(len(df_bask))),
             )
 
