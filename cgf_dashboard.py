@@ -997,52 +997,6 @@ def _build_excel_complet(_cache_key: str = "") -> bytes:
 def _render_landing():
     st.query_params.update({"page": "live", "section": "situation"})
     st.rerun()
-    # ── Barre de téléchargement (tout en haut) ─────────────────────────────
-    import glob as _glob
-    _pdf_dir_path    = os.path.join(BRVM30_DIR, "CGF_BRVM30_ETF_Rapport_Direction.pdf")
-    _today_pdf_name  = f"rapport_journalier_{pd.Timestamp.now(tz='UTC').strftime('%Y-%m-%d')}.pdf"
-    _today_pdf_path  = os.path.join(BRVM30_DIR, "pdfs", _today_pdf_name)
-    _pdf_files_found = sorted(_glob.glob(os.path.join(BRVM30_DIR, "pdfs", "rapport_journalier_*.pdf")), reverse=True)
-    _latest_daily    = _today_pdf_path if os.path.exists(_today_pdf_path) else (_pdf_files_found[0] if _pdf_files_found else None)
-
-    _dcol1, _dcol2, _dcol3 = st.columns(3)
-    with _dcol1:
-        if os.path.exists(_pdf_dir_path):
-            with open(_pdf_dir_path, "rb") as _f:
-                st.download_button(
-                    label="Rapport de direction (PDF)",
-                    data=_f.read(),
-                    file_name="CGF_BRVM30_ETF_Rapport_Direction.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                )
-        else:
-            st.caption("Rapport de direction non disponible")
-    with _dcol2:
-        if _latest_daily and os.path.exists(_latest_daily):
-            with open(_latest_daily, "rb") as _f:
-                st.download_button(
-                    label="Rapport du jour (PDF)",
-                    data=_f.read(),
-                    file_name=os.path.basename(_latest_daily),
-                    mime="application/pdf",
-                    use_container_width=True,
-                )
-        else:
-            st.caption("Rapport du jour disponible après 16h00")
-    with _dcol3:
-        try:
-            _xl_key_l = dd.get("metrics", {}).get("te", "") or pd.Timestamp.now().strftime("%Y-%m-%d")
-            _xl_bytes = _build_excel_complet(_xl_key_l)
-            st.download_button(
-                label="Export Excel complet",
-                data=_xl_bytes,
-                file_name=f"CGF_BRVM30_ETF_export_{pd.Timestamp.now().strftime('%Y-%m-%d')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
-            )
-        except Exception as _xl_err:
-            st.caption(f"Export Excel indisponible ({_xl_err})")
 
     st.markdown("""
     <div class="landing-outer">
@@ -1258,27 +1212,20 @@ elif _page == "live":
 # ── Barre de téléchargement (haut de page — Live + Backtest) ─────────────────
 if _page in ("live", "backtest"):
     import glob as _glob
-    _pdf_dir_p   = os.path.join(BRVM30_DIR, "CGF_BRVM30_ETF_Rapport_Direction.pdf")
     _today_pname = f"rapport_journalier_{pd.Timestamp.now(tz='UTC').strftime('%Y-%m-%d')}.pdf"
-    _today_pp    = os.path.join(BRVM30_DIR, "pdfs", _today_pname)
-    _pdf_found   = sorted(_glob.glob(os.path.join(BRVM30_DIR, "pdfs", "rapport_journalier_*.pdf")), reverse=True)
-    _latest_dp   = _today_pp if os.path.exists(_today_pp) else (_pdf_found[0] if _pdf_found else None)
-    _hdr1, _hdr2, _hdr3 = st.columns(3)
+    _pdf_found   = sorted(_glob.glob(os.path.join(BRVM30_DIR, "data", "pdfs", "journalier", "**", "rapport_journalier_*.pdf"), recursive=True), reverse=True)
+    _today_pp    = next((p for p in _pdf_found if _today_pname in p), None)
+    _latest_dp   = _today_pp if _today_pp else (_pdf_found[0] if _pdf_found else None)
+    _hdr1, _hdr2 = st.columns(2)
     with _hdr1:
-        if os.path.exists(_pdf_dir_p):
-            with open(_pdf_dir_p, "rb") as _f:
-                st.download_button("Rapport de direction (PDF)", data=_f.read(),
-                    file_name="CGF_BRVM30_ETF_Rapport_Direction.pdf",
-                    mime="application/pdf", use_container_width=True, key="dl_pdf_dir")
-    with _hdr2:
         if _latest_dp and os.path.exists(_latest_dp):
             with open(_latest_dp, "rb") as _f:
                 st.download_button("Rapport du jour (PDF)", data=_f.read(),
                     file_name=os.path.basename(_latest_dp),
                     mime="application/pdf", use_container_width=True, key="dl_pdf_day")
         else:
-            st.caption("Rapport du jour disponible après 16h00")
-    with _hdr3:
+            st.caption("Rapport du jour non disponible")
+    with _hdr2:
         try:
             _xl_key = dd.get("metrics", {}).get("te", "") or pd.Timestamp.now().strftime("%Y-%m-%d")
             st.download_button("Export Excel complet", data=_build_excel_complet(_xl_key),
@@ -1828,17 +1775,6 @@ def _render_live():
     """Section live — ETF réel, iNAV, rebalancements, AP, analyse approfondie."""
     global _lsec
 
-    # Auto-refresh toutes les 5 min pendant les heures de marché BRVM (09h–15h30 UTC)
-    try:
-        from streamlit_autorefresh import st_autorefresh as _st_ar
-        _now_utc = pd.Timestamp.now(tz="UTC")
-        _h = _now_utc.hour + _now_utc.minute / 60
-        _is_mkt  = (_now_utc.weekday() < 5 and 9.0 <= _h <= 15.5)
-        if _is_mkt:
-            _st_ar(interval=5 * 60 * 1000, limit=None, key="live_autorefresh")
-    except Exception:
-        pass
-
     alert_path        = os.path.join(BRVM30_DIR, "new_rebal_alert.json")
     rebal_detail_path = os.path.join(BRVM30_DIR, "rebal_detail.json")
     nav_latest_path   = os.path.join(BRVM30_DIR, "nav_latest.json")
@@ -1919,24 +1855,6 @@ def _render_live():
             tickers_str = ", ".join(f"{s['ticker']} (ratio {s['ratio']:.4f} le {s['date']})" for s in splits)
             st.warning(f"Ajustement de cours détecté (split/dividende) sur {len(splits)} titre(s) — {tickers_str}. Vérifier si le panier doit être recalculé.")
 
-        col_btn, col_info = st.columns([1, 3])
-        with col_btn:
-            do_live = st.button("Actualiser maintenant", type="primary", width='stretch')
-            st.caption("sikafinance.com — mise à jour iNAV")
-        with col_info:
-            st.info("Actualisation automatique toutes les 5 min (09h–15h30 UTC).")
-
-        if do_live:
-            with st.spinner("Scraping Sika Finance..."):
-                try:
-                    scrape_sika_open.clear()
-                    load_json.clear()
-                    from scrape_intraday import run as intraday_run
-                    snap = intraday_run(force=True)
-                    if snap:
-                        st.success(f"iNAV mis à jour — {snap['time']} UTC | VL {snap.get('vl_live_fcfa', snap.get('vl_par_part', 0)):,.0f} FCFA | Variation {snap['change_day_pct']:+.3f}%")
-                except Exception as e:
-                    st.error(f"Erreur : {e}")
 
         @st.fragment
         def _live_fragment():
