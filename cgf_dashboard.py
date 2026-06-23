@@ -1268,7 +1268,7 @@ def _render_backtest():
         st.markdown("---")
         m = dd.get("metrics", {})
         c1, c2, c3, c4, c5, c6 = st.columns(6)
-        c1.metric("TE instantanée",    pct(m.get("te"), sign=False), help="Tracking Error hebdo TRN annualisée")
+        c1.metric("TE instantanée",    pct(m.get("te"), sign=False), help="Tracking Error journalière annualisée vs BRVM30 PR")
         c2.metric("TE progressive",    pct(bm.get("te_prog"), sign=False), help="TE avec exécution étalée")
         c3.metric("TD net cumulé",     pct(m.get("td")), help="Tracking Difference nette sur toute la période")
         c4.metric("Frais gestion",     pct(abs(m.get("mgmt_fee_cumul", 0)), sign=False))
@@ -1291,11 +1291,11 @@ def _render_backtest():
         nav_b = nav_b_full.loc[start_dt:end_dt]
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=nav_b.index, y=nav_b.values,
-            name="Benchmark TRN", line=dict(color=BENCH_COLOR, width=1.5, dash="dot")))
+            name="BRVM30 PR", line=dict(color=BENCH_COLOR, width=1.5, dash="dot")))
         fig.add_trace(go.Scatter(x=nav_e.index, y=nav_e.values,
-            name="ETF NAV nette TRN", line=dict(color=COLOR, width=2)))
+            name="ETF NAV nette", line=dict(color=COLOR, width=2)))
         fig.update_layout(**PLOTLY_LAYOUT, height=280,
-            title="Performance TRN (base 100)", hovermode="x unified",
+            title="Performance Price Return (base 100)", hovermode="x unified",
             legend=dict(orientation="h", y=-0.25))
         st.plotly_chart(fig, width='stretch')
 
@@ -1319,14 +1319,14 @@ def _render_backtest():
 
         fig_main = go.Figure()
         fig_main.add_trace(go.Scatter(x=nav_b.index, y=nav_b.values,
-            name="Benchmark TRN", line=dict(color=BENCH_COLOR, width=1.5, dash="dot")))
+            name="BRVM30 PR", line=dict(color=BENCH_COLOR, width=1.5, dash="dot")))
         fig_main.add_trace(go.Scatter(x=nav_e.index, y=nav_e.values,
             name="NAV nette", line=dict(color=COLOR, width=2.5)))
         if len(nav_g):
             fig_main.add_trace(go.Scatter(x=nav_g.index, y=nav_g.values,
                 name="NAV brute", line=dict(color=COLOR, width=1, dash="dash"), visible="legendonly"))
         fig_main.update_layout(**PLOTLY_LAYOUT, height=420,
-            title="Performance TRN (base 100)", hovermode="x unified",
+            title="Performance Price Return (base 100)", hovermode="x unified",
             legend=dict(orientation="h", yanchor="bottom", y=-0.28, xanchor="center", x=0.5))
         st.plotly_chart(fig_main, width='stretch')
 
@@ -1364,17 +1364,17 @@ def _render_backtest():
                     legend=dict(orientation="h", y=-0.3), hovermode="x unified")
                 st.plotly_chart(fig_ann, width='stretch')
 
-        _section("Active Return cumulé (ETF brut − Benchmark)")
-        nav_g2 = to_series(dd.get("nav_gross", dd["nav_etf"])).loc[start_dt:end_dt]
+        _section("Écart cumulé ETF NAV nette vs BRVM30 PR")
+        nav_g2 = to_series(dd.get("nav_etf")).loc[start_dt:end_dt]
         nav_b2 = nav_b_full.loc[start_dt:end_dt]
         common = nav_g2.index.intersection(nav_b2.index)
         ar = (nav_g2.loc[common] / nav_b2.loc[common] - 1) * 100
         fig_ar = go.Figure()
         fig_ar.add_trace(go.Scatter(x=ar.index, y=ar.values,
-            name="Active Return", line=dict(color=COLOR, width=2),
+            name="Écart ETF vs BRVM30 PR", line=dict(color=COLOR, width=2),
             fill="tozeroy", fillcolor=ACCENT))
         fig_ar.add_hline(y=0, line_color="#e5e7eb", line_width=1)
-        fig_ar.update_layout(**PLOTLY_LAYOUT, height=260, hovermode="x unified", yaxis_title="Ecart (%)", showlegend=False)
+        fig_ar.update_layout(**PLOTLY_LAYOUT, height=260, hovermode="x unified", yaxis_title="Écart (%)", showlegend=False)
         st.plotly_chart(fig_ar, width='stretch')
 
     # ── Tracking Error ────────────────────────────────────────────────────────
@@ -1403,7 +1403,7 @@ def _render_backtest():
             yaxis_title="TE (%)", hovermode="x unified", showlegend=False)
         st.plotly_chart(fig_te, width='stretch')
 
-        _section("Distribution des active returns hebdomadaires")
+        _section("Distribution des écarts hebdomadaires ETF vs BRVM30 PR")
         act2 = (gw.loc[cw].pct_change() - bw.loc[cw].pct_change()).dropna() * 100
         fig_hist = go.Figure()
         fig_hist.add_trace(go.Histogram(x=act2.values, nbinsx=30, marker_color=COLOR, opacity=0.75))
