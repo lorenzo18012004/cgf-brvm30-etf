@@ -201,6 +201,85 @@ class ReportGenerator(BaseScript):
             lines += [Spacer(1, 4), Paragraph(sub, s['csub'])]
         return lines
 
+    # ── courbe TE glissante ──────────────────────────────────────────
+    def _chart_te_rolling(self, ec, ic, cw_pt, te_target=1.0):
+        """TE annualisée calculée de façon incrémentale depuis le lancement."""
+        dates = sorted(set(ec.index) & set(ic.index))
+        te_pts = {}
+        for i, d in enumerate(dates):
+            if i < 1: continue
+            re_ = ec.loc[:d].pct_change().dropna()
+            ri_ = ic.loc[:d].pct_change().dropna()
+            cm_ = re_.index.intersection(ri_.index)
+            if len(cm_) < 1: continue
+            diff = re_.loc[cm_] - ri_.loc[cm_]
+            if len(diff) >= 2:
+                te_pts[d] = float(diff.std() * np.sqrt(252) * 100)
+            else:
+                te_pts[d] = float(abs(diff.iloc[0]) * np.sqrt(252) * 100)
+        if not te_pts:
+            return None
+        fig, ax = plt.subplots(figsize=(cw_pt/72, 2.6))
+        fig.patch.set_facecolor('white'); ax.set_facecolor('white')
+        xs = list(range(len(te_pts)))
+        ys = list(te_pts.values())
+        ax.plot(xs, ys, color='#1a3557', lw=2.0, marker='o', ms=5)
+        ax.axhline(te_target, color='#b8922f', ls='--', lw=1.5,
+                   label=f'Plancher cible ≤ {te_target:.1f}%')
+        # Zone rouge au-dessus du plancher
+        ax.fill_between(xs, ys, te_target,
+                        where=[y > te_target for y in ys],
+                        color='#991b1b', alpha=0.12)
+        ax.fill_between(xs, ys, te_target,
+                        where=[y <= te_target for y in ys],
+                        color='#166534', alpha=0.10)
+        vmin = max(0, min(ys) * 0.6)
+        vmax = max(max(ys), te_target) * 1.4
+        ax.set_ylim(vmin, vmax)
+        labels = [d.strftime('%d/%m') for d in te_pts.keys()]
+        ax.set_xticks(xs); ax.set_xticklabels(labels, fontsize=9)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v,_: f'{v:.2f}%'))
+        ax.legend(fontsize=8, framealpha=0, loc='upper right')
+        ax.tick_params(colors='#777777', labelsize=8)
+        for sp in ax.spines.values(): sp.set_color('#cccccc'); sp.set_linewidth(0.5)
+        ax.grid(axis='y', color='#eeeeee', lw=0.5)
+        plt.tight_layout(pad=0.4)
+        buf = BytesIO(); plt.savefig(buf, format='png', dpi=160, bbox_inches='tight')
+        plt.close(); buf.seek(0); return buf
+
+    # ── courbe MDD glissant ──────────────────────────────────────────
+    def _chart_mdd_rolling(self, ec, par, cw_pt):
+        """Max Drawdown glissant calculé depuis le lancement."""
+        if len(ec) < 2:
+            return None
+        vls     = ec.sort_index()
+        cum_max = vls.cummax()
+        dd      = (vls - cum_max) / cum_max * 100   # valeurs négatives ou nulles
+        fig, ax = plt.subplots(figsize=(cw_pt/72, 2.6))
+        fig.patch.set_facecolor('white'); ax.set_facecolor('white')
+        xs = list(range(len(dd)))
+        ax.fill_between(xs, dd.values, 0, color='#991b1b', alpha=0.18)
+        ax.plot(xs, dd.values, color='#991b1b', lw=2.0, marker='o', ms=5)
+        ax.axhline(0, color='#444444', lw=0.7)
+        vmin = min(dd.values) * 1.4 if min(dd.values) < 0 else -0.1
+        ax.set_ylim(vmin, 0.05)
+        # Annotation du MDD max
+        mdd_val = float(dd.min())
+        mdd_idx = int(dd.values.tolist().index(mdd_val))
+        if mdd_val < -0.001:
+            ax.annotate(f'{mdd_val:.2f}%', xy=(mdd_idx, mdd_val),
+                        xytext=(0, -14), textcoords='offset points',
+                        fontsize=8.5, color='#991b1b', ha='center', fontweight='bold')
+        labels = [d.strftime('%d/%m') for d in dd.index]
+        ax.set_xticks(xs); ax.set_xticklabels(labels, fontsize=9)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v,_: f'{v:.2f}%'))
+        ax.tick_params(colors='#777777', labelsize=8)
+        for sp in ax.spines.values(): sp.set_color('#cccccc'); sp.set_linewidth(0.5)
+        ax.grid(axis='y', color='#eeeeee', lw=0.5)
+        plt.tight_layout(pad=0.4)
+        buf = BytesIO(); plt.savefig(buf, format='png', dpi=160, bbox_inches='tight')
+        plt.close(); buf.seek(0); return buf
+
     # ── graphiques de performance ────────────────────────────────────
     def _chart_intraday(self, snaps, par, cw_pt):
         fig, ax = plt.subplots(figsize=(cw_pt/72, 2.5))
@@ -471,7 +550,8 @@ class ReportGenerator(BaseScript):
                 elif d in brvm_h: ci[d] = float(brvm_h[d])
 
         te = td = None
-        ec = pd.Series(ce).sort_index(); ic = pd.Series(ci).sort_index()
+        ec = pd.Series({pd.Timestamp(k): v for k,v in ce.items()}).sort_index()
+        ic = pd.Series({pd.Timestamp(k): v for k,v in ci.items()}).sort_index()
         nd = len(ec)
         if len(ec) >= 2 and len(ic) >= 2:
             re_ = ec.pct_change().dropna(); ri_ = ic.pct_change().dropna()
@@ -580,6 +660,41 @@ class ReportGenerator(BaseScript):
             Image(buf2, width=ch_w, height=3.4*72) if buf2 else Paragraph('—', s['body']),
         ], cw))
         story.append(Spacer(1,6))
+
+        # ── Courbes TE glissant + MDD glissant (côte à côte) ──────────
+        te_target = float(launch.get('te_target_pct', 1.0))
+        hw = (cw - 6) / 2
+        buf_te  = self._chart_te_rolling(ec, ic, hw - 28, te_target=te_target) if len(ec) >= 2 else None
+        buf_mdd = self._chart_mdd_rolling(ec, par, hw - 28) if len(ec) >= 2 else None
+
+        if buf_te or buf_mdd:
+            cell_te = [
+                Paragraph('TRACKING ERROR GLISSANTE', s['clbl']),
+                Spacer(1,3),
+                Paragraph(f'Annualisée  ·  plancher cible ≤ {te_target:.1f}%', s['csub']),
+                Spacer(1,8),
+                Image(buf_te, width=hw-28, height=2.6*72) if buf_te else Paragraph('Données insuffisantes (min. 2 séances)', s['csub']),
+            ]
+            cell_mdd = [
+                Paragraph('MAXIMUM DRAWDOWN GLISSANT', s['clbl']),
+                Spacer(1,3),
+                Paragraph(f'Pire repli depuis le sommet historique  ·  depuis le lancement', s['csub']),
+                Spacer(1,8),
+                Image(buf_mdd, width=hw-28, height=2.6*72) if buf_mdd else Paragraph('Données insuffisantes (min. 2 séances)', s['csub']),
+            ]
+            t_risk = Table([[cell_te, cell_mdd]], colWidths=[hw, hw])
+            t_risk.setStyle(TableStyle([
+                ('BOX',           (0,0),(-1,-1), 0.6, BORDER),
+                ('LINEBEFORE',    (1,0),(1,0),   0.4, BORDER),
+                ('BACKGROUND',    (0,0),(-1,-1), WHITE),
+                ('VALIGN',        (0,0),(-1,-1), 'TOP'),
+                ('TOPPADDING',    (0,0),(-1,-1), 14),
+                ('BOTTOMPADDING', (0,0),(-1,-1), 10),
+                ('LEFTPADDING',   (0,0),(-1,-1), 14),
+                ('RIGHTPADDING',  (0,0),(-1,-1), 14),
+            ]))
+            story.append(t_risk)
+            story.append(Spacer(1,6))
 
         story.append(Paragraph(
             f'COMPOSITION DU PORTEFEUILLE  ·  {len(basket)} titres  ·  '
