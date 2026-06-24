@@ -2,133 +2,133 @@
   "stress_tests": [
     {
       "name": "Trimestriel (référence)",
-      "te": 0.018369,
-      "td": 0.008789,
+      "te": 0.01838,
+      "td": 0.004268,
       "turnover": 0.0691
     },
     {
       "name": "Mensuel",
-      "te": 0.019433,
-      "td": 0.078231,
+      "te": 0.019439,
+      "td": 0.072001,
       "turnover": 0.029715
     },
     {
       "name": "Semestriel",
-      "te": 0.020813,
-      "td": -0.00235,
+      "te": 0.020828,
+      "td": -0.005482,
       "turnover": 0.104784
     },
     {
       "name": "Annuel",
-      "te": 0.02333,
-      "td": -0.00705,
+      "te": 0.023341,
+      "td": -0.009202,
       "turnover": 0.144595
     },
     {
       "name": "Trimestriel +frais ×2",
-      "te": 0.018371,
-      "td": -0.010846,
+      "te": 0.018383,
+      "td": -0.01528,
       "turnover": 0.0691
     },
     {
       "name": "Trimestriel 0-frais",
-      "te": 0.018369,
-      "td": 0.028693,
+      "te": 0.01838,
+      "td": 0.024082,
       "turnover": 0.0691
     }
   ],
   "ewma_sensitivity": [
     {
       "threshold": 0.01,
-      "te": 0.017534,
-      "td": 0.006211,
-      "turnover": 0.069334,
+      "te": 0.017553,
+      "td": 0.002033,
+      "turnover": 0.064001,
       "n_forced_avg": 21
     },
     {
       "threshold": 0.02,
-      "te": 0.017623,
-      "td": 0.008057,
-      "turnover": 0.070591,
+      "te": 0.017642,
+      "td": 0.003796,
+      "turnover": 0.065161,
       "n_forced_avg": 11
     },
     {
       "threshold": 0.03,
-      "te": 0.018779,
-      "td": 0.011418,
-      "turnover": 0.073987,
+      "te": 0.018393,
+      "td": 0.004377,
+      "turnover": 0.069141,
       "n_forced_avg": 7
     },
     {
       "threshold": 0.05,
-      "te": 0.01977,
-      "td": 0.019217,
-      "turnover": 0.083952,
+      "te": 0.019413,
+      "td": 0.011516,
+      "turnover": 0.07834,
       "n_forced_avg": 3
     },
     {
       "threshold": 0.08,
-      "te": 0.01977,
-      "td": 0.019217,
-      "turnover": 0.083952,
+      "te": 0.019413,
+      "td": 0.011516,
+      "turnover": 0.07834,
       "n_forced_avg": 2
     },
     {
       "threshold": 0.1,
-      "te": 0.01977,
-      "td": 0.019217,
-      "turnover": 0.083952,
+      "te": 0.019413,
+      "td": 0.011516,
+      "turnover": 0.07834,
       "n_forced_avg": 2
     },
     {
       "threshold": 0.15,
-      "te": 0.01977,
-      "td": 0.019217,
-      "turnover": 0.083952,
+      "te": 0.019413,
+      "td": 0.011516,
+      "turnover": 0.07834,
       "n_forced_avg": 2
     }
   ],
   "bootstrap": {
     "n_sim": 500,
-    "te_med": 0.018786,
-    "te_p5": 0.016105,
-    "te_p95": 0.021285
+    "te_med": 0.018407,
+    "te_p5": 0.015736,
+    "te_p95": 0.020976
   },
   "walk_forward": [
     {
       "label": "Jan–Déc 2023",
-      "te_is": 0.027209,
-      "te_oos": 0.008275,
-      "td_oos": 0.005452,
-      "delta_te": -0.018934
+      "te_is": 0.026402,
+      "te_oos": 0.008257,
+      "td_oos": 0.001418,
+      "delta_te": -0.018145
     },
     {
       "label": "Jan–Déc 2024",
-      "te_is": 0.008275,
-      "te_oos": 0.018059,
-      "td_oos": 0.008824,
-      "delta_te": 0.009784
+      "te_is": 0.008257,
+      "te_oos": 0.01807,
+      "td_oos": 0.003023,
+      "delta_te": 0.009813
     },
     {
       "label": "Jan–Déc 2025",
-      "te_is": 0.018059,
-      "te_oos": 0.00716,
-      "td_oos": 0.01125,
+      "te_is": 0.01807,
+      "te_oos": 0.007171,
+      "td_oos": 0.004631,
       "delta_te": -0.010899
     },
     {
       "label": "2023–2024 IS/2025 OOS",
-      "te_is": 0.020054,
-      "te_oos": 0.018059,
-      "td_oos": 0.008824,
-      "delta_te": -0.001995
+      "te_is": 0.019509,
+      "te_oos": 0.01807,
+      "td_oos": 0.003023,
+      "delta_te": -0.001439
     },
     {
       "label": "2023–2025 IS/2026 OOS",
-      "te_is": 0.019443,
-      "te_oos": 0.00716,
-      "td_oos": 0.01125,
-      "delta_te": -0.012283
+      "te_is": 0.019089,
+      "te_oos": 0.007171,
+      "td_oos": 0.004631,
+      "delta_te": -0.011918
     }
   ],
   "selection_params": {

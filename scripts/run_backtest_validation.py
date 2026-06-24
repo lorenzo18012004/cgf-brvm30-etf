@@ -240,13 +240,22 @@ def _get_weights(wh, date_key):
     return {}
 
 
-def build_nav_pr(all_dates, sh, rb_dates, wh, fee_ann=MGMT_FEE_ANN):
-    """Retourne (nav_gross_pr, nav_net_pr) en Series indexées par date string."""
+COST_TX = 0.005   # 50 bps de spread par transaction (achat + vente)
+
+def build_nav_pr(all_dates, sh, rb_dates, wh, fee_ann=MGMT_FEE_ANN, cost_tx=COST_TX):
+    """
+    Retourne (nav_gross_pr, nav_net_pr) en Series indexées par date string.
+
+    nav_gross : Price Return du panier MOINS les coûts de transaction (50bps × turnover)
+                à chaque rebalancement. Avant frais de gestion.
+    nav_net   : nav_gross MOINS les frais de gestion (0.6%/an en continu depuis J0).
+    """
     gross_pts, net_pts = {}, {}
-    nav_gross = 100.0
-    start_ts  = pd.Timestamp(START_DATE)
-    rb_idx    = 0
-    weights   = _get_weights(wh, rb_dates[0])
+    nav_gross    = 100.0
+    start_ts     = pd.Timestamp(START_DATE)
+    rb_idx       = 0
+    weights      = _get_weights(wh, rb_dates[0])
+    prev_weights = dict(weights)   # poids du rebal précédent pour calcul turnover
 
     for i, dt in enumerate(all_dates):
         if i == 0:
@@ -255,9 +264,17 @@ def build_nav_pr(all_dates, sh, rb_dates, wh, fee_ann=MGMT_FEE_ANN):
             continue
 
         prev_dt = all_dates[i - 1]
+
+        # Changement de rebalancement → déduire coût de transaction
         while rb_idx + 1 < len(rb_dates) and dt >= rb_dates[rb_idx + 1]:
-            rb_idx += 1
-            weights = _get_weights(wh, rb_dates[rb_idx])
+            rb_idx   += 1
+            new_w     = _get_weights(wh, rb_dates[rb_idx])
+            # Turnover = Σ|w_new - w_old| / 2  (one-way)
+            all_tks   = set(prev_weights) | set(new_w)
+            turnover  = sum(abs(new_w.get(t, 0) - prev_weights.get(t, 0)) for t in all_tks) / 2
+            nav_gross *= (1 - cost_tx * turnover)
+            weights    = new_w
+            prev_weights = dict(new_w)
 
         total_w, weighted_ret = 0.0, 0.0
         for tk, w in weights.items():

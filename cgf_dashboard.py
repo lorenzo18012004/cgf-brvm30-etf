@@ -849,7 +849,8 @@ _ALL_SEC_LABELS = {
     "te": "Tracking Error", "composition": "Composition ETF",
     "indice": "Composition BRVM30", "rebalancements": "Rebalancements",
     "stress": "Stress Tests", "scalabilite": "Scalabilité",
-    "walkforward": "Walk-Forward", "situation": "Situation actuelle",
+    "walkforward": "Walk-Forward", "methodologie": "Méthodologie",
+    "situation": "Situation actuelle",
     "ap": "AP", "analyse": "Analyse approfondie",
 }
 
@@ -861,7 +862,7 @@ _p = [st.query_params.get(f"p{i}", "") for i in range(1, 5)]
 
 _live_sec_keys = {"situation", "rebalancements", "ap", "analyse"}
 _bt_sec_keys   = {"overview", "performance", "te", "composition", "indice",
-                  "rebalancements", "stress", "scalabilite", "walkforward"}
+                  "rebalancements", "stress", "scalabilite", "walkforward", "methodologie"}
 _valid_secs    = _live_sec_keys if _page == "live" else _bt_sec_keys
 
 # Nettoyer : section invalide pour cette page
@@ -1859,6 +1860,114 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
                 "td_oos": "TD OOS", "delta_te": "Delta TE",
             })[[c for c in ["Période", "TE OOS", "TE IS", "TD OOS", "Delta TE"] if c in df_wf_disp.rename(columns={"label":"Période","te_oos":"TE OOS","te_is":"TE IS","td_oos":"TD OOS","delta_te":"Delta TE"}).columns]],
             width='stretch', hide_index=True)
+
+    elif _bsec == "methodologie":
+        _section("Méthodologie — Formules du backtest et du live")
+        st.caption("Toutes les formules utilisées dans le backtest et le système live. "
+                   "Les indices $i$ désignent les titres du panier, $t$ les jours ouvrés.")
+
+        def _lx(title, formula, note=None):
+            st.markdown(f"**{title}**")
+            st.latex(formula)
+            if note:
+                st.caption(note)
+            st.markdown("")
+
+        st.markdown("---")
+        st.markdown("#### Backtest — Construction de la NAV")
+
+        _lx("Rendement journalier du panier (Price Return)",
+            r"\text{r}_t = \frac{\displaystyle\sum_i w_i \cdot \left(\frac{P_i^t}{P_i^{t-1}} - 1\right)}{\displaystyle\sum_i w_i}",
+            "Seuls les titres ayant un prix J et J−1 contribuent. Les poids sont ceux du dernier rebalancement.")
+
+        _lx("Coût de transaction à chaque rebalancement",
+            r"\text{cost\_rebal} = c_{tx} \times \underbrace{\frac{1}{2}\sum_k \left|w_k^{\text{new}} - w_k^{\text{old}}\right|}_{\text{turnover one-way}}",
+            "c_tx = 50 bps (spread estimé). Division par 2 : chaque vente correspond à un achat ailleurs.")
+
+        _lx("NAV brute (Price Return, après coûts de transaction)",
+            r"\text{NAV\_gross}_t = \text{NAV\_gross}_{t-1} \times (1 + r_t) \times \begin{cases} (1 - \text{cost\_rebal}) & \text{si rebalancement} \\ 1 & \text{sinon} \end{cases}",
+            "Base 100 au 2023-01-02. Inclut les frictions de transaction, pas les frais de gestion.")
+
+        _lx("NAV nette (après frais de gestion)",
+            r"\text{NAV\_net}_t = \text{NAV\_gross}_t \times (1 - f)^{\,\frac{t - t_0}{365}}",
+            "f = 0.6 %/an. Frais appliqués en continu depuis J0 (méthode actuarielle).")
+
+        _lx("Benchmark BRVM30 PR",
+            r"\text{Bench}_t = \frac{\text{BRVM30\_PR}_t}{\text{BRVM30\_PR}_{t_0}} \times 100",
+            "Lu depuis l'Excel officiel BRVM (colonne PR). Base 100 au 2023-01-02. Aucun dividende réintégré.")
+
+        st.markdown("---")
+        st.markdown("#### Backtest — Métriques de qualité")
+
+        _lx("Tracking Error (TE) annualisée",
+            r"\text{TE} = \sqrt{252} \times \sigma\!\left(r_t^{\text{ETF}} - r_t^{\text{Bench}}\right)",
+            "σ = écart-type empirique (ddof=1) des écarts de rendements journaliers. Annualisé par √252.")
+
+        _lx("Tracking Difference (TD) cumulée",
+            r"\text{TD} = \frac{\text{NAV\_net}_T}{\text{Bench}_T} - 1",
+            "T = dernier jour du backtest. Positif si l'ETF surperforme l'indice PR net de frais.")
+
+        _lx("Tracking Difference annualisée",
+            r"\text{TD\_ann} = (1 + \text{TD})^{\,\frac{1}{n}} - 1 \qquad n = \frac{\text{nb jours ouvrés}}{252}")
+
+        _lx("Turnover moyen par rebalancement",
+            r"\text{Turnover} = \frac{1}{N-1}\sum_{j=1}^{N-1} \frac{1}{2}\sum_k \left|w_k^{j} - w_k^{j-1}\right|",
+            "N = nombre de rebalancements. One-way : 10 % de turnover = 10 % du panier renouvelé.")
+
+        st.markdown("---")
+        st.markdown("#### Règles de sélection du panier")
+
+        _lx("ADV — Average Daily Volume (M FCFA)",
+            r"\text{ADV}_i = \frac{1}{n}\sum_{j \in \text{63j ouvr. avant rebal}} \text{Vol}_j^i \times P_j^i \times 10^{-6}",
+            "Seuls les jours avec volume > 0 entrent dans la moyenne (jours stales exclus du calcul).")
+
+        _lx("Stale ratio",
+            r"\text{Stale}_i = \frac{\#\{j \in \text{fenêtre 63j} : \text{Vol}_j^i = 0\}}{\text{nb jours dans la fenêtre}}",
+            "Exclu si Stale ≥ 70 %, sauf si poids BRVM30 ≥ 3 % (règle de force).")
+
+        _lx("Jours d'exécution estimés",
+            r"\text{exec\_days}_i = \frac{w_i^{\text{BRVM30}} \times \text{AUM}}{\text{ADV}_i}",
+            "AUM de référence = 5 Md FCFA. Hypothèse : exécution à l'ADV sans impact marché.")
+
+        _lx("Poids minimum après redistribution",
+            r"w_i^{\text{norm}} = \frac{w_i^{\text{BRVM30}}}{\displaystyle\sum_{k \in \text{panier}} w_k^{\text{BRVM30}}} \geq 0.1\%",
+            "Si w_norm < 0.1 % et titre non forcé → exclusion.")
+
+        st.markdown("---")
+        st.markdown("#### Bootstrap TE (N = 500 simulations)")
+
+        _lx("Simulation par rééchantillonnage avec remise",
+            r"\text{TE}^{(b)} = \sqrt{252} \times \sigma\!\left(\text{tirage}_{\text{remise}}\!\left\{r_t^{\text{ETF}} - r_t^{\text{Bench}}\right\}\right)",
+            "Intervalle de confiance [P5, P95] reporté. Seed = 42 (reproductible).")
+
+        st.markdown("---")
+        st.markdown("#### Live — Calcul de la VL quotidienne")
+
+        _lx("Rendement journalier live",
+            r"r_{\text{jour}} = \sum_i \frac{w_i}{100} \times \frac{P_i^{\text{today}} - P_i^{\text{yesterday}}}{P_i^{\text{yesterday}}}",
+            "Prix depuis sika_history.json (dernier prix disponible). w_i = poids_pct stocké dans nav_latest.json.")
+
+        _lx("NAV indice live",
+            r"\text{NAV\_indice}_t = \text{NAV\_indice}_{t-1} \times (1 + r_{\text{jour}})")
+
+        _lx("VL par part",
+            r"\text{VL}_t = \text{par} \times \frac{\text{NAV\_indice}_t}{\text{NAV\_indice}_{\text{lancement}}}",
+            "par = 100 000 FCFA (valeur nominale à l'émission). NAV_lancement fixée au 19 juin 2026.")
+
+        _lx("AUM (M FCFA)",
+            r"\text{AUM}_t = \text{VL}_t \times N_{\text{parts}} \times 10^{-6}",
+            "N_parts = 50 000 parts émises.")
+
+        _lx("Performance depuis le lancement",
+            r"\text{Perf}_{\text{lct}} = \frac{\text{NAV\_indice}_t}{\text{NAV\_indice}_{\text{lancement}}} - 1")
+
+        _lx("ADV live (onglet Liquidité)",
+            r"\text{ADV}_i^{\text{live}} = \frac{1}{n}\sum_{j \in \text{63j ouvr. avant aujourd'hui}} \text{Vol}_j^i \times P_j^i \times 10^{-6}",
+            "Calculé en temps réel depuis sika_history.json à chaque chargement du dashboard.")
+
+        _lx("Jours d'exécution live",
+            r"\text{exec\_days}_i^{\text{live}} = \frac{\text{pv\_mfcfa}_i}{\text{ADV}_i^{\text{live}}}",
+            "pv_mfcfa = valeur de la position actuelle en M FCFA (nav_latest.json).")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # LIVE
