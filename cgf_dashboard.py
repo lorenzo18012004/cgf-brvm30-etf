@@ -2037,16 +2037,30 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
         st.markdown("---")
         st.markdown("#### Bootstrap TE (N = 500 simulations)")
 
+        st.markdown(
+            "**Pourquoi un intervalle de confiance ?**  \n"
+            "La TE instantanée (ex. 1,67 %) est calculée sur un historique précis (2023–2026). "
+            "Mais cette valeur dépend de la période choisie : si le marché avait été plus volatile "
+            "ou si la composition avait changé différemment, la TE aurait été différente. "
+            "Le bootstrap répond à la question : *à quel point peut-on faire confiance à ce chiffre ?*  \n"
+            "On tire 500 échantillons aléatoires (avec remise) dans les écarts historiques et on "
+            "recalcule la TE à chaque fois. L'intervalle [P5, P95] montre la plage probable de la TE "
+            "si l'histoire avait été légèrement différente.  \n"
+            "**Interprétation** : intervalle étroit → TE stable, robuste. "
+            "Intervalle large → TE sensible au régime de marché, à surveiller."
+        )
+        st.markdown("")
+
         _lx("Simulation par rééchantillonnage avec remise",
             r"\text{TE}^{(b)} = \sqrt{252} \times \sigma\!\left(\text{tirage}_{\text{remise}}\!\left\{r_t^{\text{ETF}} - r_t^{\text{Bench}}\right\}\right)",
             legend=[
-                "TE^(b) = tracking error calculée sur le b-ième tirage aléatoire",
-                "tirage_remise{...} = rééchantillonnage avec remise des écarts journaliers historiques",
+                "TE^(b) = tracking error calculée sur le b-ième tirage aléatoire (1 tirage = 1 simulation)",
+                "tirage_remise{...} = on pioche aléatoirement N écarts journaliers parmi les N historiques, avec remise (un même jour peut être pioché plusieurs fois)",
                 "σ = écart-type empirique (ddof=1) du tirage",
                 "√252 = annualisation",
             ],
-            note="500 simulations. Intervalle de confiance [P5, P95] reporté. Seed = 42 (résultats reproductibles). "
-                 "Permet d'estimer la stabilité de la TE — si l'intervalle est large, la TE est instable.")
+            note="500 simulations, seed = 42 (résultats reproductibles). "
+                 "L'intervalle [P5, P95] exclut les 5% de simulations les plus basses et les 5% les plus hautes.")
 
         st.markdown("---")
         st.markdown("#### Live — Calcul de la VL quotidienne")
