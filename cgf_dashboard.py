@@ -1190,6 +1190,7 @@ if _page == "backtest":
         ("stress",         "Stress Tests"),
         ("scalabilite",    "Scalabilité"),
         ("walkforward",    "Walk-Forward"),
+        ("methodologie",   "Méthodologie"),
     ]
     _sub_items = ""
     for _sk, _sl in _bt_secs:
