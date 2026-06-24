@@ -286,41 +286,52 @@ class ReportGenerator(BaseScript):
         fig.patch.set_facecolor('white'); ax.set_facecolor('white')
         times = [s['time'] for s in snaps]
         vls   = [float(s.get('vl_live_fcfa') or s.get('vl_fcfa') or s.get('vl') or 0) for s in snaps]
-        brvms = [float(s['brvm30_official']) for s in snaps if s.get('brvm30_official')]
-        xs    = list(range(len(times)))
-
-        # iNAV — axe gauche (noir)
-        ax.plot(xs, vls, color='#1a3557', lw=1.8, label='iNAV (FCFA)')
+        xs = list(range(len(times)))
+        ax.plot(xs, vls, color='#1a3557', lw=1.8)
         ax.fill_between(xs, vls, min(vls)*0.9994, alpha=0.04, color='#1a3557')
         ax.axhline(par, color='#888888', ls='--', lw=0.8, alpha=0.7)
         vm, vM = min(vls), max(vls)
         ax.annotate(f'{vm:,.0f}', xy=(vls.index(vm), vm), xytext=(0,-13),
                     textcoords='offset points', fontsize=7.5, color='#444444', ha='center')
         ax.annotate(f'{vM:,.0f}', xy=(vls.index(vM), vM), xytext=(0,6),
-                    textcoords='offset points', fontsize=7.5, color='#1a3557', ha='center', fontweight='bold')
-        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x,_: f'{x:,.0f}'))
-        ax.tick_params(colors='#777777', labelsize=8)
-
-        # BRVM30 — axe droit (or)
-        if len(brvms) == len(times):
-            ax2 = ax.twinx()
-            ax2.plot(xs, brvms, color='#b8922f', lw=1.5, ls='--', label='BRVM30')
-            bm, bM = min(brvms), max(brvms)
-            amp = max(bM - bm, 0.1)
-            ax2.set_ylim(bm - amp * 2, bM + amp * 2)
-            ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda x,_: f'{x:.2f}'))
-            ax2.tick_params(colors='#b8922f', labelsize=7.5)
-            ax2.spines['right'].set_color('#b8922f'); ax2.spines['right'].set_linewidth(0.5)
-            for sp in ['top','left','bottom']: ax2.spines[sp].set_visible(False)
-            # Légende combinée
-            lines1, lbl1 = ax.get_legend_handles_labels()
-            lines2, lbl2 = ax2.get_legend_handles_labels()
-            ax.legend(lines1 + lines2, lbl1 + lbl2, fontsize=7.5, framealpha=0, loc='upper left')
-
+                    textcoords='offset points', fontsize=7.5, color='#111111', ha='center', fontweight='bold')
         step = max(1, len(times)//8)
         ax.set_xticks(xs[::step]); ax.set_xticklabels(times[::step], fontsize=8)
-        for sp in ['top','right']: ax.spines[sp].set_visible(False)
-        for sp in ['left','bottom']: ax.spines[sp].set_color('#cccccc'); ax.spines[sp].set_linewidth(0.5)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x,_: f'{x:,.0f}'))
+        ax.tick_params(colors='#777777', labelsize=8)
+        for sp in ax.spines.values(): sp.set_color('#cccccc'); sp.set_linewidth(0.5)
+        ax.grid(axis='y', color='#eeeeee', lw=0.5)
+        plt.tight_layout(pad=0.3)
+        buf = BytesIO(); plt.savefig(buf, format='png', dpi=160, bbox_inches='tight'); plt.close(); buf.seek(0); return buf
+
+    def _chart_intraday_vs_brvm(self, snaps, cw_pt):
+        """iNAV vs BRVM30 normalisés base 100 à l'ouverture — comparaison intraday."""
+        times = [s['time'] for s in snaps]
+        vls   = [float(s.get('vl_live_fcfa') or s.get('vl_fcfa') or s.get('vl') or 0) for s in snaps]
+        brvms = [float(s['brvm30_official']) for s in snaps if s.get('brvm30_official')]
+        if not vls or not brvms or len(brvms) != len(times):
+            return None
+        base_vl = vls[0] or 1.0
+        base_br = brvms[0] or 1.0
+        vls_b  = [v / base_vl * 100 for v in vls]
+        brvms_b = [b / base_br * 100 for b in brvms]
+        xs = list(range(len(times)))
+
+        fig, ax = plt.subplots(figsize=(cw_pt/72, 2.0))
+        fig.patch.set_facecolor('white'); ax.set_facecolor('white')
+        ax.plot(xs, vls_b,  color='#1a3557', lw=1.8, label='iNAV ETF')
+        ax.plot(xs, brvms_b, color='#b8922f', lw=1.5, ls='--', label='BRVM30')
+        ax.axhline(100, color='#cccccc', ls=':', lw=0.8)
+        all_v = vls_b + brvms_b
+        amp = max(max(all_v) - min(all_v), 0.1)
+        ax.set_ylim(min(all_v) - amp * 0.3, max(all_v) + amp * 0.3)
+        step = max(1, len(times)//8)
+        ax.set_xticks(xs[::step]); ax.set_xticklabels(times[::step], fontsize=8)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x,_: f'{x:.2f}'))
+        ax.set_ylabel('Base 100', fontsize=7.5, color='#777777')
+        ax.legend(fontsize=8, framealpha=0, loc='upper left')
+        ax.tick_params(colors='#777777', labelsize=8)
+        for sp in ax.spines.values(): sp.set_color('#cccccc'); sp.set_linewidth(0.5)
         ax.grid(axis='y', color='#eeeeee', lw=0.5)
         plt.tight_layout(pad=0.3)
         buf = BytesIO(); plt.savefig(buf, format='png', dpi=160, bbox_inches='tight'); plt.close(); buf.seek(0); return buf
@@ -647,15 +658,24 @@ class ReportGenerator(BaseScript):
         if snaps:
             vls = [float(x.get('vl_live_fcfa') or x.get('vl_fcfa') or x.get('vl') or 0) for x in snaps]
             sub = f'{len(snaps)} valorisations  ·  min {min(vls):,.0f}  –  max {max(vls):,.0f} FCFA'
-            buf  = self._chart_intraday(snaps, par, cw - 28)
+            buf     = self._chart_intraday(snaps, par, cw - 28)
+            buf_vs  = self._chart_intraday_vs_brvm(snaps, cw - 28)
             ch_w = cw - 28
-            story.append(self._wrap_card([
+            card_items = [
                 Paragraph('iNAV INTRADAY', s['clbl']),
                 Spacer(1,3),
                 Paragraph(sub, s['csub']),
                 Spacer(1,8),
                 Image(buf, width=ch_w, height=ch_w*2.5/7.22),
-            ], cw))
+            ]
+            if buf_vs:
+                card_items += [
+                    Spacer(1,10),
+                    Paragraph('iNAV ETF vs BRVM30  —  base 100 à l\'ouverture', s['csub']),
+                    Spacer(1,6),
+                    Image(buf_vs, width=ch_w, height=ch_w*2.0/7.22),
+                ]
+            story.append(self._wrap_card(card_items, cw))
         story.append(Spacer(1, 10))
 
         td_str  = f'TD {td_bps}  ·  ' if td is not None else ''
