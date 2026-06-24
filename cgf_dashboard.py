@@ -3649,10 +3649,10 @@ def _render_live():
                     'NTLC': 'NTIC CI', 'ONTBF': 'ONATEL Burkina',
                     'ORAC': 'Orange CI', 'ORGT': 'Orange Guinée',
                     'PALC': 'Palmafrique CI', 'PRSC': 'Prestige CI',
-                    'SAFC': 'SAPH CI', 'SCRC': 'Sucrivoire CI',
+                    'SAFC': 'Servair Abidjan CI', 'SCRC': 'Sucrivoire CI',
                     'SDCC': 'SDCC CI', 'SDSC': 'Africa Global Logistics CI',
-                    'SEMC': 'Crown Siem CI', 'SGBC': 'Société Générale CI',
-                    'SHEC': 'Shell CI', 'SIBC': 'Société Ivoirienne de Banque',
+                    'SEMC': 'Eviosys Packaging Siem CI', 'SGBC': 'Société Générale CI',
+                    'SHEC': 'Vivo Energy CI', 'SIBC': 'Société Ivoirienne de Banque',
                     'SICC': 'SICOR CI', 'SIVC': 'Erium CI (ex-Air Liquide CI)',
                     'SLBC': 'Solibra CI', 'SMBC': 'SMB CI',
                     'SNTS': 'Sonatel', 'SOGC': 'Société Générale CI (SOGC)',
@@ -4919,6 +4919,7 @@ def _render_live():
             _DIV_TK_MAP = {
                 "":     "NSBC",   # NSIA Banque : ticker absent dans le scraping
                 "TOTC": "TTLC",   # TotalEnergies CI : Sika=TOTC, basket=TTLC
+                "VIVC": "SHEC",   # Vivo Energy CI : Sika=VIVC, basket=SHEC
             }
             rows_ex = []
             for _d in _divs_all_a:
