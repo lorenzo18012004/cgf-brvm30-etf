@@ -2544,6 +2544,17 @@ def _render_live():
                         _dt = pd.Timestamp(_d).normalize()
                         if _dt >= _t0 and _dt.weekday() < 5:
                             _raw_ni[_dt] = float(_bv)
+                    # Fallback : jours manquants comblés depuis le dernier snapshot intraday
+                    # (couvre le délai de ~1 jour entre clôture du marché et workflow nocturne)
+                    for _d, _snaps in intra_hist.items():
+                        _dt = pd.Timestamp(_d).normalize()
+                        if _dt in _raw_ni or _dt < _t0 or _dt.weekday() >= 5 or not _snaps:
+                            continue
+                        for _s in reversed(_snaps):
+                            _v = _s.get("brvm30_official")
+                            if _v:
+                                _raw_ni[_dt] = float(_v)
+                                break
                     # nav_live_series (VL de clôture calc_nav) écrase si dispo — source du graphique
                     for _d, _v in (_live_ser or []):
                         _dt = pd.Timestamp(_d).normalize()
