@@ -1956,12 +1956,14 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
         st.markdown("---")
         st.markdown("#### Live — Calcul de la VL quotidienne")
 
-        _lx("Rendement journalier live",
-            r"r_{\text{jour}} = \sum_i \frac{w_i}{100} \times \frac{P_i^{\text{today}} - P_i^{\text{yesterday}}}{P_i^{\text{yesterday}}}",
-            "Prix depuis sika_history.json (dernier prix disponible). w_i = poids_pct stocké dans nav_latest.json.")
+        _lx("Rendement journalier live (mark-to-market)",
+            r"r_{\text{jour}} = \sum_i \frac{w_i^{t-1}}{100} \times \frac{P_i^t}{P_i^{t-1}} - 1",
+            "w_i^{t-1} = poids_pct de la veille (mark-to-market, dérive avec les prix entre rebals). "
+            "Prix depuis sika_history.json. Après chaque calcul, les poids sont mis à jour pour le lendemain.")
 
-        _lx("NAV indice live",
-            r"\text{NAV\_indice}_t = \text{NAV\_indice}_{t-1} \times (1 + r_{\text{jour}})")
+        _lx("NAV indice live (nette de frais — formule récursive quotidienne)",
+            r"\text{NAV\_indice}_t = \text{NAV\_indice}_{t-1} \times (1 + r_{\text{jour}}) \times (1-f)^{\!\frac{1}{252}}",
+            "f = 0.6 %/an. Même formule récursive que le backtest. Appliquée chaque jour ouvré.")
 
         _lx("VL par part",
             r"\text{VL}_t = \text{par} \times \frac{\text{NAV\_indice}_t}{\text{NAV\_indice}_{\text{lancement}}}",
