@@ -21,7 +21,7 @@ class CorporateActionsChecker(BaseScript):
     def __init__(self):
         super().__init__()
         self.THRESHOLD_DIV   = 0.04
-        self.THRESHOLD_SPLIT = 0.15
+        self.THRESHOLD_SPLIT = 0.10
         self.CALENDAR_DAYS   = 5
         self.RECIPIENT       = "l.philippe@cgfgestion.com"
         self.SIKA_HIST    = os.path.join(self.data_dir, "sika_history.json")
