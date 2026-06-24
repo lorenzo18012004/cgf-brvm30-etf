@@ -709,7 +709,9 @@ class ReportGenerator(BaseScript):
             sk = sika.get(tk, {})
             vj = sk.get('variation') if isinstance(sk, dict) else None
             co = sk.get('dernier')   if isinstance(sk, dict) else None
-            qt = r.get('quantite') or r.get('qty') or '—'
+            _pv = r.get('pv_mfcfa', 0)
+            _px = r.get('dernier_prix') or 0
+            qt  = round(_pv * 1e6 / _px) if _pv and _px else (r.get('quantite') or r.get('qty') or '—')
             rows.append([
                 Paragraph(tk, s['td']),
                 Paragraph(f"{r['poids_pct']:.2f}%", s['td']),
