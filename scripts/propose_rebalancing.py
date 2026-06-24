@@ -55,10 +55,10 @@ class RebalancingProposer(BaseScript):
     def _compute_adv(self, ticker: str, as_of_date: str, sika: dict) -> float:
         hist  = sika.get(ticker, {})
         dates = sorted(d for d in hist if d < as_of_date)[-STALE_WINDOW:]
+        # Dénominateur = tous les jours de la fenêtre (y compris jours sans volume)
         vals  = [(hist[d].get("volume") or 0) * (hist[d].get("close") or 0) / 1e6
-                 for d in dates
-                 if (hist[d].get("volume") or 0) > 0 and (hist[d].get("close") or 0) > 0]
-        return float(np.mean(vals)) if vals else 0.0
+                 for d in dates]
+        return float(sum(vals) / len(dates)) if dates else 0.0
 
     def _compute_stale(self, ticker: str, as_of_date: str, sika: dict) -> float:
         hist  = sika.get(ticker, {})

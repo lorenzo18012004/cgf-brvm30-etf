@@ -42,8 +42,8 @@ def compute_adv(ticker, as_of_date, window=STALE_WINDOW):
     hist  = sh.get(ticker, {})
     dates = sorted(d for d in hist if d < as_of_date)[-window:]
     vals  = [(hist[d].get('volume') or 0) * (hist[d].get('close') or 0) / 1e6
-             for d in dates if (hist[d].get('volume') or 0) > 0 and (hist[d].get('close') or 0) > 0]
-    return float(np.mean(vals)) if vals else 0.0
+             for d in dates]
+    return float(sum(vals) / len(dates)) if dates else 0.0
 
 def compute_stale(ticker, as_of_date, window=STALE_WINDOW):
     hist  = sh.get(ticker, {})

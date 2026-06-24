@@ -1929,8 +1929,10 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
         st.markdown("#### Règles de sélection du panier")
 
         _lx("ADV — Average Daily Volume (M FCFA)",
-            r"\text{ADV}_i = \frac{1}{n}\sum_{j \in \text{63j ouvr. avant rebal}} \text{Vol}_j^i \times P_j^i \times 10^{-6}",
-            "Seuls les jours avec volume > 0 entrent dans la moyenne (jours stales exclus du calcul).")
+            r"\text{ADV}_i = \frac{\displaystyle\sum_{j=1}^{N} \text{Vol}_j^i \times P_j^i \times 10^{-6}}{N}"
+            r"\qquad N = \text{63 jours ouvrés avant le rebal}",
+            "N inclut TOUS les jours de la fenêtre, y compris les jours sans volume (Vol=0). "
+            "Cela évite de surestimer la liquidité des titres semi-actifs.")
 
         _lx("Stale ratio",
             r"\text{Stale}_i = \frac{\#\{j \in \text{fenêtre 63j} : \text{Vol}_j^i = 0\}}{\text{nb jours dans la fenêtre}}",
@@ -4269,9 +4271,8 @@ def _render_live():
                     hist  = _sh_liq.get(ticker, {})
                     dates = sorted(d for d in hist if d < _today)[-63:]
                     vals  = [(hist[d].get("volume") or 0) * (hist[d].get("close") or 0) / 1e6
-                             for d in dates
-                             if (hist[d].get("volume") or 0) > 0 and (hist[d].get("close") or 0) > 0]
-                    return float(sum(vals) / len(vals)) if vals else 0.0
+                             for d in dates]
+                    return float(sum(vals) / len(dates)) if dates else 0.0
 
                 _liq_rows = []
                 for b in basket_now:

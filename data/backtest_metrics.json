@@ -4,12 +4,12 @@
   "n_years": 3.2,
   "n_rebal": 13,
   "mgmt_fee_ann": 0.006,
-  "te_full": 0.016766,
+  "te_full": 0.016742,
   "te_p1": 0.020984,
   "te_p2": 0.011912,
-  "te_prog": 0.016766,
-  "td_full": -0.034991,
-  "td_full_ann": -0.010918,
+  "te_prog": 0.016742,
+  "td_full": -0.035079,
+  "td_full_ann": -0.010946,
   "mgmt_fee_cumul": 0.019185,
   "cost_tx_cumul": 0.091835,
   "basket_gap_cumul": 0.049388,
@@ -23,43 +23,43 @@
   "annual": [
     {
       "year": 2023,
-      "te": 0.02545,
-      "td": -0.018181,
-      "td_gross": -0.01209,
+      "te": 0.025423,
+      "td": -0.018214,
+      "td_gross": -0.012123,
       "cost_tx": 0.052685,
       "mgmt_fee": 0.005894,
-      "basket_gap": -0.01209
+      "basket_gap": -0.012123
     },
     {
       "year": 2024,
-      "te": 0.006798,
-      "td": -0.024046,
-      "td_gross": -0.011851,
+      "te": 0.006561,
+      "td": -0.02295,
+      "td_gross": -0.010741,
       "cost_tx": 0.030589,
       "mgmt_fee": 0.005964,
-      "basket_gap": -0.011851
+      "basket_gap": -0.010741
     },
     {
       "year": 2025,
-      "te": 0.014972,
-      "td": -0.032974,
-      "td_gross": -0.014839,
+      "te": 0.015004,
+      "td": -0.033152,
+      "td_gross": -0.015021,
       "cost_tx": 0.016151,
       "mgmt_fee": 0.006012,
-      "basket_gap": -0.014839
+      "basket_gap": -0.015021
     },
     {
       "year": 2026,
-      "te": 0.001509,
-      "td": -0.034991,
-      "td_gross": -0.015367,
+      "te": 0.00243,
+      "td": -0.035079,
+      "td_gross": -0.015456,
       "cost_tx": 0.006393,
       "mgmt_fee": 0.001518,
-      "basket_gap": -0.015367
+      "basket_gap": -0.015456
     }
   ],
-  "td_gross": -0.015367,
-  "td_gross_ann": -0.004762,
+  "td_gross": -0.015456,
+  "td_gross_ann": -0.00479,
   "selection_params": {
     "force_weight_pct": 3.0,
     "stale_threshold_pct": 70.0,

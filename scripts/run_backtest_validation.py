@@ -104,13 +104,14 @@ all_dates = sorted({d for tk in sh for d in sh[tk]
 # ══════════════════════════════════════════════════════════════════════════════
 
 def compute_adv(ticker: str, as_of_date: str, window_days: int = 63) -> float:
-    """ADV en M FCFA sur les `window_days` jours ouvrés précédant as_of_date."""
+    """ADV en M FCFA sur les `window_days` jours ouvrés précédant as_of_date.
+    Le dénominateur inclut tous les jours de la fenêtre (y compris jours sans volume)
+    pour ne pas surestimer la liquidité des titres semi-actifs."""
     hist  = sh.get(ticker, {})
     dates = sorted(d for d in hist if d < as_of_date)[-window_days:]
-    vols  = [hist[d].get('volume', 0) or 0 for d in dates]
-    prices= [hist[d].get('close',  0) or 0 for d in dates]
-    vals  = [v * p / 1e6 for v, p in zip(vols, prices) if v > 0 and p > 0]
-    return float(np.mean(vals)) if vals else 0.0
+    vals  = [(hist[d].get('volume', 0) or 0) * (hist[d].get('close', 0) or 0) / 1e6
+             for d in dates]
+    return float(sum(vals) / len(dates)) if dates else 0.0
 
 
 def compute_stale_ratio(ticker: str, as_of_date: str,
@@ -240,8 +241,7 @@ def _get_weights(wh, date_key):
     return {}
 
 
-COST_TX    = 0.005                          # 50 bps spread one-way
-DAILY_FEE  = (1 - MGMT_FEE_ANN) ** (1/252) # facteur quotidien (252 jours ouvrés/an)
+COST_TX = 0.005   # 50 bps spread one-way
 
 def build_nav_pr(all_dates, sh, rb_dates, wh, fee_ann=MGMT_FEE_ANN, cost_tx=COST_TX):
     """
@@ -274,36 +274,38 @@ def build_nav_pr(all_dates, sh, rb_dates, wh, fee_ann=MGMT_FEE_ANN, cost_tx=COST
 
         prev_dt = all_dates[i - 1]
 
-        # ── Rebalancement → coût de transaction + reset du portefeuille ───────
-        while rb_idx + 1 < len(rb_dates) and dt >= rb_dates[rb_idx + 1]:
-            rb_idx  += 1
-            new_w    = _get_weights(wh, rb_dates[rb_idx])
-            all_tks  = set(prev_weights) | set(new_w)
-            # Poids courants après dérive (normalisés pour le calcul du turnover)
-            total_port  = sum(portfolio.values()) or 1.0
-            curr_w_norm = {tk: v / total_port for tk, v in portfolio.items()}
-            turnover    = sum(abs(new_w.get(t, 0) - curr_w_norm.get(t, 0))
-                              for t in all_tks) / 2
-            nav_gross  *= (1 - cost_tx * turnover)
-            nav_net    *= (1 - cost_tx * turnover)
-            portfolio    = dict(new_w)   # reset aux nouveaux poids cibles
-            prev_weights = dict(new_w)
-
-        # ── Rendement journalier mark-to-market ───────────────────────────────
-        total_prev  = sum(portfolio.values()) or 1.0
+        # ── Rendement journalier avec poids PRÉ-rebalancement ─────────────────
+        # Le rebalancement s'exécute à la clôture : le rendement du jour J
+        # est calculé avec les poids AVANT rebalancement, les nouveaux poids
+        # n'entrent en vigueur qu'à partir du jour J+1.
+        total_prev    = sum(portfolio.values()) or 1.0
         new_portfolio = {}
         for tk, v in portfolio.items():
             p1 = sh.get(tk, {}).get(prev_dt, {}).get('close')
             p2 = sh.get(tk, {}).get(dt,      {}).get('close')
             new_portfolio[tk] = v * (p2 / p1) if (p1 and p2 and p1 > 0) else v
 
-        total_new  = sum(new_portfolio.values())
-        r_t        = (total_new / total_prev - 1) if total_prev > 0 else 0.0
-        portfolio  = new_portfolio
+        total_new = sum(new_portfolio.values())
+        r_t       = (total_new / total_prev - 1) if total_prev > 0 else 0.0
+        portfolio = new_portfolio
 
         # ── Mise à jour NAV ───────────────────────────────────────────────────
         nav_gross *= (1 + r_t)
-        nav_net   *= (1 + r_t) * _daily_fee   # frais récursifs quotidiens
+        nav_net   *= (1 + r_t) * _daily_fee
+
+        # ── Rebalancement en clôture → coûts + reset pour le lendemain ───────
+        while rb_idx + 1 < len(rb_dates) and dt >= rb_dates[rb_idx + 1]:
+            rb_idx      += 1
+            new_w        = _get_weights(wh, rb_dates[rb_idx])
+            all_tks      = set(prev_weights) | set(new_w)
+            total_port   = sum(portfolio.values()) or 1.0
+            curr_w_norm  = {tk: v / total_port for tk, v in portfolio.items()}
+            turnover     = sum(abs(new_w.get(t, 0) - curr_w_norm.get(t, 0))
+                               for t in all_tks) / 2
+            nav_gross   *= (1 - cost_tx * turnover)
+            nav_net     *= (1 - cost_tx * turnover)
+            portfolio    = dict(new_w)
+            prev_weights = dict(new_w)
 
         gross_pts[dt] = nav_gross
         net_pts[dt]   = nav_net
