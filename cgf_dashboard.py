@@ -2285,17 +2285,14 @@ def _render_live():
             _etf_cl = pd.Series(_closes_etf).sort_index()
             _idx_cl = pd.Series(_closes_idx).sort_index()
             _n_seances = len(_etf_cl)
-            # TE et TD live : nécessite au moins 30 séances pour être significatif.
-            # En dessous, std(ddof=1) sur 3-4 points × √252 donne un chiffre instable
-            # qui peut déclencher de fausses alertes.
-            _MIN_SEANCES_TE = 30
+            _MIN_REPR  = 30   # seuil de représentativité statistique
             if len(_etf_cl) >= 2 and len(_idx_cl) >= 2:
                 _ret_etf = _etf_cl.pct_change().dropna()
                 _ret_idx = _idx_cl.pct_change().dropna()
                 _common  = _ret_etf.index.intersection(_ret_idx.index)
-                if len(_common) >= _MIN_SEANCES_TE:
+                if len(_common) >= 1:
                     _active = _ret_etf.loc[_common] - _ret_idx.loc[_common]
-                    _te = float(_active.std(ddof=1) * _np.sqrt(252) * 100)
+                    _te = float(_active.std(ddof=1) * _np.sqrt(252) * 100) if len(_common) >= 2 else float(abs(_active.iloc[0]) * _np.sqrt(252) * 100)
                 if _brvm30_at_launch_te and not _etf_cl.empty and not _idx_cl.empty:
                     _par_te  = float((launch or {}).get("par_fcfa", 100000))
                     _etf_cum = _etf_cl.iloc[-1] / _par_te
@@ -2307,20 +2304,18 @@ def _render_live():
                 _ret_live  = _etf_cl.pct_change().dropna()
                 _total_ret = _etf_cl.iloc[-1] / _etf_cl.iloc[0] - 1
                 _n_live    = len(_etf_cl)
-                # CAGR et Sharpe : non représentatifs avant 30 séances
-                if _n_live >= _MIN_SEANCES_TE:
-                    _live_cagr = ((1 + _total_ret) ** (252 / _n_live) - 1) * 100
-                    if _ret_live.std() > 0:
-                        _live_sharpe = float(_ret_live.mean() / _ret_live.std() * (252 ** 0.5))
+                _live_cagr = ((1 + _total_ret) ** (252 / _n_live) - 1) * 100
+                if _ret_live.std() > 0:
+                    _live_sharpe = float(_ret_live.mean() / _ret_live.std() * (252 ** 0.5))
                 _roll_max   = _etf_cl.cummax()
                 _live_maxdd = float(((_etf_cl - _roll_max) / _roll_max * 100).min())
             elif len(_etf_cl) == 1:
                 _live_maxdd = 0.0
 
-            # indicateur données insuffisantes (< 30 séances)
-            _non_repr = _n_seances is not None and _n_seances < _MIN_SEANCES_TE
+            # * = données < 30 séances : chiffres affichés mais non représentatifs
+            _non_repr = _n_seances is not None and _n_seances < _MIN_REPR
             _nr_note  = ' <span style="font-size:0.55rem;color:#c9861a;font-style:normal">*</span>' if _non_repr else ""
-            _te_str   = (f"{_te:.2f}%" if _te is not None else f"— <small style='color:#c9861a'>({_n_seances or 0}/{_MIN_SEANCES_TE} séances)</small>")
+            _te_str   = (f"{_te:.2f}%{_nr_note}" if _te is not None else "—")
             _td_str   = (f"{_td:+.3f}% ({_td*100:+.0f} bps){_nr_note}" if _td is not None else "—")
 
             # ── Bandeau synthétique (vue d'ensemble rapide) ───────────────────
@@ -2332,7 +2327,7 @@ def _render_live():
                 _te_s   = _te          # live, pas backtest
                 _max_s  = _live_maxdd  # live, pas backtest
                 _nb_s   = len((nl or {}).get("basket") or [])
-                _te_alert = _te_s is not None and _te_s > 2.5
+                _te_alert = _te_s is not None and _te_s > 2.5 and not _non_repr
                 _bg_te    = "background:#fdf3f2;border-left:2px solid #c0392b" if _te_alert else "background:#f3faf6;border-left:2px solid #2d7a4f"
                 st.markdown(f"""
                 <div style="display:flex;gap:0;margin-bottom:20px;
