@@ -4915,9 +4915,15 @@ def _render_live():
         with _tab_ex:
             _divs_all_a = sorted(_sika_a.get("dividendes", []),
                                  key=lambda x: x.get("date_detach") or "9999")
+            # Normalisation tickers sika_dividendes → tickers basket
+            _DIV_TK_MAP = {
+                "":     "NSBC",   # NSIA Banque : ticker absent dans le scraping
+                "TOTC": "TTLC",   # TotalEnergies CI : Sika=TOTC, basket=TTLC
+            }
             rows_ex = []
             for _d in _divs_all_a:
-                _tk  = _d.get("ticker")
+                _tk_raw = _d.get("ticker") or ""
+                _tk     = _DIV_TK_MAP.get(_tk_raw, _tk_raw) or _tk_raw
                 _dt  = _d.get("date_detach")
                 _mt  = _d.get("montant", 0)
                 _rnd = _d.get("rendement")
@@ -4936,7 +4942,7 @@ def _render_live():
                 _cash_ev = next((e.get("cash_total_fcfa") for e in _events_etf if e.get("ticker") == _tk), None)
                 rows_ex.append({
                     "Ticker":          _tk or "—",
-                    "Société":         _d.get("nom_sika", "—"),
+                    "Société":         _d.get("nom_sika") or _TICKER_NAMES.get(_tk, "—"),
                     "Détachement":     _dt or "—",
                     "Montant (FCFA)":  _mt,
                     "Rend. Sika (%)":  _rnd,
@@ -5025,7 +5031,8 @@ def _render_live():
                                key=lambda x: x.get("date_detach") or "9999")
             rows_cal = []
             for _d in _divs_cal:
-                _tk  = _d.get("ticker")
+                _tk_raw = _d.get("ticker") or ""
+                _tk     = _DIV_TK_MAP.get(_tk_raw, _tk_raw) or _tk_raw
                 _dt  = _d.get("date_detach")
                 _mt  = _d.get("montant", 0)
                 _rnd = _d.get("rendement")
@@ -5035,7 +5042,7 @@ def _render_live():
                 else:             _st_c = "À venir"
                 rows_cal.append({
                     "Ticker":         _tk or "—",
-                    "Société":        _d.get("nom_sika", "—"),
+                    "Société":        _d.get("nom_sika") or _TICKER_NAMES.get(_tk, "—"),
                     "Détachement":    _dt or "—",
                     "Montant (FCFA)": _mt,
                     "Rend. (%)":      _rnd,
@@ -5073,7 +5080,8 @@ def _render_live():
             if _hist_d:
                 _years_h = sorted({yr for yrs in _hist_d.values() for yr in yrs})
                 rows_h = []
-                for _tk, _yrs in sorted(_hist_d.items()):
+                for _tk_raw, _yrs in sorted(_hist_d.items()):
+                    _tk = _DIV_TK_MAP.get(_tk_raw, _tk_raw)
                     row = {"Ticker": _tk, "Panier ETF": "OUI" if _tk in _bask_a else "—"}
                     for _yr in _years_h:
                         row[_yr] = _yrs.get(_yr)
