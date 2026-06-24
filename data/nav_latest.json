@@ -1,6 +1,6 @@
 {
   "etf_name": "CGF BRVM30 ETF",
-  "calc_date": "2026-06-23",
+  "calc_date": "2026-06-24",
   "calc_timestamp": "2026-06-16 09:09",
   "data_age_cal_days": 0,
   "data_age_biz_days": 0,
@@ -9,15 +9,15 @@
   "n_basket": 27,
   "launch_date": "2026-06-19",
   "launched": true,
-  "nav_indice": 245.7412,
+  "nav_indice": 245.0979,
   "par_fcfa": 100000,
-  "vl_par_part_fcfa": 100835.0,
+  "vl_par_part_fcfa": 100571.0,
   "n_parts": 50000,
-  "aum_mfcfa": 5041.7,
+  "aum_mfcfa": 5028.5,
   "perf_ytd": null,
   "perf_3m": null,
   "perf_1y": null,
-  "perf_since_launch": 0.8347,
+  "perf_since_launch": 0.5707,
   "perf_backtest_total": 140.33,
   "vol_ann_pct": 9.69,
   "max_drawdown_pct": -7.56,
@@ -25,191 +25,191 @@
   "basket": [
     {
       "ticker": "SNTS",
-      "poids_pct": 23.4,
+      "poids_pct": 23.4691,
       "pv_mfcfa": 1175.7,
-      "dernier_prix": 28505.0,
+      "dernier_prix": 28515.0,
       "prix_stale": false
     },
     {
       "ticker": "ORAC",
-      "poids_pct": 18.47,
+      "poids_pct": 17.908,
       "pv_mfcfa": 928.0,
-      "dernier_prix": 16695.0,
+      "dernier_prix": 16145.0,
       "prix_stale": false
     },
     {
       "ticker": "SGBC",
-      "poids_pct": 8.66,
+      "poids_pct": 8.6547,
       "pv_mfcfa": 435.1,
-      "dernier_prix": 39000.0,
+      "dernier_prix": 38875.0,
       "prix_stale": false
     },
     {
       "ticker": "ECOC",
-      "poids_pct": 7.33,
+      "poids_pct": 7.3491,
       "pv_mfcfa": 368.3,
       "dernier_prix": 16500.0,
       "prix_stale": false
     },
     {
       "ticker": "SIBC",
-      "poids_pct": 5.57,
+      "poids_pct": 5.5845,
       "pv_mfcfa": 279.9,
       "dernier_prix": 8845.0,
       "prix_stale": false
     },
     {
       "ticker": "ETIT",
-      "poids_pct": 4.81,
+      "poids_pct": 5.0981,
       "pv_mfcfa": 241.7,
-      "dernier_prix": 35.0,
+      "dernier_prix": 37.0,
       "prix_stale": false
     },
     {
       "ticker": "CBIBF",
-      "poids_pct": 3.58,
+      "poids_pct": 3.5893,
       "pv_mfcfa": 179.9,
       "dernier_prix": 21785.0,
       "prix_stale": false
     },
     {
       "ticker": "STBC",
-      "poids_pct": 3.04,
+      "poids_pct": 3.0895,
       "pv_mfcfa": 152.7,
-      "dernier_prix": 22000.0,
+      "dernier_prix": 22300.0,
       "prix_stale": false
     },
     {
       "ticker": "BOAC",
-      "poids_pct": 2.74,
+      "poids_pct": 2.7026,
       "pv_mfcfa": 137.7,
-      "dernier_prix": 9250.0,
+      "dernier_prix": 9100.0,
       "prix_stale": false
     },
     {
       "ticker": "BOAB",
-      "poids_pct": 2.49,
+      "poids_pct": 2.5049,
       "pv_mfcfa": 125.1,
-      "dernier_prix": 8920.0,
+      "dernier_prix": 8950.0,
       "prix_stale": false
     },
     {
       "ticker": "BICB",
-      "poids_pct": 2.4,
+      "poids_pct": 2.398,
       "pv_mfcfa": 120.6,
-      "dernier_prix": 5810.0,
+      "dernier_prix": 5790.0,
       "prix_stale": false
     },
     {
       "ticker": "ORGT",
-      "poids_pct": 2.05,
+      "poids_pct": 2.079,
       "pv_mfcfa": 103.0,
-      "dernier_prix": 2610.0,
+      "dernier_prix": 2640.0,
       "prix_stale": false
     },
     {
       "ticker": "BOAS",
-      "poids_pct": 1.97,
+      "poids_pct": 1.9738,
       "pv_mfcfa": 99.0,
-      "dernier_prix": 7305.0,
+      "dernier_prix": 7300.0,
       "prix_stale": false
     },
     {
       "ticker": "BOABF",
-      "poids_pct": 1.97,
+      "poids_pct": 1.9875,
       "pv_mfcfa": 99.0,
-      "dernier_prix": 5565.0,
+      "dernier_prix": 5600.0,
       "prix_stale": false
     },
     {
       "ticker": "ONTBF",
-      "poids_pct": 1.61,
+      "poids_pct": 1.6142,
       "pv_mfcfa": 80.9,
       "dernier_prix": 2800.0,
       "prix_stale": false
     },
     {
       "ticker": "CIEC",
-      "poids_pct": 1.54,
+      "poids_pct": 1.5765,
       "pv_mfcfa": 77.4,
-      "dernier_prix": 4995.0,
+      "dernier_prix": 5100.0,
       "prix_stale": false
     },
     {
       "ticker": "SPHC",
-      "poids_pct": 1.44,
+      "poids_pct": 1.4437,
       "pv_mfcfa": 72.4,
       "dernier_prix": 7645.0,
       "prix_stale": false
     },
     {
       "ticker": "TTLC",
-      "poids_pct": 1.38,
+      "poids_pct": 1.3645,
       "pv_mfcfa": 69.3,
-      "dernier_prix": 2895.0,
+      "dernier_prix": 2855.0,
       "prix_stale": false
     },
     {
       "ticker": "SHEC",
-      "poids_pct": 1.11,
+      "poids_pct": 1.1129,
       "pv_mfcfa": 55.8,
       "dernier_prix": 2160.0,
       "prix_stale": false
     },
     {
       "ticker": "BOAM",
-      "poids_pct": 1.04,
+      "poids_pct": 1.1205,
       "pv_mfcfa": 52.3,
-      "dernier_prix": 4425.0,
+      "dernier_prix": 4755.0,
       "prix_stale": false
     },
     {
       "ticker": "CFAC",
-      "poids_pct": 0.93,
+      "poids_pct": 0.8628,
       "pv_mfcfa": 46.7,
-      "dernier_prix": 1675.0,
+      "dernier_prix": 1550.0,
       "prix_stale": false
     },
     {
       "ticker": "SDSC",
-      "poids_pct": 0.85,
+      "poids_pct": 0.8557,
       "pv_mfcfa": 42.7,
-      "dernier_prix": 2440.0,
+      "dernier_prix": 2450.0,
       "prix_stale": false
     },
     {
       "ticker": "BOAN",
-      "poids_pct": 0.45,
+      "poids_pct": 0.4732,
       "pv_mfcfa": 22.6,
-      "dernier_prix": 3985.0,
+      "dernier_prix": 4180.0,
       "prix_stale": false
     },
     {
       "ticker": "UNXC",
-      "poids_pct": 0.33,
+      "poids_pct": 0.3343,
       "pv_mfcfa": 16.6,
-      "dernier_prix": 1945.0,
+      "dernier_prix": 1965.0,
       "prix_stale": false
     },
     {
       "ticker": "STAC",
-      "poids_pct": 0.32,
+      "poids_pct": 0.3346,
       "pv_mfcfa": 16.1,
-      "dernier_prix": 3490.0,
+      "dernier_prix": 3640.0,
       "prix_stale": false
     },
     {
       "ticker": "SCRC",
-      "poids_pct": 0.27,
+      "poids_pct": 0.2743,
       "pv_mfcfa": 13.6,
-      "dernier_prix": 3050.0,
+      "dernier_prix": 3090.0,
       "prix_stale": false
     },
     {
       "ticker": "FTSC",
-      "poids_pct": 0.26,
+      "poids_pct": 0.245,
       "pv_mfcfa": 13.1,
-      "dernier_prix": 2080.0,
+      "dernier_prix": 1955.0,
       "prix_stale": false
     }
   ],
@@ -3692,7 +3692,7 @@
     ]
   ],
   "nav_live_series": [],
-  "change_day_pct": -0.3763,
+  "change_day_pct": -0.2594,
   "source": "cloud_fallback_sika",
   "n_live_prices": 27
 }
