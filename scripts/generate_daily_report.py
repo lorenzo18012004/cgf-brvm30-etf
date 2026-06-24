@@ -286,20 +286,41 @@ class ReportGenerator(BaseScript):
         fig.patch.set_facecolor('white'); ax.set_facecolor('white')
         times = [s['time'] for s in snaps]
         vls   = [float(s.get('vl_live_fcfa') or s.get('vl_fcfa') or s.get('vl') or 0) for s in snaps]
-        xs = list(range(len(times)))
-        ax.plot(xs, vls, color='black', lw=1.8)
-        ax.fill_between(xs, vls, min(vls)*0.9994, alpha=0.04, color='black')
+        brvms = [float(s['brvm30_official']) for s in snaps if s.get('brvm30_official')]
+        xs    = list(range(len(times)))
+
+        # iNAV — axe gauche (noir)
+        ax.plot(xs, vls, color='#1a3557', lw=1.8, label='iNAV (FCFA)')
+        ax.fill_between(xs, vls, min(vls)*0.9994, alpha=0.04, color='#1a3557')
         ax.axhline(par, color='#888888', ls='--', lw=0.8, alpha=0.7)
         vm, vM = min(vls), max(vls)
         ax.annotate(f'{vm:,.0f}', xy=(vls.index(vm), vm), xytext=(0,-13),
                     textcoords='offset points', fontsize=7.5, color='#444444', ha='center')
         ax.annotate(f'{vM:,.0f}', xy=(vls.index(vM), vM), xytext=(0,6),
-                    textcoords='offset points', fontsize=7.5, color='#111111', ha='center', fontweight='bold')
-        step = max(1, len(times)//8)
-        ax.set_xticks(xs[::step]); ax.set_xticklabels(times[::step], fontsize=8)
+                    textcoords='offset points', fontsize=7.5, color='#1a3557', ha='center', fontweight='bold')
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x,_: f'{x:,.0f}'))
         ax.tick_params(colors='#777777', labelsize=8)
-        for sp in ax.spines.values(): sp.set_color('#cccccc'); sp.set_linewidth(0.5)
+
+        # BRVM30 — axe droit (or)
+        if len(brvms) == len(times):
+            ax2 = ax.twinx()
+            ax2.plot(xs, brvms, color='#b8922f', lw=1.5, ls='--', label='BRVM30')
+            bm, bM = min(brvms), max(brvms)
+            amp = max(bM - bm, 0.1)
+            ax2.set_ylim(bm - amp * 2, bM + amp * 2)
+            ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda x,_: f'{x:.2f}'))
+            ax2.tick_params(colors='#b8922f', labelsize=7.5)
+            ax2.spines['right'].set_color('#b8922f'); ax2.spines['right'].set_linewidth(0.5)
+            for sp in ['top','left','bottom']: ax2.spines[sp].set_visible(False)
+            # Légende combinée
+            lines1, lbl1 = ax.get_legend_handles_labels()
+            lines2, lbl2 = ax2.get_legend_handles_labels()
+            ax.legend(lines1 + lines2, lbl1 + lbl2, fontsize=7.5, framealpha=0, loc='upper left')
+
+        step = max(1, len(times)//8)
+        ax.set_xticks(xs[::step]); ax.set_xticklabels(times[::step], fontsize=8)
+        for sp in ['top','right']: ax.spines[sp].set_visible(False)
+        for sp in ['left','bottom']: ax.spines[sp].set_color('#cccccc'); ax.spines[sp].set_linewidth(0.5)
         ax.grid(axis='y', color='#eeeeee', lw=0.5)
         plt.tight_layout(pad=0.3)
         buf = BytesIO(); plt.savefig(buf, format='png', dpi=160, bbox_inches='tight'); plt.close(); buf.seek(0); return buf
