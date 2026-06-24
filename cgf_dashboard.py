@@ -2481,9 +2481,18 @@ def _render_live():
                     _idx_pts[_t0] = 100.0
                     for _d, _bv in _brvm30_hist.items():
                         _dt = pd.Timestamp(_d).normalize()
-                        # Exclure weekends (valeurs interpolées sans marché)
                         if _dt > _t0 and _dt.weekday() < 5:
                             _idx_pts[_dt] = float(_bv) / _brvm30_at_launch * 100
+                    # Fallback : jours manquants depuis le dernier snapshot intraday
+                    for _d, _snaps in intra_hist.items():
+                        _dt = pd.Timestamp(_d).normalize()
+                        if _dt in _idx_pts or _dt <= _t0 or _dt.weekday() >= 5 or not _snaps:
+                            continue
+                        for _s in reversed(_snaps):
+                            _v = _s.get("brvm30_official")
+                            if _v:
+                                _idx_pts[_dt] = float(_v) / _brvm30_at_launch * 100
+                                break
                     if intra_snaps:
                         _bv_live = intra_snaps[-1].get("brvm30_official")
                         _dt = pd.Timestamp(intra_date).normalize()
