@@ -1449,6 +1449,34 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
                                font=dict(family="Inter, system-ui, sans-serif", color="#4b5563"))
         st.plotly_chart(fig_hist, width='stretch')
 
+        boot = vl.get("bootstrap", {})
+        if boot:
+            _section("Intervalle de confiance Bootstrap (N = 500 simulations)")
+            st.caption(
+                "La TE instantanée est calculée sur une période historique précise. "
+                "Le bootstrap rééchantillonne 500 fois les écarts journaliers pour estimer "
+                "la plage probable de la TE si l'histoire avait été légèrement différente. "
+                "Intervalle étroit → TE stable. Intervalle large → TE sensible au régime de marché."
+            )
+            c1, c2, c3 = st.columns(3)
+            c1.metric("TE médiane", pct(boot.get("te_med", 0), False))
+            c2.metric("TE P5  (borne basse)", pct(boot.get("te_p5", 0), False))
+            c3.metric("TE P95 (borne haute)", pct(boot.get("te_p95", 0), False))
+            te_vals = np.linspace(boot.get("te_p5", 0), boot.get("te_p95", 0), 100)
+            spread  = (boot.get("te_p95", 0) - boot.get("te_p5", 0)) / 3.29 or 1e-6
+            fig_boot = go.Figure()
+            fig_boot.add_trace(go.Scatter(
+                x=te_vals * 100,
+                y=np.exp(-0.5 * ((te_vals - boot.get("te_med", 0)) / spread) ** 2),
+                fill="tozeroy", line=dict(color=COLOR), fillcolor=ACCENT,
+            ))
+            fig_boot.add_vline(x=boot.get("te_med", 0) * 100, line_color=COLOR, annotation_text="Médiane")
+            fig_boot.add_vline(x=2.5, line_dash="dash", line_color="#c0392b", annotation_text="Seuil 2.5%")
+            fig_boot.update_layout(**PLOTLY_LAYOUT, height=240,
+                title=f"Distribution TE bootstrap (N={boot.get('n_sim', 500)} simulations)",
+                xaxis_title="TE (%)", yaxis_title="Densité", showlegend=False)
+            st.plotly_chart(fig_boot, width='stretch')
+
     # ── Composition ETF ──────────────────────────────────────────────────────
     elif _bsec == "composition":
         wh = dd.get("w_history", {})
