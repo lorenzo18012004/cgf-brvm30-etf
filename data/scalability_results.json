@@ -5,7 +5,7 @@
     "te": 0.01582,
     "td": -0.041444,
     "turnover": 0.06396,
-    "cost_tx_cumul": 0.004627,
+    "cost_tx_cumul": 0.00458,
     "basket_n_avg": 27
   },
   {
@@ -14,7 +14,7 @@
     "te": 0.01582,
     "td": -0.041444,
     "turnover": 0.06396,
-    "cost_tx_cumul": 0.004627,
+    "cost_tx_cumul": 0.00458,
     "basket_n_avg": 27
   },
   {
@@ -23,7 +23,7 @@
     "te": 0.016104,
     "td": -0.03845,
     "turnover": 0.066266,
-    "cost_tx_cumul": 0.004627,
+    "cost_tx_cumul": 0.00458,
     "basket_n_avg": 27
   },
   {
@@ -32,7 +32,7 @@
     "te": 0.016663,
     "td": -0.035918,
     "turnover": 0.0691,
-    "cost_tx_cumul": 0.004627,
+    "cost_tx_cumul": 0.00458,
     "basket_n_avg": 27
   },
   {
@@ -41,7 +41,7 @@
     "te": 0.017473,
     "td": -0.033773,
     "turnover": 0.075486,
-    "cost_tx_cumul": 0.004627,
+    "cost_tx_cumul": 0.00458,
     "basket_n_avg": 27
   }
 ]
