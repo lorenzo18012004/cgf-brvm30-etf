@@ -156,7 +156,6 @@ class NavCalculator(BaseScript):
         """
         if fee_annual is None:
             fee_annual = self.MGMT_FEE_ANNUAL
-        fee_daily = fee_annual / 252.0
 
         if rebal_date in hist_nav.index:
             base_val  = hist_nav[rebal_date]
@@ -184,15 +183,21 @@ class NavCalculator(BaseScript):
         p = p.ffill(limit=5)
         rets = p.pct_change().fillna(0.0)
 
-        w_arr   = np.array([weights[t] for t in tickers])
-        nav_ext = {}
-        vl      = base_val
+        # Portefeuille mark-to-market : positions dérivent avec les prix
+        # (nombre d'actions fixe entre rebalancements = ETF physique)
+        portfolio = {t: weights[t] for t in tickers}   # fractions initiales
+        nav_ext   = {}
+        vl        = base_val
+        fee_daily = (1.0 - fee_annual) ** (1.0 / 252.0)
 
         for dt in rets.index[1:]:
-            r_day         = rets.loc[dt].values
-            portfolio_ret = float(np.dot(w_arr, r_day))
-            vl            = vl * (1.0 + portfolio_ret) * (1.0 - fee_daily)
-            nav_ext[dt]   = vl
+            r_day    = rets.loc[dt]
+            new_port = {t: portfolio[t] * (1.0 + r_day[t]) for t in tickers}
+            v_total  = sum(new_port.values()) or 1.0
+            port_ret = v_total - 1.0
+            portfolio = {t: new_port[t] / v_total for t in tickers}
+            vl        = vl * (1.0 + port_ret) * fee_daily
+            nav_ext[dt] = vl
 
         ext_series = pd.Series(nav_ext, name='nav_indice')
 

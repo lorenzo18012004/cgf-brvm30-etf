@@ -61,18 +61,36 @@ class NavCalculatorCloud(BaseScript):
         vl_base  = float(nl.get("vl_par_part_fcfa") or nl.get("par_fcfa", 100000))
         n_parts  = int(nl.get("n_parts", 50000))
 
-        total_ret = 0.0
-        n_live    = 0
+        # Facteur de frais journaliers : (1 - 0.6%/an)^(1/252)
+        MGMT_FEE_ANN = 0.006
+        fee_daily    = (1.0 - MGMT_FEE_ANN) ** (1.0 / 252.0)
+
+        # Valeurs mark-to-market : V_i_new = V_i_old × (p1/p0)
+        # Les poids dérivent avec les prix entre rebalancements
+        portfolio_new = {}
+        n_live        = 0
+        for item in basket:
+            tk  = item["ticker"]
+            v   = item["poids_pct"] / 100.0   # poids effectif J-1
+            p0  = item.get("dernier_prix")
+            p1  = latest_prices.get(tk)
+            if p0 and p0 > 0 and p1 and p1 > 0:
+                portfolio_new[tk] = v * (p1 / p0)
+                n_live += 1
+            else:
+                portfolio_new[tk] = v   # prix stale : position inchangée
+
+        v_total   = sum(portfolio_new.values()) or 1.0
+        total_ret = v_total - 1.0          # rendement brut du jour (base 1.0)
+
+        # NAV nette : rendement brut × frais journaliers
+        nav_new = nav_base * v_total * fee_daily
+
+        # Mise à jour des poids mark-to-market pour demain
         for item in basket:
             tk = item["ticker"]
-            w  = item["poids_pct"] / 100.0
-            p0 = item.get("dernier_prix")
-            p1 = latest_prices.get(tk)
-            if p0 and p0 > 0 and p1 and p1 > 0:
-                total_ret += w * (p1 / p0 - 1)
-                n_live    += 1
-
-        nav_new = nav_base * (1.0 + total_ret)
+            if tk in portfolio_new:
+                item["poids_pct"] = round(portfolio_new[tk] / v_total * 100, 4)
 
         ls = self.load_json_path(self.LAUNCH_PATH, default=None)
         if ls is not None:
