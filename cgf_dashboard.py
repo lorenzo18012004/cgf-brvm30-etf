@@ -1877,21 +1877,29 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
         st.markdown("---")
         st.markdown("#### Backtest — Construction de la NAV")
 
-        _lx("Rendement journalier du panier (Price Return)",
-            r"\text{r}_t = \frac{\displaystyle\sum_i w_i \cdot \left(\frac{P_i^t}{P_i^{t-1}} - 1\right)}{\displaystyle\sum_i w_i}",
-            "Seuls les titres ayant un prix J et J−1 contribuent. Les poids sont ceux du dernier rebalancement.")
+        _lx("Valeur mark-to-market des positions (nombre d'actions fixe entre rebals)",
+            r"V_i^t = V_i^{t-1} \times \frac{P_i^t}{P_i^{t-1}} \qquad "
+            r"w_i^{t-1} = \frac{V_i^{t-1}}{\displaystyle\sum_j V_j^{t-1}}",
+            "À chaque rebalancement, V_i est réinitialisé à w_i^{cible}. "
+            "Entre deux rebals, les poids dérivent librement avec les prix (ETF physique buy-and-hold).")
+
+        _lx("Rendement journalier du panier (Price Return, poids mark-to-market)",
+            r"r_t = \sum_i w_i^{t-1} \cdot \left(\frac{P_i^t}{P_i^{t-1}} - 1\right)",
+            "w_i^{t-1} = poids effectif la veille, après dérive. Seuls les titres ayant un prix J et J−1 contribuent.")
 
         _lx("Coût de transaction à chaque rebalancement",
-            r"\text{cost\_rebal} = c_{tx} \times \underbrace{\frac{1}{2}\sum_k \left|w_k^{\text{new}} - w_k^{\text{old}}\right|}_{\text{turnover one-way}}",
-            "c_tx = 50 bps (spread estimé). Division par 2 : chaque vente correspond à un achat ailleurs.")
+            r"\text{cost\_rebal} = c_{tx} \times \underbrace{\frac{1}{2}\sum_k \left|w_k^{\text{new}} - w_k^{\text{drift}}\right|}_{\text{turnover one-way}}",
+            "c_tx = 50 bps. w_drift = poids effectifs après dérive (pas les poids cibles du dernier rebal).")
 
         _lx("NAV brute (Price Return, après coûts de transaction)",
             r"\text{NAV\_gross}_t = \text{NAV\_gross}_{t-1} \times (1 + r_t) \times \begin{cases} (1 - \text{cost\_rebal}) & \text{si rebalancement} \\ 1 & \text{sinon} \end{cases}",
             "Base 100 au 2023-01-02. Inclut les frictions de transaction, pas les frais de gestion.")
 
-        _lx("NAV nette (après frais de gestion)",
-            r"\text{NAV\_net}_t = \text{NAV\_gross}_t \times (1 - f)^{\,\frac{t - t_0}{365}}",
-            "f = 0.6 %/an. Frais appliqués en continu depuis J0 (méthode actuarielle).")
+        _lx("NAV nette (après frais de gestion — formule récursive quotidienne)",
+            r"\text{NAV\_net}_t = \text{NAV\_net}_{t-1} \times (1 + r_t) \times (1-f)^{\!\frac{1}{252}} "
+            r"\times \begin{cases} (1 - \text{cost\_rebal}) & \text{si rebalancement} \\ 1 & \text{sinon} \end{cases}",
+            "f = 0.6 %/an. Frais déduits chaque jour ouvré : (1−f)^{1/252}. "
+            "Formule récursive (pas de recalcul depuis J0) — conforme à la pratique des fonds.")
 
         _lx("Benchmark BRVM30 PR",
             r"\text{Bench}_t = \frac{\text{BRVM30\_PR}_t}{\text{BRVM30\_PR}_{t_0}} \times 100",
@@ -1909,7 +1917,9 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
             "T = dernier jour du backtest. Positif si l'ETF surperforme l'indice PR net de frais.")
 
         _lx("Tracking Difference annualisée",
-            r"\text{TD\_ann} = (1 + \text{TD})^{\,\frac{1}{n}} - 1 \qquad n = \frac{\text{nb jours ouvrés}}{252}")
+            r"\text{TD\_ann} = (1 + \text{TD})^{\,\frac{1}{n}} - 1 "
+            r"\qquad n = \frac{T_{\text{last}} - T_{\text{first}}}{365{,}25} \text{ (années calendaires)}",
+            "Convention standard reporting fonds : jours calendaires réels, pas 252 jours ouvrés.")
 
         _lx("Turnover moyen par rebalancement",
             r"\text{Turnover} = \frac{1}{N-1}\sum_{j=1}^{N-1} \frac{1}{2}\sum_k \left|w_k^{j} - w_k^{j-1}\right|",

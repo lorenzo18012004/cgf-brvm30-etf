@@ -240,53 +240,70 @@ def _get_weights(wh, date_key):
     return {}
 
 
-COST_TX = 0.005   # 50 bps de spread par transaction (achat + vente)
+COST_TX    = 0.005                          # 50 bps spread one-way
+DAILY_FEE  = (1 - MGMT_FEE_ANN) ** (1/252) # facteur quotidien (252 jours ouvrés/an)
 
 def build_nav_pr(all_dates, sh, rb_dates, wh, fee_ann=MGMT_FEE_ANN, cost_tx=COST_TX):
     """
     Retourne (nav_gross_pr, nav_net_pr) en Series indexées par date string.
 
-    nav_gross : Price Return du panier MOINS les coûts de transaction (50bps × turnover)
-                à chaque rebalancement. Avant frais de gestion.
-    nav_net   : nav_gross MOINS les frais de gestion (0.6%/an en continu depuis J0).
+    Corrections appliquées :
+      1. Poids mark-to-market : les valeurs de positions dérivent avec les prix
+         entre deux rebalancements (nombre d'actions fixe, pas les poids).
+      2. Coût de transaction : 50bps × turnover one-way déduit à chaque rebal.
+      3. Frais de gestion (nav_net) : formule récursive quotidienne (1-f)^(1/252)
+         appliquée jour après jour — pas de recalcul depuis J0.
     """
     gross_pts, net_pts = {}, {}
-    nav_gross    = 100.0
-    start_ts     = pd.Timestamp(START_DATE)
+    nav_gross  = 100.0
+    nav_net    = 100.0
+    _daily_fee = (1 - fee_ann) ** (1 / 252)
+
     rb_idx       = 0
-    weights      = _get_weights(wh, rb_dates[0])
-    prev_weights = dict(weights)   # poids du rebal précédent pour calcul turnover
+    prev_weights = dict(_get_weights(wh, rb_dates[0]))
+
+    # Portefeuille mark-to-market : {ticker: valeur_fraction}
+    # Σ portfolio.values() = 1.0 à chaque rebalancement
+    portfolio = dict(prev_weights)
 
     for i, dt in enumerate(all_dates):
         if i == 0:
             gross_pts[dt] = nav_gross
-            net_pts[dt]   = nav_gross
+            net_pts[dt]   = nav_net
             continue
 
         prev_dt = all_dates[i - 1]
 
-        # Changement de rebalancement → déduire coût de transaction
+        # ── Rebalancement → coût de transaction + reset du portefeuille ───────
         while rb_idx + 1 < len(rb_dates) and dt >= rb_dates[rb_idx + 1]:
-            rb_idx   += 1
-            new_w     = _get_weights(wh, rb_dates[rb_idx])
-            # Turnover = Σ|w_new - w_old| / 2  (one-way)
-            all_tks   = set(prev_weights) | set(new_w)
-            turnover  = sum(abs(new_w.get(t, 0) - prev_weights.get(t, 0)) for t in all_tks) / 2
-            nav_gross *= (1 - cost_tx * turnover)
-            weights    = new_w
+            rb_idx  += 1
+            new_w    = _get_weights(wh, rb_dates[rb_idx])
+            all_tks  = set(prev_weights) | set(new_w)
+            # Poids courants après dérive (normalisés pour le calcul du turnover)
+            total_port  = sum(portfolio.values()) or 1.0
+            curr_w_norm = {tk: v / total_port for tk, v in portfolio.items()}
+            turnover    = sum(abs(new_w.get(t, 0) - curr_w_norm.get(t, 0))
+                              for t in all_tks) / 2
+            nav_gross  *= (1 - cost_tx * turnover)
+            nav_net    *= (1 - cost_tx * turnover)
+            portfolio    = dict(new_w)   # reset aux nouveaux poids cibles
             prev_weights = dict(new_w)
 
-        total_w, weighted_ret = 0.0, 0.0
-        for tk, w in weights.items():
+        # ── Rendement journalier mark-to-market ───────────────────────────────
+        total_prev  = sum(portfolio.values()) or 1.0
+        new_portfolio = {}
+        for tk, v in portfolio.items():
             p1 = sh.get(tk, {}).get(prev_dt, {}).get('close')
             p2 = sh.get(tk, {}).get(dt,      {}).get('close')
-            if p1 and p2 and p1 > 0:
-                weighted_ret += w * (p2 / p1 - 1)
-                total_w      += w
+            new_portfolio[tk] = v * (p2 / p1) if (p1 and p2 and p1 > 0) else v
 
-        nav_gross *= (1 + weighted_ret / total_w) if total_w > 0 else 1
-        days_elapsed = (pd.Timestamp(dt) - start_ts).days
-        nav_net = nav_gross * (1 - fee_ann) ** (days_elapsed / 365)
+        total_new  = sum(new_portfolio.values())
+        r_t        = (total_new / total_prev - 1) if total_prev > 0 else 0.0
+        portfolio  = new_portfolio
+
+        # ── Mise à jour NAV ───────────────────────────────────────────────────
+        nav_gross *= (1 + r_t)
+        nav_net   *= (1 + r_t) * _daily_fee   # frais récursifs quotidiens
 
         gross_pts[dt] = nav_gross
         net_pts[dt]   = nav_net
@@ -325,7 +342,9 @@ def compute_te_td(nav_s, bench_s_):
     ci  = r_e.index.intersection(r_b.index)
     te  = float((r_e[ci] - r_b[ci]).std(ddof=1) * np.sqrt(252))
     td  = float(e.iloc[-1] / b.iloc[-1] - 1)
-    n_y = len(e) / 252
+    # Annualisation sur jours calendaires réels (convention reporting fonds)
+    n_cal = (pd.Timestamp(e.index[-1]) - pd.Timestamp(e.index[0])).days
+    n_y   = n_cal / 365.25 if n_cal > 0 else len(e) / 252
     td_ann = float((1 + td) ** (1 / n_y) - 1) if n_y > 0 else 0.0
     return te, td, td_ann
 
