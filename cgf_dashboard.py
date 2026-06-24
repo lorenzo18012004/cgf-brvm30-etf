@@ -1865,11 +1865,13 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
     elif _bsec == "methodologie":
         _section("Méthodologie — Formules du backtest et du live")
         st.caption("Toutes les formules utilisées dans le backtest et le système live. "
-                   "Les indices $i$ désignent les titres du panier, $t$ les jours ouvrés.")
+                   "Les indices i désignent les titres du panier, t les jours ouvrés.")
 
-        def _lx(title, formula, note=None):
+        def _lx(title, formula, legend=None, note=None):
             st.markdown(f"**{title}**")
             st.latex(formula)
+            if legend:
+                st.caption("Légende — " + "  ·  ".join(legend))
             if note:
                 st.caption(note)
             st.markdown("")
@@ -1880,109 +1882,243 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
         _lx("Valeur mark-to-market des positions (nombre d'actions fixe entre rebals)",
             r"V_i^t = V_i^{t-1} \times \frac{P_i^t}{P_i^{t-1}} \qquad "
             r"w_i^{t-1} = \frac{V_i^{t-1}}{\displaystyle\sum_j V_j^{t-1}}",
-            "À chaque rebalancement, V_i est réinitialisé à w_i^{cible}. "
-            "Entre deux rebals, les poids dérivent librement avec les prix (ETF physique buy-and-hold).")
+            legend=[
+                "V_i^t = valeur de la position sur le titre i au jour t (en fraction de la NAV)",
+                "P_i^t = prix de clôture du titre i au jour t (source : Sika Finance, non ajusté dividendes)",
+                "w_i^t = poids effectif du titre i au jour t (dérive librement entre deux rebalancements)",
+            ],
+            note="À chaque rebalancement, V_i est réinitialisé à w_i^cible. "
+                 "Entre deux rebals, les poids dérivent avec les prix — ETF physique buy-and-hold.")
 
         _lx("Rendement journalier du panier (Price Return, poids mark-to-market)",
             r"r_t = \sum_i w_i^{t-1} \cdot \left(\frac{P_i^t}{P_i^{t-1}} - 1\right)",
-            "w_i^{t-1} = poids effectif la veille, après dérive. Seuls les titres ayant un prix J et J−1 contribuent.")
+            legend=[
+                "r_t = rendement journalier brut du panier au jour t",
+                "w_i^{t-1} = poids effectif de la veille (après dérive mark-to-market)",
+                "P_i^t / P_i^{t-1} = ratio de prix entre J et J-1 (= 1 si prix manquant)",
+            ],
+            note="Seuls les titres ayant un prix valide à J et J-1 contribuent au rendement.")
 
         _lx("Coût de transaction à chaque rebalancement",
             r"\text{cost\_rebal} = c_{tx} \times \underbrace{\frac{1}{2}\sum_k \left|w_k^{\text{new}} - w_k^{\text{drift}}\right|}_{\text{turnover one-way}}",
-            "c_tx = 50 bps. w_drift = poids effectifs après dérive (pas les poids cibles du dernier rebal).")
+            legend=[
+                "c_tx = coût aller-simple = 50 bps (0,50%) — spread achat/vente estimé",
+                "w_k^new = poids cible du titre k après rebalancement (normalisé à 1)",
+                "w_k^drift = poids effectif du titre k juste avant rebalancement (après dérive)",
+                "turnover one-way = fraction du panier effectivement échangée",
+            ],
+            note="Le turnover est calculé en one-way (achats seuls = ventes seules). "
+                 "Exemple : turnover 15% → 15% du panier renouvelé → coût = 15% × 50 bps = 7,5 bps.")
 
         _lx("NAV brute (Price Return, après coûts de transaction)",
-            r"\text{NAV\_gross}_t = \text{NAV\_gross}_{t-1} \times (1 + r_t) \times \begin{cases} (1 - \text{cost\_rebal}) & \text{si rebalancement} \\ 1 & \text{sinon} \end{cases}",
-            "Base 100 au 2023-01-02. Inclut les frictions de transaction, pas les frais de gestion.")
+            r"\text{NAV\_gross}_t = \text{NAV\_gross}_{t-1} \times (1 + r_t) \times \begin{cases} (1 - \text{cost\_rebal}) & \text{si jour de rebalancement} \\ 1 & \text{sinon} \end{cases}",
+            legend=[
+                "NAV_gross_t = valeur liquidative brute au jour t (base 100 au 2023-01-02)",
+                "r_t = rendement journalier du panier",
+                "cost_rebal = coût de transaction du rebalancement (voir formule ci-dessus)",
+            ],
+            note="La NAV brute inclut les frictions de transaction mais pas les frais de gestion annuels.")
 
         _lx("NAV nette (après frais de gestion — formule récursive quotidienne)",
             r"\text{NAV\_net}_t = \text{NAV\_net}_{t-1} \times (1 + r_t) \times (1-f)^{\!\frac{1}{252}} "
-            r"\times \begin{cases} (1 - \text{cost\_rebal}) & \text{si rebalancement} \\ 1 & \text{sinon} \end{cases}",
-            "f = 0.6 %/an. Frais déduits chaque jour ouvré : (1−f)^{1/252}. "
-            "Formule récursive (pas de recalcul depuis J0) — conforme à la pratique des fonds.")
+            r"\times \begin{cases} (1 - \text{cost\_rebal}) & \text{si jour de rebalancement} \\ 1 & \text{sinon} \end{cases}",
+            legend=[
+                "NAV_net_t = valeur liquidative nette de frais au jour t (base 100 au 2023-01-02)",
+                "f = taux de frais de gestion annuel = 0,6 %/an",
+                "(1-f)^{1/252} = facteur de frais journalier appliqué chaque jour ouvré (~0,9976 par jour)",
+                "r_t = rendement journalier du panier (mark-to-market)",
+            ],
+            note="Formule récursive : les frais s'accumulent jour après jour sans recalcul depuis J0. "
+                 "Conforme à la pratique standard des fonds de gestion.")
 
-        _lx("Benchmark BRVM30 PR",
+        _lx("Benchmark BRVM30 PR (Price Return)",
             r"\text{Bench}_t = \frac{\text{BRVM30\_PR}_t}{\text{BRVM30\_PR}_{t_0}} \times 100",
-            "Lu depuis l'Excel officiel BRVM (colonne PR). Base 100 au 2023-01-02. Aucun dividende réintégré.")
+            legend=[
+                "BRVM30_PR_t = valeur de l'indice BRVM30 Price Return au jour t",
+                "t_0 = premier jour du backtest (2023-01-02)",
+                "Base 100 = valeur 100 au démarrage du backtest",
+            ],
+            note="Lu depuis l'Excel officiel BRVM (colonne PR). Aucun dividende réintégré — "
+                 "cohérent avec l'ETF qui distribue les dividendes plutôt que de les capitaliser.")
 
         st.markdown("---")
         st.markdown("#### Backtest — Métriques de qualité")
 
         _lx("Tracking Error (TE) annualisée",
             r"\text{TE} = \sqrt{252} \times \sigma\!\left(r_t^{\text{ETF}} - r_t^{\text{Bench}}\right)",
-            "σ = écart-type empirique (ddof=1) des écarts de rendements journaliers. Annualisé par √252.")
+            legend=[
+                "TE = tracking error annualisée (mesure la volatilité de l'écart ETF vs indice)",
+                "r_t^ETF = rendement journalier de la NAV nette de l'ETF",
+                "r_t^Bench = rendement journalier de l'indice BRVM30 PR",
+                "σ = écart-type empirique des écarts journaliers (ddof=1)",
+                "√252 = facteur d'annualisation (252 jours ouvrés par an)",
+            ],
+            note="Une TE de 2% signifie que l'ETF peut s'écarter de ±2% de l'indice sur un an.")
 
         _lx("Tracking Difference (TD) cumulée",
             r"\text{TD} = \frac{\text{NAV\_net}_T}{\text{Bench}_T} - 1",
-            "T = dernier jour du backtest. Positif si l'ETF surperforme l'indice PR net de frais.")
+            legend=[
+                "TD = écart de performance cumulé entre l'ETF et son benchmark",
+                "NAV_net_T = NAV nette au dernier jour T du backtest",
+                "Bench_T = valeur du benchmark au dernier jour T (base 100)",
+            ],
+            note="Négatif si l'ETF sous-performe l'indice (attendu car frais + coûts de transaction). "
+                 "Pour un ETF PR avec 0,6%/an de frais, une TD de -1% à -2%/an est normale.")
 
         _lx("Tracking Difference annualisée",
             r"\text{TD\_ann} = (1 + \text{TD})^{\,\frac{1}{n}} - 1 "
             r"\qquad n = \frac{T_{\text{last}} - T_{\text{first}}}{365{,}25} \text{ (années calendaires)}",
-            "Convention standard reporting fonds : jours calendaires réels, pas 252 jours ouvrés.")
+            legend=[
+                "TD_ann = tracking difference ramenée à une année (pour comparer des périodes différentes)",
+                "TD = tracking difference cumulée sur toute la période",
+                "n = durée en années calendaires (ex. 3 ans et 6 mois → n = 3,5)",
+                "T_last - T_first = nombre de jours calendaires entre le début et la fin du backtest",
+                "365,25 = durée moyenne d'une année civile (tient compte des années bissextiles)",
+            ],
+            note="Convention standard des reporting de fonds : on utilise les jours calendaires réels, "
+                 "pas 252 jours ouvrés — car les dividendes et frais courent aussi les weekends.")
 
         _lx("Turnover moyen par rebalancement",
             r"\text{Turnover} = \frac{1}{N-1}\sum_{j=1}^{N-1} \frac{1}{2}\sum_k \left|w_k^{j} - w_k^{j-1}\right|",
-            "N = nombre de rebalancements. One-way : 10 % de turnover = 10 % du panier renouvelé.")
+            legend=[
+                "Turnover = fraction moyenne du panier renouvelée à chaque rebalancement",
+                "N = nombre total de rebalancements sur le backtest",
+                "w_k^j = poids du titre k dans le panier après le rebalancement j",
+                "w_k^{j-1} = poids du titre k après le rebalancement précédent",
+            ],
+            note="One-way : un turnover de 10% signifie que 10% du panier est vendu (et 10% acheté). "
+                 "Coût associé : 10% × 50 bps = 5 bps par rebalancement.")
 
         st.markdown("---")
         st.markdown("#### Règles de sélection du panier")
 
-        _lx("ADV — Average Daily Volume (M FCFA)",
+        _lx("ADV — Average Daily Volume (volume journalier moyen, en M FCFA)",
             r"\text{ADV}_i = \frac{\displaystyle\sum_{j=1}^{N} \text{Vol}_j^i \times P_j^i \times 10^{-6}}{N}"
-            r"\qquad N = \text{63 jours ouvrés avant le rebal}",
-            "N inclut TOUS les jours de la fenêtre, y compris les jours sans volume (Vol=0). "
-            "Cela évite de surestimer la liquidité des titres semi-actifs.")
+            r"\qquad N = \text{63 jours ouvrés avant le rebalancement}",
+            legend=[
+                "ADV_i = volume journalier moyen du titre i sur les 63 derniers jours ouvrés (en M FCFA)",
+                "Vol_j^i = nombre de titres i échangés au jour j (source : Sika Finance)",
+                "P_j^i = prix de clôture du titre i au jour j (en FCFA)",
+                "N = taille de la fenêtre = 63 jours ouvrés (~3 mois), jours sans volume inclus",
+            ],
+            note="N inclut TOUS les jours de la fenêtre, y compris les jours à volume nul. "
+                 "Cela évite de surestimer la liquidité des titres qui ne cotent que sporadiquement.")
 
-        _lx("Stale ratio",
+        _lx("Stale ratio (taux de jours sans cotation)",
             r"\text{Stale}_i = \frac{\#\{j \in \text{fenêtre 63j} : \text{Vol}_j^i = 0\}}{\text{nb jours dans la fenêtre}}",
-            "Exclu si Stale ≥ 70 %, sauf si poids BRVM30 ≥ 3 % (règle de force).")
+            legend=[
+                "Stale_i = proportion de jours sans volume pour le titre i sur la fenêtre de 63j",
+                "# {...} = nombre de jours vérifiant la condition Vol = 0",
+            ],
+            note="Titre exclu si Stale ≥ 70% (moins de 30% des jours avec une transaction). "
+                 "Exception : si le poids BRVM30 du titre est ≥ 3%, il est forcé dans le panier quoi qu'il arrive.")
 
         _lx("Jours d'exécution estimés",
             r"\text{exec\_days}_i = \frac{w_i^{\text{BRVM30}} \times \text{AUM}}{\text{ADV}_i}",
-            "AUM de référence = 5 Md FCFA. Hypothèse : exécution à l'ADV sans impact marché.")
+            legend=[
+                "exec_days_i = nombre de jours estimé pour entrer/sortir de la position sur le titre i",
+                "w_i^BRVM30 = poids du titre i dans l'indice BRVM30 officiel (fraction, ex. 0,05 pour 5%)",
+                "AUM = actif sous gestion de référence = 5 000 M FCFA (5 Md FCFA)",
+                "ADV_i = volume journalier moyen du titre i (en M FCFA)",
+            ],
+            note="Hypothèse : exécution à l'ADV complet sans impact marché. "
+                 "Nouveau entrant exclu si exec_days > 100j. Titre existant exclu après 2 rebals consécutifs > 32j.")
 
         _lx("Poids minimum après redistribution",
-            r"w_i^{\text{norm}} = \frac{w_i^{\text{BRVM30}}}{\displaystyle\sum_{k \in \text{panier}} w_k^{\text{BRVM30}}} \geq 0.1\%",
-            "Si w_norm < 0.1 % et titre non forcé → exclusion.")
+            r"w_i^{\text{norm}} = \frac{w_i^{\text{BRVM30}}}{\displaystyle\sum_{k \in \text{panier}} w_k^{\text{BRVM30}}} \geq 0{,}1\%",
+            legend=[
+                "w_i^norm = poids normalisé du titre i dans le panier ETF (après exclusion des titres filtrés)",
+                "w_i^BRVM30 = poids brut du titre i dans l'indice BRVM30 officiel",
+                "Σ_k = somme sur tous les titres retenus dans le panier",
+            ],
+            note="Si w_norm < 0,1% et que le titre n'est pas forcé (poids BRVM30 < 3%) → exclu. "
+                 "Évite les micro-positions ingérables.")
 
         st.markdown("---")
         st.markdown("#### Bootstrap TE (N = 500 simulations)")
 
         _lx("Simulation par rééchantillonnage avec remise",
             r"\text{TE}^{(b)} = \sqrt{252} \times \sigma\!\left(\text{tirage}_{\text{remise}}\!\left\{r_t^{\text{ETF}} - r_t^{\text{Bench}}\right\}\right)",
-            "Intervalle de confiance [P5, P95] reporté. Seed = 42 (reproductible).")
+            legend=[
+                "TE^(b) = tracking error calculée sur le b-ième tirage aléatoire",
+                "tirage_remise{...} = rééchantillonnage avec remise des écarts journaliers historiques",
+                "σ = écart-type empirique (ddof=1) du tirage",
+                "√252 = annualisation",
+            ],
+            note="500 simulations. Intervalle de confiance [P5, P95] reporté. Seed = 42 (résultats reproductibles). "
+                 "Permet d'estimer la stabilité de la TE — si l'intervalle est large, la TE est instable.")
 
         st.markdown("---")
         st.markdown("#### Live — Calcul de la VL quotidienne")
 
         _lx("Rendement journalier live (mark-to-market)",
             r"r_{\text{jour}} = \sum_i \frac{w_i^{t-1}}{100} \times \frac{P_i^t}{P_i^{t-1}} - 1",
-            "w_i^{t-1} = poids_pct de la veille (mark-to-market, dérive avec les prix entre rebals). "
-            "Prix depuis sika_history.json. Après chaque calcul, les poids sont mis à jour pour le lendemain.")
+            legend=[
+                "r_jour = rendement brut du portefeuille au jour t",
+                "w_i^{t-1} = poids_pct du titre i stocké dans nav_latest.json (mis à jour chaque soir)",
+                "P_i^t = dernier prix de clôture disponible du titre i (source : sika_history.json)",
+                "P_i^{t-1} = prix stocké dans le champ dernier_prix du basket (prix du calcul précédent)",
+            ],
+            note="Les poids dérivent avec les prix entre deux rebalancements (mark-to-market). "
+                 "Après chaque calcul, poids_pct et dernier_prix sont mis à jour dans nav_latest.json.")
 
         _lx("NAV indice live (nette de frais — formule récursive quotidienne)",
             r"\text{NAV\_indice}_t = \text{NAV\_indice}_{t-1} \times (1 + r_{\text{jour}}) \times (1-f)^{\!\frac{1}{252}}",
-            "f = 0.6 %/an. Même formule récursive que le backtest. Appliquée chaque jour ouvré.")
+            legend=[
+                "NAV_indice_t = valeur liquidative indice nette de frais au jour t",
+                "NAV_indice_{t-1} = NAV du calcul précédent (stockée dans nav_latest.json)",
+                "r_jour = rendement brut du portefeuille calculé ci-dessus",
+                "f = taux de frais annuel = 0,6 %/an",
+                "(1-f)^{1/252} = facteur de frais quotidien (~0,99998 par jour ouvré)",
+            ],
+            note="Même formule récursive que le backtest — cohérence garantie entre simulation et production.")
 
         _lx("VL par part",
             r"\text{VL}_t = \text{par} \times \frac{\text{NAV\_indice}_t}{\text{NAV\_indice}_{\text{lancement}}}",
-            "par = 100 000 FCFA (valeur nominale à l'émission). NAV_lancement fixée au 19 juin 2026.")
+            legend=[
+                "VL_t = valeur liquidative par part en FCFA au jour t",
+                "par = valeur nominale à l'émission = 100 000 FCFA",
+                "NAV_indice_t = NAV indice du jour",
+                "NAV_indice_lancement = NAV indice fixée au jour du lancement (19 juin 2026)",
+            ],
+            note="La VL par part est la valeur à laquelle les investisseurs souscrivent ou rachètent leurs parts.")
 
-        _lx("AUM (M FCFA)",
+        _lx("AUM (Actif sous gestion, en M FCFA)",
             r"\text{AUM}_t = \text{VL}_t \times N_{\text{parts}} \times 10^{-6}",
-            "N_parts = 50 000 parts émises.")
+            legend=[
+                "AUM_t = actif sous gestion total au jour t (en millions de FCFA)",
+                "VL_t = valeur liquidative par part en FCFA",
+                "N_parts = nombre de parts en circulation = 50 000 parts",
+                "10^{-6} = conversion FCFA → M FCFA",
+            ])
 
         _lx("Performance depuis le lancement",
-            r"\text{Perf}_{\text{lct}} = \frac{\text{NAV\_indice}_t}{\text{NAV\_indice}_{\text{lancement}}} - 1")
+            r"\text{Perf}_{\text{lct}} = \frac{\text{NAV\_indice}_t}{\text{NAV\_indice}_{\text{lancement}}} - 1",
+            legend=[
+                "Perf_lct = performance cumulée nette de frais depuis le lancement",
+                "NAV_indice_t = NAV indice du jour",
+                "NAV_indice_lancement = NAV indice au jour du lancement (19 juin 2026)",
+            ])
 
         _lx("ADV live (onglet Liquidité)",
-            r"\text{ADV}_i^{\text{live}} = \frac{1}{n}\sum_{j \in \text{63j ouvr. avant aujourd'hui}} \text{Vol}_j^i \times P_j^i \times 10^{-6}",
-            "Calculé en temps réel depuis sika_history.json à chaque chargement du dashboard.")
+            r"\text{ADV}_i^{\text{live}} = \frac{1}{N}\sum_{j \in \text{63j ouvr. avant aujourd'hui}} \text{Vol}_j^i \times P_j^i \times 10^{-6}",
+            legend=[
+                "ADV_i^live = volume journalier moyen du titre i calculé en temps réel",
+                "Vol_j^i = volume échangé du titre i au jour j (nombre de titres)",
+                "P_j^i = prix de clôture du titre i au jour j (en FCFA)",
+                "N = 63 jours ouvrés avant aujourd'hui (tous les jours inclus, même sans volume)",
+            ],
+            note="Calculé à chaque chargement du dashboard depuis sika_history.json.")
 
         _lx("Jours d'exécution live",
             r"\text{exec\_days}_i^{\text{live}} = \frac{\text{pv\_mfcfa}_i}{\text{ADV}_i^{\text{live}}}",
-            "pv_mfcfa = valeur de la position actuelle en M FCFA (nav_latest.json).")
+            legend=[
+                "exec_days_i^live = nombre de jours estimé pour liquider la position sur le titre i",
+                "pv_mfcfa_i = valeur actuelle de la position sur le titre i (en M FCFA)",
+                "ADV_i^live = volume journalier moyen du titre i sur les 63 derniers jours (en M FCFA)",
+            ],
+            note="Indicateur de liquidité opérationnelle : plus ce chiffre est élevé, "
+                 "plus le titre est difficile à liquider rapidement sans impact marché.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # LIVE
