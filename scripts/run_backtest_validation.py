@@ -343,7 +343,7 @@ def compute_te_td(nav_s, bench_s_):
     r_b = b.pct_change().dropna()
     ci  = r_e.index.intersection(r_b.index)
     te  = float((r_e[ci] - r_b[ci]).std(ddof=1) * np.sqrt(252))
-    td  = float(e.iloc[-1] / b.iloc[-1] - 1)
+    td  = float(e.iloc[-1] / e.iloc[0] / (b.iloc[-1] / b.iloc[0]) - 1)
     # Annualisation sur jours calendaires réels (convention reporting fonds)
     n_cal = (pd.Timestamp(e.index[-1]) - pd.Timestamp(e.index[0])).days
     n_y   = n_cal / 365.25 if n_cal > 0 else len(e) / 252

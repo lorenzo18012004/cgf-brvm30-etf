@@ -57,7 +57,10 @@ class NavCalculatorCloud(BaseScript):
             print("[ERREUR] basket vide dans nav_latest.json")
             sys.exit(1)
 
-        nav_base = float(nl["nav_indice"])
+        nav_base = float(nl.get("nav_indice") or nl.get("nav_index") or 0)
+        if nav_base == 0:
+            print("[ERREUR] nav_indice manquant dans nav_latest.json")
+            sys.exit(1)
         vl_base  = float(nl.get("vl_par_part_fcfa") or nl.get("par_fcfa", 100000))
         n_parts  = int(nl.get("n_parts", 50000))
 
