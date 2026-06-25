@@ -5086,30 +5086,6 @@ def _render_live():
                         yaxis_title="FCFA / action", xaxis_title="Année",
                         legend=dict(orientation="h", y=-0.2, x=0))
                     st.plotly_chart(fig_hev, width='stretch')
-                    # Tableau CAGR dividende par titre
-                    _cagr_rows = []
-                    for _, _r in _df_bh.iterrows():
-                        _vals = [(yr, _r.get(yr)) for yr in _years_h if _r.get(yr) is not None and _r.get(yr) == _r.get(yr)]
-                        if len(_vals) >= 2:
-                            _yr0, _v0 = _vals[0]
-                            _yr1, _v1 = _vals[-1]
-                            _n_yrs = int(_yr1) - int(_yr0)
-                            _cagr  = ((_v1 / _v0) ** (1 / _n_yrs) - 1) * 100 if _n_yrs > 0 and _v0 > 0 else None
-                            _cagr_rows.append({
-                                "Ticker": _r["Ticker"],
-                                f"Div. {_yr0}": _v0,
-                                f"Div. {_yr1}": _v1,
-                                f"CAGR div. {_yr0}→{_yr1}": round(_cagr, 2) if _cagr is not None else None,
-                            })
-                    if _cagr_rows:
-                        st.caption("Croissance annualisée du dividende par titre (panier ETF) :")
-                        _df_cagr = pd.DataFrame(_cagr_rows)
-                        _cagr_col = f"CAGR div. {_vals[0][0]}→{_vals[-1][0]}"
-                        st.dataframe(_df_cagr, use_container_width=True, hide_index=True,
-                                     column_config={
-                                         _cagr_col: st.column_config.NumberColumn(
-                                             _cagr_col, format="%.2f%%")
-                                     })
             else:
                 st.info("Historique non disponible — relancer scrape_sika_dividendes.py")
 
