@@ -4024,10 +4024,10 @@ def _render_live():
                                         "w_brvm30": "BRVM30 %", "delta": "Delta %",
                                         "trade_mfcfa": "Trade (MFCFA)", "days_exec": "J.",
                                         "force": "F", "mvt": "Mvt",
-                                    }).style.map(_color_cell, subset=["Trade (MFCFA)", "Delta %"]),
+                                    }).style.map(_color_cell, subset=["Trade (MFCFA)"]),
                                     width='stretch', hide_index=True,
                                     height=min(400, 44 + len(df_b) * 36),
-                                    column_order=["Ticker", "Poids %", "BRVM30 %", "Delta %",
+                                    column_order=["Ticker", "Poids %", "BRVM30 %",
                                                   "Trade (MFCFA)", "J.", "Mvt"],
                                 )
                                 total_buy  = sum(b.get("trade_mfcfa", 0) for b in rebal["basket"] if b.get("trade_mfcfa", 0) > 0)
@@ -5220,9 +5220,9 @@ def _render_live():
                             "w_etf": "Poids ETF %", "w_brvm30": "BRVM30 %", "delta": "Delta %",
                             "trade_mfcfa": "Trade (MFCFA)", "days_exec": "J. exec.",
                             "force": "Statut", "adv_mfcfa": "ADV (MFCFA)",
-                        }).style.map(_color_trade_a, subset=["Trade (MFCFA)", "Delta %"]),
+                        }).style.map(_color_trade_a, subset=["Trade (MFCFA)"]),
                         width='stretch', hide_index=True, height=400,
-                        column_order=["Ticker", "Secteur", "Poids ETF %", "BRVM30 %", "Delta %",
+                        column_order=["Ticker", "Secteur", "Poids ETF %", "BRVM30 %",
                                       "Trade (MFCFA)", "ADV (MFCFA)", "Liq.", "J. exec.", "Statut"],
                     )
                     st.caption("Liq. = |Trade| / ADV")
