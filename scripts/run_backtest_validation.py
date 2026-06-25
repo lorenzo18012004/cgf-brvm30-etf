@@ -317,6 +317,109 @@ nav_gross_pr, nav_net_pr = build_nav_pr(all_dates, sh, rebal_dates, w_history)
 print("   NAV gross PR: %.2f → %.2f" % (nav_gross_pr.iloc[0], nav_gross_pr.iloc[-1]))
 print("   NAV net   PR: %.2f → %.2f" % (nav_net_pr.iloc[0],   nav_net_pr.iloc[-1]))
 
+# ── Exec days (delta one-way par titre) pour la TE progressive ───────────────
+_adv_map = {}
+for _r in rd.get('rebalancings', []):
+    _dt = _r.get('date')
+    _m = {}
+    for _item in _r.get('basket', []) + _r.get('excluded', []):
+        _tk = _item.get('ticker', '')
+        _adv = _item.get('adv_mfcfa', 0)
+        if _tk and _adv:
+            _m[_tk] = _adv
+    if _m:
+        _adv_map[_dt] = _m
+
+exec_days_map = {}
+for _i, _dt in enumerate(rebal_dates):
+    _new_w  = _get_weights(w_history, _dt)
+    _prev_w = _get_weights(w_history, rebal_dates[_i-1]) if _i > 0 else {}
+    _adv_dt = _adv_map.get(_dt, {})
+    _n_max  = 1.0
+    for _tk in set(_prev_w) | set(_new_w):
+        _delta = abs(_new_w.get(_tk, 0) - _prev_w.get(_tk, 0))
+        _adv   = _adv_dt.get(_tk, 0)
+        if _adv > 0 and _delta > 0:
+            _n_max = max(_n_max, (_delta * AUM_MFCFA) / _adv)
+    exec_days_map[_dt] = int(np.ceil(min(_n_max, 30)))
+
+
+def build_nav_pr_prog(all_dates, sh, rb_dates, wh, exec_days_map,
+                      fee_ann=MGMT_FEE_ANN, cost_tx=COST_TX):
+    """
+    NAV avec exécution progressive : transition linéaire des poids sur
+    exec_days_map[rb_date] jours. Coût réparti sur ces jours.
+    """
+    gross_pts, net_pts = {}, {}
+    nav_gross = 100.0
+    nav_net   = 100.0
+    _daily_fee = (1 - fee_ann) ** (1 / 252)
+    rb_idx    = 0
+    portfolio = dict(_get_weights(wh, rb_dates[0]))
+    transition = None  # {old_w, new_w, n_days, day_k, daily_cost}
+
+    for i, dt in enumerate(all_dates):
+        if i == 0:
+            gross_pts[dt] = nav_gross
+            net_pts[dt]   = nav_net
+            continue
+        prev_dt = all_dates[i - 1]
+
+        while rb_idx + 1 < len(rb_dates) and dt >= rb_dates[rb_idx + 1]:
+            rb_idx  += 1
+            new_w    = _get_weights(wh, rb_dates[rb_idx])
+            n_exec   = exec_days_map.get(rb_dates[rb_idx], 1)
+            total_port = sum(portfolio.values()) or 1.0
+            old_w    = {tk: v / total_port for tk, v in portfolio.items()}
+            all_tks_r = set(old_w) | set(new_w)
+            to = sum(abs(new_w.get(t, 0) - old_w.get(t, 0)) for t in all_tks_r) / 2
+            transition = {'old_w': dict(old_w), 'new_w': dict(new_w),
+                          'n_days': n_exec, 'day_k': 0,
+                          'daily_cost': cost_tx * to / n_exec}
+
+        if transition is not None:
+            frac = min(transition['day_k'] / transition['n_days'], 1.0)
+            all_tks_t = set(transition['old_w']) | set(transition['new_w'])
+            eff_w = {tk: transition['old_w'].get(tk, 0) * (1 - frac) +
+                         transition['new_w'].get(tk, 0) * frac
+                     for tk in all_tks_t}
+            cost_today = transition['daily_cost']
+            transition['day_k'] += 1
+            if transition['day_k'] >= transition['n_days']:
+                portfolio  = dict(transition['new_w'])
+                transition = None
+        else:
+            total_port = sum(portfolio.values()) or 1.0
+            eff_w = {tk: v / total_port for tk, v in portfolio.items()}
+            cost_today = 0.0
+
+        total_eff = sum(eff_w.values()) or 1.0
+        r_t = 0.0
+        for tk, v in eff_w.items():
+            p1 = sh.get(tk, {}).get(prev_dt, {}).get('close')
+            p2 = sh.get(tk, {}).get(dt,      {}).get('close')
+            if p1 and p2 and p1 > 0:
+                r_t += (v / total_eff) * (p2 / p1 - 1)
+
+        nav_gross *= (1 + r_t) * (1 - cost_today)
+        nav_net   *= (1 + r_t) * (1 - cost_today) * _daily_fee
+
+        if transition is None:
+            new_portfolio = {}
+            for tk, v in portfolio.items():
+                p1 = sh.get(tk, {}).get(prev_dt, {}).get('close')
+                p2 = sh.get(tk, {}).get(dt,      {}).get('close')
+                new_portfolio[tk] = v * (p2 / p1) if (p1 and p2 and p1 > 0) else v
+            portfolio = new_portfolio
+
+        gross_pts[dt] = nav_gross
+        net_pts[dt]   = nav_net
+    return pd.Series(gross_pts, dtype=float), pd.Series(net_pts, dtype=float)
+
+
+nav_gross_prog, nav_net_prog = build_nav_pr_prog(all_dates, sh, rebal_dates, w_history, exec_days_map)
+print("   NAV progressive: %.2f → %.2f" % (nav_net_prog.iloc[0], nav_net_prog.iloc[-1]))
+
 # ── Benchmark BRVM30 PR ───────────────────────────────────────────────────────
 base_val   = brvm30_raw[START_DATE]
 bench_dict = {d: v / base_val * 100 for d, v in brvm30_raw.items()}
@@ -353,8 +456,10 @@ def compute_te_td(nav_s, bench_s_):
 
 te_gross, td_gross, td_gross_ann = compute_te_td(nav_gross_pr, bench_s)
 te_net,   td_net,   td_net_ann   = compute_te_td(nav_net_pr,   bench_s)
+te_prog,  td_prog,  _            = compute_te_td(nav_net_prog,  bench_s)
 print("   TE gross=%.2f%%  TD gross=%+.2f%%/an" % (te_gross*100, td_gross_ann*100))
 print("   TE net=%.2f%%    TD net=%+.2f%%/an"   % (te_net*100,   td_net_ann*100))
+print("   TE progressive=%.2f%%  TD progressive=%+.2f%%" % (te_prog*100, td_prog*100))
 
 
 def turnover_avg(wh, rb_dates):
@@ -401,7 +506,7 @@ json.dump(dd, open(DD_PATH, 'w', encoding='utf-8'), ensure_ascii=False, separato
 
 # Mise à jour backtest_metrics.json avec les paramètres de sélection
 bm.update({
-    'te_full': round(te_net, 6), 'te_prog': round(te_gross, 6),
+    'te_full': round(te_net, 6), 'te_prog': round(te_prog, 6),
     'td_full': round(td_net, 6), 'td_full_ann': round(td_net_ann, 6),
     'td_gross': round(td_gross, 6), 'td_gross_ann': round(td_gross_ann, 6),
     'turnover_avg': round(to_avg, 6),

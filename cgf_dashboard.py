@@ -1408,9 +1408,15 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
         st.markdown("---")
         m = dd.get("metrics", {})
         c1, c2, c3 = st.columns(3)
-        c1.metric("TE période complète", pct(bm.get("te_full"), sign=False),  help="TE annualisée sur toute la période backtest")
-        c2.metric("TE 1ère moitié",      pct(bm.get("te_p1"),   sign=False),  help="TE annualisée sur la 1ère moitié de la période (In-Sample)")
-        c3.metric("TE 2ème moitié",      pct(bm.get("te_p2"),   sign=False),  help="TE annualisée sur la 2ème moitié (Out-of-Sample) — doit être proche de la 1ère")
+        te_inst  = bm.get("te_full", bm.get("te", 0))
+        te_prog  = bm.get("te_prog", 0)
+        delta_te = (te_prog or 0) - (te_inst or 0)
+        c1.metric("TE instantanée",  pct(te_inst, sign=False),
+                  help="TE si tous les trades du rebalancement sont exécutés le jour J (liquidité parfaite).")
+        c2.metric("TE progressive",  pct(te_prog, sign=False),
+                  help="TE simulée en étalant les trades sur plusieurs jours selon l'ADV de chaque titre (7 à 30 jours selon le rebalancement). Capture le risque d'exécution graduelle.")
+        c3.metric("Surcoût exécution progressive", f"+{delta_te*100:.3f}pp",
+                  help="Écart de TE entre exécution progressive et instantanée. Représente le coût en tracking de l'étalement des trades.")
 
         _section("TE hebdomadaire glissante (52 semaines)")
         nav_g = to_series(dd.get("nav_gross", dd["nav_etf"])).loc[start_dt:end_dt]
@@ -1441,7 +1447,7 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
         if boot:
             _section("Intervalle de confiance Bootstrap (N = 500 simulations)")
             st.caption(
-                "La TE instantanée est calculée sur une période historique précise. "
+                "La TE (1,67 %) est calculée sur une période historique précise. "
                 "Le bootstrap rééchantillonne 500 fois les écarts journaliers pour estimer "
                 "la plage probable de la TE si l'histoire avait été légèrement différente. "
                 "Intervalle étroit → TE stable. Intervalle large → TE sensible au régime de marché."
