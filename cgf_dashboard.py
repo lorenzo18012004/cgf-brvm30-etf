@@ -5089,56 +5089,6 @@ def _render_live():
             else:
                 st.info("Historique non disponible — relancer scrape_sika_dividendes.py")
 
-        # ── Statut daemon iNAV ────────────────────────────────────────────────
-        st.markdown("---")
-        _section("Daemon iNAV (mise à jour automatique toutes les 15 min)")
-        _is_windows = sys.platform == "win32"
-        if not _is_windows:
-            st.info("ℹ Le daemon iNAV tourne uniquement en local sur Windows. "
-                    "Sur le cloud, l'iNAV est mis à jour via GitHub Actions (toutes les 15 min pendant les heures BRVM).")
-        else:
-            _pid_file = os.path.join(BRVM30_DIR, "logs", "intraday_daemon.pid")
-            _daemon_ok = False
-            _daemon_pid = None
-            if os.path.exists(_pid_file):
-                try:
-                    import psutil as _psu
-                    with open(_pid_file) as _pf:
-                        _daemon_pid = int(_pf.read().strip())
-                    _daemon_ok = _psu.pid_exists(_daemon_pid)
-                except Exception:
-                    _daemon_ok = os.path.exists(_pid_file)
-
-            _d_badge = "En cours" if _daemon_ok else "Arrêté"
-            _d_pid   = f" (PID {_daemon_pid})" if _daemon_pid and _daemon_ok else ""
-            st.caption(f"Statut daemon : **{_d_badge}**{_d_pid}")
-            if not _daemon_ok:
-                st.warning("Le daemon iNAV est arrêté — l'iNAV ne se met plus à jour automatiquement. Double-cliquez sur **start_daemon.bat** pour le relancer.")
-
-            _dc1, _dc2 = st.columns(2)
-            with _dc1:
-                if st.button("Démarrer daemon", width='stretch', help="Lance start_daemon.bat"):
-                    try:
-                        import subprocess as _sp2
-                        _bat = os.path.join(BRVM30_DIR, "start_daemon.bat")
-                        _sp2.Popen([_bat], creationflags=0x00000008, cwd=BRVM30_DIR)
-                        import time as _time2; _time2.sleep(2)
-                        st.success("Daemon lancé — vérifiez le statut dans 5 secondes.")
-                        st.rerun()
-                    except Exception as _de:
-                        st.error(f"Erreur lancement : {_de}")
-            with _dc2:
-                with st.expander("Log daemon (dernières lignes)", expanded=False):
-                    _daemon_log = os.path.join(BRVM30_DIR, "logs", "intraday_daemon.log")
-                    if os.path.exists(_daemon_log):
-                        try:
-                            with open(_daemon_log, encoding="utf-8", errors="replace") as _dl:
-                                _lines = _dl.readlines()
-                            st.code("".join(_lines[-30:]), language=None)
-                        except Exception: st.caption("Log illisible.")
-                    else:
-                        st.caption("Pas encore de log daemon.")
-
         logs_dir = os.path.join(BRVM30_DIR, "logs")
         if os.path.isdir(logs_dir):
             log_files = sorted([f for f in os.listdir(logs_dir) if f.startswith("daily_")], reverse=True)
