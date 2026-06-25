@@ -1328,10 +1328,9 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
 
         _section("Décomposition Tracking Difference")
         td_items = {
-            "TD net total":         m.get("td", 0),
-            "Frais de gestion":     -abs(m.get("mgmt_fee_cumul", 0)),
-            "Coûts de transaction": -abs(m.get("cost_tx_cumul", 0)),
-            "Écart panier":         m.get("td", 0) + abs(m.get("mgmt_fee_cumul", 0)) + abs(m.get("cost_tx_cumul", 0)),
+            "TD net total":              m.get("td", 0),
+            "ETF brut vs BRVM30 PR":     m.get("td_gross", 0),
+            "dont Frais de gestion":     m.get("td", 0) - m.get("td_gross", 0),
         }
         st.dataframe(pd.DataFrame([{"Composante": k, "Valeur": pct(v)} for k, v in td_items.items()]),
                      width='stretch', hide_index=True)
