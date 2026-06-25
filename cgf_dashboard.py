@@ -4739,22 +4739,6 @@ def _render_live():
             _df_m = _df_etf[["etf"]].join(_df_idx[["idx"]], how="inner").sort_index()
             _n_pts = len(_df_m)
 
-            # ── Graphique 1 : ETF vs BRVM30 base 100 ──────────────────────────
-            fig_lv_perf = go.Figure()
-            fig_lv_perf.add_trace(go.Scatter(
-                x=_df_m.index, y=_df_m["etf"], name="ETF",
-                line=dict(color=COLOR, width=2.5),
-                hovertemplate="%{x|%d/%m/%Y}<br>ETF : <b>%{y:.2f}</b><extra></extra>"))
-            fig_lv_perf.add_trace(go.Scatter(
-                x=_df_m.index, y=_df_m["idx"], name="BRVM30",
-                line=dict(color=BENCH_COLOR, width=2, dash="dot"),
-                hovertemplate="%{x|%d/%m/%Y}<br>BRVM30 : <b>%{y:.2f}</b><extra></extra>"))
-            fig_lv_perf.add_hline(y=100, line_dash="dash", line_color="#e0dbd2")
-            fig_lv_perf.update_layout(**PLOTLY_LAYOUT, height=320,
-                title="Valeur liquidative vs BRVM30 — base 100 au lancement",
-                yaxis_title="Base 100", legend=dict(orientation="h", y=-0.15))
-            st.plotly_chart(fig_lv_perf, width='stretch')
-
             # Drawdown + TD cumulatif
             _etf_dd = ((_df_m["etf"] - _df_m["etf"].cummax()) / _df_m["etf"].cummax() * 100)
             _idx_dd = ((_df_m["idx"] - _df_m["idx"].cummax()) / _df_m["idx"].cummax() * 100)
