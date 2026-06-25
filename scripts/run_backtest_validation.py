@@ -698,8 +698,8 @@ json.dump(vl, open(VL_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2
 
 # ── Scalabilité ──────────────────────────────────────────────────────────────
 sc_results = []
-aum_scenarios = [('500M FCFA (actuel)', 500), ('1 Md FCFA', 1_000),
-                 ('2.5 Md FCFA', 2_500), ('5 Md FCFA', 5_000), ('10 Md FCFA', 10_000)]
+aum_scenarios = [('500M FCFA', 500), ('1 Md FCFA', 1_000),
+                 ('2.5 Md FCFA', 2_500), ('5 Md FCFA (actuel)', 5_000), ('10 Md FCFA', 10_000)]
 
 for sc_name, aum in aum_scenarios:
     result = stress_with_selection('Trimestriel (référence)', 3, aum=aum)

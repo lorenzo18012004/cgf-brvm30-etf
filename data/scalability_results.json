@@ -1,6 +1,6 @@
 [
   {
-    "scenario": "500M FCFA (actuel)",
+    "scenario": "500M FCFA",
     "aum_fcfa": 500000000.0,
     "te": 0.018093,
     "td": -0.042084,
@@ -27,7 +27,7 @@
     "basket_n_avg": 27
   },
   {
-    "scenario": "5 Md FCFA",
+    "scenario": "5 Md FCFA (actuel)",
     "aum_fcfa": 5000000000.0,
     "te": 0.018834,
     "td": -0.036673,
