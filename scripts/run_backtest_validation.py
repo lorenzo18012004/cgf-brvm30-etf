@@ -703,7 +703,7 @@ aum_scenarios = [('500M FCFA (actuel)', 500), ('1 Md FCFA', 1_000),
 
 for sc_name, aum in aum_scenarios:
     result = stress_with_selection('Trimestriel (référence)', 3, aum=aum)
-    cost_tx_ann  = 0.005 * to_avg * 4   # spread 50bps × turnover × 4 rebals
+    cost_tx_ann  = 0.005 * result['turnover'] * 4   # spread 50bps × turnover scénario × 4 rebals
     cost_tx_cumul = cost_tx_ann * (len(all_dates) / 252)
     sc_results.append({'scenario': sc_name, 'aum_fcfa': aum * 1e6,
                        'te': result['te'], 'td': result['td'],
