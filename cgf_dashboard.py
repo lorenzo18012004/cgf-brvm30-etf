@@ -1408,9 +1408,9 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
         st.markdown("---")
         m = dd.get("metrics", {})
         c1, c2, c3 = st.columns(3)
-        c1.metric("TE instantanée", pct(m.get("te"), sign=False))
-        c2.metric("TE progressive", pct(bm.get("te_prog"), sign=False))
-        c3.metric("Delta TE exec.", pct((bm.get("te_prog", 0) or 0) - (m.get("te", 0) or 0)))
+        c1.metric("TE période complète", pct(bm.get("te_full"), sign=False),  help="TE annualisée sur toute la période backtest")
+        c2.metric("TE 1ère moitié",      pct(bm.get("te_p1"),   sign=False),  help="TE annualisée sur la 1ère moitié de la période (In-Sample)")
+        c3.metric("TE 2ème moitié",      pct(bm.get("te_p2"),   sign=False),  help="TE annualisée sur la 2ème moitié (Out-of-Sample) — doit être proche de la 1ère")
 
         _section("TE hebdomadaire glissante (52 semaines)")
         nav_g = to_series(dd.get("nav_gross", dd["nav_etf"])).loc[start_dt:end_dt]
