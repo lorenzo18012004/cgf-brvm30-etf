@@ -2456,32 +2456,19 @@ def _render_live():
             _vc = "#2d7a4f" if (chg_jour or 0) >= 0 else "#c0392b"
             _dc = "#2d7a4f" if (_td or 0) >= 0 else "#c0392b"
 
-            # Ligne 1 : Portefeuille | Performance
-            _kpi_r1_l, _kpi_r1_r = st.columns(2)
-            with _kpi_r1_l:
-                st.markdown(f"""
-                <div class="kpi-card">
-                  <div class="kpi-card-hd">Portefeuille — {ts_label}</div>
-                  <div style="display:flex">
-                    {_kc("VL / part", f"{vl_val:,.0f} FCFA" if vl_val else "—")}
-                    {_kc("Variation jour", f"{chg_jour:+.3f}%" if chg_jour is not None else "—", color=_vc)}
-                    {_kc("AUM", f"{aum_val:,.1f} M FCFA" if aum_val else "—")}
-                    {_kc("Parts émises", f"{_n_parts:,}" if _n_parts else "—")}
-                  </div>
-                </div>""", unsafe_allow_html=True)
-            with _kpi_r1_r:
-                st.markdown(f"""
-                <div class="kpi-card">
-                  <div class="kpi-card-hd">Performance depuis le lancement
-                    <span style="font-weight:400;color:#7d8fa3;font-size:0.6rem;margin-left:8px">ETF DISTR vs BRVM30 Price Return</span>
-                  </div>
-                  <div style="display:flex">
-                    {_kc("ETF (VL)", f"{perf_lct:+.2f}%" if perf_lct is not None else "—", color=_pc)}
-                    {_kc("BRVM30 PR (même pér.)", f"{_perf_idx:+.2f}%" if _perf_idx is not None else "—", color=_ic)}
-                    {_kc("Tracking Diff.", _td_str, color=_dc)}
-                    {_kc("Tracking Error", _te_str)}
-                  </div>
-                </div>""", unsafe_allow_html=True)
+            # Ligne 1 : carte unique (infos non dupliquées depuis la barre du haut)
+            st.markdown(f"""
+            <div class="kpi-card">
+              <div class="kpi-card-hd">Portefeuille — {ts_label}
+                <span style="font-weight:400;color:#7d8fa3;font-size:0.6rem;margin-left:8px">ETF DISTR vs BRVM30 Price Return</span>
+              </div>
+              <div style="display:flex;flex-wrap:wrap">
+                {_kc("Variation jour", f"{chg_jour:+.3f}%" if chg_jour is not None else "—", color=_vc)}
+                {_kc("Parts émises", f"{_n_parts:,}" if _n_parts else "—")}
+                {_kc("BRVM30 PR (même pér.)", f"{_perf_idx:+.2f}%" if _perf_idx is not None else "—", color=_ic)}
+                {_kc("Tracking Diff.", _td_str, color=_dc)}
+              </div>
+            </div>""", unsafe_allow_html=True)
 
             # Ligne 2 : Rebalancement (pleine largeur)
             if _progress_pct is not None:
