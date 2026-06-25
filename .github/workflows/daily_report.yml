@@ -74,3 +74,4 @@ jobs:
             data/pdfs/journalier/
           commit_user_name: cgf-bot
           commit_user_email: bot@cgf-bourse.ci
+          push_options: '--force-with-lease'
