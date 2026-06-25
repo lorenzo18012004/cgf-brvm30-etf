@@ -1753,21 +1753,6 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
         else:
             st.caption("Pas de stress tests.")
 
-        if ewma:
-            _section("Sensibilité au seuil EWMA")
-            fig_ew = make_subplots(specs=[[{"secondary_y": True}]])
-            fig_ew.add_trace(go.Scatter(
-                x=[f"{int(r['threshold'] * 100)}%" for r in ewma], y=[r["te"] * 100 for r in ewma],
-                name="TE (%)", line=dict(color=COLOR, width=2), mode="lines+markers"), secondary_y=False)
-            fig_ew.add_trace(go.Bar(
-                x=[f"{int(r['threshold'] * 100)}%" for r in ewma], y=[r["turnover"] * 100 for r in ewma],
-                name="Turnover (%)", marker_color=BENCH_COLOR, opacity=0.5), secondary_y=True)
-            fig_ew.add_hline(y=2.5, line_dash="dash", line_color="#c0392b", secondary_y=False)
-            fig_ew.update_layout(plot_bgcolor="#ffffff", paper_bgcolor="#ffffff",
-                title="TE vs Turnover selon seuil EWMA", height=280, hovermode="x",
-                font=dict(family="Inter, system-ui, sans-serif", color="#4b5563"),
-                legend=dict(orientation="h", y=-0.3))
-            st.plotly_chart(fig_ew, width='stretch')
 
         if boot:
             _section("Analyse Bootstrap")
