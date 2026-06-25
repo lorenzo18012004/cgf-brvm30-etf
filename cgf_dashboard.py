@@ -1358,30 +1358,29 @@ représentant < **%.1f%%** du panier est écarté (coût de transaction > apport
 
         annual = bm.get("annual", [])
         if annual:
-            _section("Performances & coûts annuels")
+            _section("Performances annuelles")
             rows = []
             for a in annual:
+                td_net  = a.get("td", 0) or 0
+                td_gr   = a.get("td_gross", 0) or 0
+                frais   = td_net - td_gr
                 rows.append({
-                    "Année":         str(a.get("year", "")),
-                    "TE":            pct(a.get("te"), sign=False),
-                    "TD net":        pct(a.get("td", 0) or 0),
-                    "Coûts tx":      pct(a.get("cost_tx", 0) or 0, sign=False),
-                    "Frais gestion": pct(a.get("mgmt_fee", 0) or 0, sign=False),
-                    "Ecart panier":  pct(a.get("basket_gap", 0) or 0),
-                    "Total drag":    pct(-abs((a.get("cost_tx", 0) or 0) + (a.get("mgmt_fee", 0) or 0))),
+                    "Année":             str(a.get("year", "")),
+                    "TE":                pct(a.get("te"), sign=False),
+                    "TD net":            pct(td_net),
+                    "ETF brut vs indice": pct(td_gr),
+                    "Frais gestion":     pct(frais),
                 })
             st.dataframe(pd.DataFrame(rows), width='stretch', hide_index=True)
 
             if len(annual) >= 2:
                 years   = [str(a["year"]) for a in annual]
-                costs   = [-abs(a.get("cost_tx", 0) or 0) * 100 for a in annual]
-                fees    = [-abs(a.get("mgmt_fee", 0) or 0) * 100 for a in annual]
-                gaps    = [(a.get("basket_gap", 0) or 0) * 100 for a in annual]
+                td_grs  = [(a.get("td_gross", 0) or 0) * 100 for a in annual]
                 td_nets = [(a.get("td", 0) or 0) * 100 for a in annual]
+                fees    = [((a.get("td", 0) or 0) - (a.get("td_gross", 0) or 0)) * 100 for a in annual]
                 fig_ann = go.Figure()
-                fig_ann.add_trace(go.Bar(x=years, y=costs, name="Coûts transaction", marker_color="#f59e0b", opacity=0.8))
-                fig_ann.add_trace(go.Bar(x=years, y=fees,  name="Frais gestion",     marker_color="#a78bfa", opacity=0.8))
-                fig_ann.add_trace(go.Bar(x=years, y=gaps,  name="Ecart panier",      marker_color="#d1d5db", opacity=0.8))
+                fig_ann.add_trace(go.Bar(x=years, y=td_grs, name="ETF brut vs indice", marker_color="#d1d5db", opacity=0.9))
+                fig_ann.add_trace(go.Bar(x=years, y=fees,   name="Frais gestion",      marker_color="#a78bfa", opacity=0.8))
                 fig_ann.add_trace(go.Scatter(x=years, y=td_nets, name="TD net",
                     mode="lines+markers", line=dict(color=COLOR, width=2.5), marker=dict(size=8, color=COLOR)))
                 fig_ann.add_hline(y=0, line_color="#e5e7eb", line_width=1)
