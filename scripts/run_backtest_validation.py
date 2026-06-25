@@ -550,16 +550,16 @@ def stress_with_selection(name, rebal_freq_months, fee=MGMT_FEE_ANN,
     excess_cnt   = {}   # {ticker: nb rebals consécutifs > seuil}
 
     for rb in rb_new:
-        # Poids BRVM30 : prendre le plus proche dans l'historique
-        closest = min(brvm30_weights_hist.keys() or [rb_new[0]],
-                      key=lambda d: abs(pd.Timestamp(d) - pd.Timestamp(rb)))
+        # Poids BRVM30 : dernière composition connue AVANT ou égale à rb (pas de look-ahead)
+        past_dates = [d for d in brvm30_weights_hist if d <= rb]
+        closest = max(past_dates) if past_dates else min(brvm30_weights_hist.keys())
         w_b30   = brvm30_weights_hist.get(closest, {})
-        tickers = list(w_b30.keys()) or list(_get_weights(w_history,
-                        min(rebal_dates, key=lambda d: abs(pd.Timestamp(d)-pd.Timestamp(rb)))).keys())
+        past_rd = [d for d in rebal_dates if d <= rb]
+        closest_rd = max(past_rd) if past_rd else rebal_dates[0]
+        tickers = list(w_b30.keys()) or list(_get_weights(w_history, closest_rd).keys())
 
         bw, _, excess_cnt = select_basket(rb, tickers, w_b30, prev_basket, excess_cnt, aum)
-        wh_new[rb]  = bw if bw else _get_weights(w_history,
-                        min(rebal_dates, key=lambda d: abs(pd.Timestamp(d)-pd.Timestamp(rb))))
+        wh_new[rb]  = bw if bw else _get_weights(w_history, closest_rd)
         prev_basket = set(wh_new[rb].keys())
 
     ng, nn = build_nav_pr(all_dates, sh, rb_new, wh_new, fee)
@@ -596,8 +596,8 @@ for threshold in [0.01, 0.02, 0.03, 0.05, 0.08, 0.10, 0.15]:
     exc_c     = {}
     wh_sim    = {}
     for rb in rb_sim:
-        closest = min(brvm30_weights_hist.keys() or [rb],
-                      key=lambda d: abs(pd.Timestamp(d) - pd.Timestamp(rb)))
+        _past = [d for d in brvm30_weights_hist if d <= rb]
+        closest = max(_past) if _past else min(brvm30_weights_hist.keys())
         w_b30   = brvm30_weights_hist.get(closest, {})
         tickers = list(w_b30.keys())
 

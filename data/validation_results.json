@@ -2,39 +2,39 @@
   "stress_tests": [
     {
       "name": "Trimestriel (référence)",
-      "te": 0.016663,
-      "td": -0.035918,
-      "turnover": 0.0691
+      "te": 0.018834,
+      "td": -0.036673,
+      "turnover": 0.056439
     },
     {
       "name": "Mensuel",
-      "te": 0.019088,
-      "td": 0.026372,
-      "turnover": 0.029715
+      "te": 0.017843,
+      "td": -0.032686,
+      "turnover": 0.029906
     },
     {
       "name": "Semestriel",
-      "te": 0.01864,
-      "td": -0.044874,
-      "turnover": 0.104784
+      "te": 0.020588,
+      "td": -0.048786,
+      "turnover": 0.07546
     },
     {
       "name": "Annuel",
-      "te": 0.020144,
-      "td": -0.024864,
-      "turnover": 0.144595
+      "te": 0.021653,
+      "td": -0.054052,
+      "turnover": 0.120882
     },
     {
       "name": "Trimestriel +frais ×2",
-      "te": 0.016663,
-      "td": -0.055248,
-      "turnover": 0.0691
+      "te": 0.018834,
+      "td": -0.055988,
+      "turnover": 0.056439
     },
     {
       "name": "Trimestriel 0-frais",
-      "te": 0.016663,
-      "td": -0.016313,
-      "turnover": 0.0691
+      "te": 0.018834,
+      "td": -0.017083,
+      "turnover": 0.056439
     }
   ],
   "ewma_sensitivity": [
