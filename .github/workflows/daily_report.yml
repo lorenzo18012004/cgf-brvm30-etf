@@ -30,6 +30,9 @@ jobs:
       - name: Mettre à jour les prix de clôture (Sika)
         run: python scripts/scrape_sika_history.py
 
+      - name: Rebalancement trimestriel (si applicable)
+        run: python scripts/rebalance_live.py
+
       - name: Recalculer la NAV
         run: python scripts/calc_nav_cloud.py
 
@@ -70,6 +73,8 @@ jobs:
             data/intraday_nav.json \
             data/nav_intraday_history.json \
             data/brvm30_index_history.json \
+            data/dashboard_data.json \
+            data/rebal_detail.json \
             "data/pdfs/journalier/"
           if git diff --cached --quiet; then
             echo "[SKIP] Aucune modification à commiter."
