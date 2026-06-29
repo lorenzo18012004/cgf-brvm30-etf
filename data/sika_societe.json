@@ -1,0 +1,237 @@
+{
+  "ABJC": {
+    "nb_titres": 10912000.0,
+    "flottant_pct": 19.99,
+    "valorisation_mfcfa": 34918.0
+  },
+  "BICB": {
+    "nb_titres": 57759800.0,
+    "flottant_pct": 33.0,
+    "valorisation_mfcfa": 337895.0
+  },
+  "BICC": {
+    "nb_titres": 16666670.0,
+    "flottant_pct": 32.51,
+    "valorisation_mfcfa": 483333.0
+  },
+  "BNBC": {
+    "nb_titres": 6624000.0,
+    "flottant_pct": 32.51,
+    "valorisation_mfcfa": 13149.0
+  },
+  "BOAB": {
+    "nb_titres": 40561048.0,
+    "flottant_pct": 44.69,
+    "valorisation_mfcfa": 366063.0
+  },
+  "BOABF": {
+    "nb_titres": 44000000.0,
+    "flottant_pct": 29.1,
+    "valorisation_mfcfa": 250800.0
+  },
+  "BOAC": {
+    "nb_titres": 40000000.0,
+    "flottant_pct": 27.48,
+    "valorisation_mfcfa": 374000.0
+  },
+  "BOAM": {
+    "nb_titres": 27450000.0,
+    "flottant_pct": 21.44,
+    "valorisation_mfcfa": 138623.0
+  },
+  "BOAN": {
+    "nb_titres": 20800000.0,
+    "flottant_pct": 40.52,
+    "valorisation_mfcfa": 86320.0
+  },
+  "BOAS": {
+    "nb_titres": 36000000.0,
+    "flottant_pct": 29.99,
+    "valorisation_mfcfa": 263160.0
+  },
+  "CABC": {
+    "nb_titres": 5920000.0,
+    "flottant_pct": 48.7,
+    "valorisation_mfcfa": 24598.0
+  },
+  "CBIBF": {
+    "nb_titres": 32000000.0,
+    "flottant_pct": 20.0,
+    "valorisation_mfcfa": 707200.0
+  },
+  "CFAC": {
+    "nb_titres": 181371900.0,
+    "flottant_pct": 4.12,
+    "valorisation_mfcfa": 317401.0
+  },
+  "CIEC": {
+    "nb_titres": 56000000.0,
+    "flottant_pct": 30.95,
+    "valorisation_mfcfa": 291200.0
+  },
+  "ECOC": {
+    "nb_titres": 55050600.0,
+    "flottant_pct": 20.44,
+    "valorisation_mfcfa": 943843.0
+  },
+  "ETIT": {
+    "nb_titres": 18084106722.0,
+    "flottant_pct": 33.48,
+    "valorisation_mfcfa": 651028.0
+  },
+  "FTSC": {
+    "nb_titres": 14103740.0,
+    "flottant_pct": 33.48,
+    "valorisation_mfcfa": 27925.0
+  },
+  "LNBB": {
+    "nb_titres": 20000000.0,
+    "flottant_pct": 45.0,
+    "valorisation_mfcfa": 84000.0
+  },
+  "NEIC": {
+    "nb_titres": 12765825.0,
+    "flottant_pct": 17.99,
+    "valorisation_mfcfa": 30574.0
+  },
+  "NSBC": {
+    "nb_titres": 24734572.0,
+    "flottant_pct": 20.0,
+    "valorisation_mfcfa": 488508.0
+  },
+  "NTLC": {
+    "nb_titres": 22070400.0,
+    "flottant_pct": 19.13,
+    "valorisation_mfcfa": 327745.0
+  },
+  "ONTBF": {
+    "nb_titres": 68000000.0,
+    "flottant_pct": 23.0,
+    "valorisation_mfcfa": 190400.0
+  },
+  "ORAC": {
+    "nb_titres": 150655350.0,
+    "flottant_pct": 9.95,
+    "valorisation_mfcfa": 2515944.0
+  },
+  "ORGT": {
+    "nb_titres": 69415031.0,
+    "flottant_pct": 20.0,
+    "valorisation_mfcfa": 186726.0
+  },
+  "PALC": {
+    "nb_titres": 15459316.0,
+    "flottant_pct": 33.0,
+    "valorisation_mfcfa": 134496.0
+  },
+  "PRSC": {
+    "nb_titres": 10240000.0,
+    "flottant_pct": 14.06,
+    "valorisation_mfcfa": 47053.0
+  },
+  "SAFC": {
+    "nb_titres": 8119750.0,
+    "flottant_pct": 29.43,
+    "valorisation_mfcfa": 38122.0
+  },
+  "SCRC": {
+    "nb_titres": 19600000.0,
+    "flottant_pct": 23.0,
+    "valorisation_mfcfa": 64386.0
+  },
+  "SDCC": {
+    "nb_titres": 9000000.0,
+    "flottant_pct": 49.53,
+    "valorisation_mfcfa": 99900.0
+  },
+  "SDSC": {
+    "nb_titres": 54435300.0,
+    "flottant_pct": 22.2,
+    "valorisation_mfcfa": 136088.0
+  },
+  "SEMC": {
+    "nb_titres": 25189600.0,
+    "flottant_pct": 10.42,
+    "valorisation_mfcfa": 38162.0
+  },
+  "SGBC": {
+    "nb_titres": 31111110.0,
+    "flottant_pct": 43.35,
+    "valorisation_mfcfa": 1213333.0
+  },
+  "SHEC": {
+    "nb_titres": 63000000.0,
+    "flottant_pct": 28.33,
+    "valorisation_mfcfa": 132615.0
+  },
+  "SIBC": {
+    "nb_titres": 100000000.0,
+    "flottant_pct": 20.0,
+    "valorisation_mfcfa": 888000.0
+  },
+  "SICC": {
+    "nb_titres": 600000.0,
+    "flottant_pct": 12.56,
+    "valorisation_mfcfa": 2568.0
+  },
+  "SIVC": {
+    "nb_titres": 8734000.0,
+    "flottant_pct": 27.92,
+    "valorisation_mfcfa": 22665.0
+  },
+  "SLBC": {
+    "nb_titres": 16460840.0,
+    "flottant_pct": 18.6,
+    "valorisation_mfcfa": 638598.0
+  },
+  "SMBC": {
+    "nb_titres": 7795200.0,
+    "flottant_pct": 16.5,
+    "valorisation_mfcfa": 128426.0
+  },
+  "SNTS": {
+    "nb_titres": 100000000.0,
+    "flottant_pct": 22.47,
+    "valorisation_mfcfa": 2890000.0
+  },
+  "SOGC": {
+    "nb_titres": 21601840.0,
+    "flottant_pct": 26.84,
+    "valorisation_mfcfa": 181455.0
+  },
+  "SPHC": {
+    "nb_titres": 25558005.0,
+    "flottant_pct": 23.54,
+    "valorisation_mfcfa": 196030.0
+  },
+  "STAC": {
+    "nb_titres": 13440000.0,
+    "flottant_pct": 20.83,
+    "valorisation_mfcfa": 47846.0
+  },
+  "STBC": {
+    "nb_titres": 17955000.0,
+    "flottant_pct": 26.95,
+    "valorisation_mfcfa": 438102.0
+  },
+  "TTLC": {
+    "nb_titres": 62961600.0,
+    "flottant_pct": 27.01,
+    "valorisation_mfcfa": 179755.0
+  },
+  "TTLS": {
+    "nb_titres": 32577700.0,
+    "flottant_pct": 30.86,
+    "valorisation_mfcfa": 117280.0
+  },
+  "UNLC": {
+    "nb_titres": 9183400.0,
+    "flottant_pct": 10.02,
+    "valorisation_mfcfa": 514270.0
+  },
+  "UNXC": {
+    "nb_titres": 20750000.0,
+    "flottant_pct": 27.71,
+    "valorisation_mfcfa": 40981.0
+  }
+}

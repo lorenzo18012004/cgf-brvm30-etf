@@ -5,10 +5,13 @@ Synchronise rebal_detail.json depuis les compositions officielles PDF BRVM30
 (brvm_composition_history.json) puis relance rebuild_backtest.py.
 
 Pour chaque date de rebalancement ayant une composition PDF validée :
-  1. Les 30 tickers officiels BRVM (source de vérité)
-  2. Poids estimés depuis les prix Sika à cette date (proxy market-cap)
-  3. Mise à jour basket + excluded pour que leur union = 30 tickers officiels
-  4. Relance rebuild_backtest.py pour recalculer toutes les métriques
+  1. Les 30 tickers officiels BRVM (source de verite) depuis les PDFs
+  2. Poids officiels BRVM30 depuis l'Excel CGF (⚖️ Poids_Matrice_BRVM30)
+     -> seule source fiable car la BRVM applique une methodologie proprietaire
+        (plafonds, flottant officiel, facteurs de liquidite) non reproductible
+        depuis les donnees publiques Sika
+  3. Mise a jour basket + excluded pour que leur union = 30 tickers officiels
+  4. Relance rebuild_backtest.py pour recalculer toutes les metriques
 
 Usage : python scripts/sync_rebal_from_pdf.py
 """
@@ -21,7 +24,7 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(BASE, 'data')
 
 # ── Chargement ────────────────────────────────────────────────────────────────
-print("Chargement des données...")
+print("Chargement des donnees...")
 sh  = json.load(open(os.path.join(DATA, 'sika_history.json'),              encoding='utf-8'))
 rd  = json.load(open(os.path.join(DATA, 'rebal_detail.json'),              encoding='utf-8'))
 bch = json.load(open(os.path.join(DATA, 'brvm_composition_history.json'), encoding='utf-8'))
@@ -37,7 +40,6 @@ try:
     rows = list(ws.iter_rows(values_only=True))
     wb.close()
     header = rows[0]
-    # Dates en format DD/MM/YYYY → convertir en YYYY-MM-DD
     date_cols = {}
     for i, h in enumerate(header):
         if i < 3 or not h:
@@ -47,7 +49,6 @@ try:
             date_cols[i] = d
         except Exception:
             pass
-    # Remplir excel_weights
     for row in rows[1:]:
         ticker = str(row[0]).strip().upper() if row[0] else None
         if not ticker:
@@ -60,11 +61,11 @@ try:
                     excel_weights.setdefault(date_str, {})[ticker] = fval
             except (TypeError, ValueError):
                 pass
-    print(f"  {len(excel_weights)} dates chargées depuis Excel : {sorted(excel_weights.keys())}")
+    print(f"  {len(excel_weights)} dates chargees depuis Excel : {sorted(excel_weights.keys())}")
 except Exception as e:
     print(f"  [WARN] Impossible de lire l'Excel : {e} — fallback Sika uniquement")
 
-# ── Index PDF par rebal_date (tolérance ±15 jours) ───────────────────────────
+# ── Index PDF par rebal_date (tolerance ±15 jours) ───────────────────────────
 comp_pdf      = [c for c in bch if c.get('rebal_date') and len(c.get('composition', [])) >= 25]
 comp_by_date  = {c['rebal_date']: c for c in comp_pdf}
 
@@ -105,36 +106,25 @@ def compute_stale(ticker, as_of_date, window=63):
 
 def get_weights(tickers, rebal_date):
     """
-    Poids BRVM30 officiels depuis Excel en priorité.
-    Fallback price-weighted Sika pour les titres absents de l'Excel.
+    Poids BRVM30 officiels depuis Excel en priorite.
+    Fallback price-weighted Sika pour les tickers absents de l'Excel.
     """
-    # Poids Excel pour cette date
     ex_w = excel_weights.get(rebal_date, {})
-
-    # Titres manquants dans l'Excel → prix Sika
     missing = [tk for tk in tickers if tk not in ex_w or ex_w[tk] == 0]
     sika_prices = {}
     for tk in missing:
         p = last_price(tk, rebal_date)
         if p:
             sika_prices[tk] = p
-
-    # Si tous les tickers sont dans l'Excel, normaliser directement
     combined = {tk: ex_w[tk] for tk in tickers if tk in ex_w and ex_w[tk] > 0}
-
     if sika_prices:
-        # Estimation pour les manquants : proportionnel au prix moyen des autres
         avg_w = sum(combined.values()) / len(combined) if combined else 1 / len(tickers)
         sika_total = sum(sika_prices.values())
         for tk, p in sika_prices.items():
             combined[tk] = avg_w * (p / (sika_total / len(sika_prices)))
-
-    # Titres sans aucune donnée → poids moyen
     for tk in tickers:
         if tk not in combined:
             combined[tk] = avg_w if combined else 1 / len(tickers)
-
-    # Normaliser à 1
     total = sum(combined.values())
     return {tk: round(combined[tk] / total, 6) for tk in tickers} if total > 0 else \
            {tk: round(1 / len(tickers), 6) for tk in tickers}
@@ -153,7 +143,7 @@ for r in rd.get('rebalancings', []):
             float_excluded_global.add(tk)
 
 # ── Synchronisation ───────────────────────────────────────────────────────────
-print('\n=== Synchronisation rebal_detail ← PDF officiels BRVM ===\n')
+print('\n=== Synchronisation rebal_detail <- PDF officiels BRVM ===\n')
 n_updated = 0
 
 for r in rd.get('rebalancings', []):
@@ -161,12 +151,12 @@ for r in rd.get('rebalancings', []):
     pdf = find_pdf_comp(dt)
 
     if not pdf:
-        print(f'{dt}: aucun PDF trouvé — inchangé')
+        print(f'{dt}: aucun PDF trouve - inchange')
         continue
 
     official = [t.upper() for t in pdf.get('composition', [])]
     if len(official) < 25:
-        print(f'{dt}: composition incomplète ({len(official)} tickers) — inchangé')
+        print(f'{dt}: composition incomplete ({len(official)} tickers) - inchange')
         continue
 
     official_set   = set(official)
@@ -180,7 +170,7 @@ for r in rd.get('rebalancings', []):
     composition_ok = not only_pdf and not only_rd
 
     if composition_ok:
-        print(f'{dt}: composition OK — mise à jour des poids Excel')
+        print(f'{dt}: composition OK - mise a jour des poids Excel')
     else:
         print(f'{dt}: composition + poids')
         if only_pdf: print(f'  + Ajouter : {sorted(only_pdf)}')
@@ -188,7 +178,6 @@ for r in rd.get('rebalancings', []):
 
     weights = get_weights(official, dt)
 
-    # Index des entrées existantes
     ex_basket = {b['ticker']: b for b in r.get('basket',   [])}
     ex_excl   = {e['ticker']: e for e in r.get('excluded', [])}
 
@@ -205,14 +194,11 @@ for r in rd.get('rebalancings', []):
             entry = dict(ex_basket[tk])
             entry.update({'w_brvm30': w, 'adv_mfcfa': adv, 'stale_ratio': stale})
             new_basket.append(entry)
-
         elif tk in ex_excl:
             entry = dict(ex_excl[tk])
             entry.update({'w_brvm30': w, 'adv_mfcfa': adv, 'stale_ratio': stale})
             new_excl.append(entry)
-
         elif tk in float_excluded_global:
-            # Ticker officiellement dans BRVM30 mais connu pour float insuffisant
             new_excl.append({
                 'ticker':      tk,
                 'w_brvm30':    w,
@@ -222,8 +208,6 @@ for r in rd.get('rebalancings', []):
                 'secteur':     sect,
             })
         else:
-            # Ticker présent dans PDF mais absent de rebal_detail → basket provisoire
-            # rebuild_backtest.py appliquera les règles (ADV, stale, force) ensuite
             new_basket.append({
                 'ticker':      tk,
                 'w_etf':       w,
@@ -234,7 +218,6 @@ for r in rd.get('rebalancings', []):
                 'secteur':     sect,
             })
 
-    # Tickers dans rebal_detail mais pas dans PDF → supprimés (they leave the index)
     for tk in only_rd:
         print(f'  Supprime {tk} (absent du PDF officiel)')
 
@@ -245,15 +228,15 @@ for r in rd.get('rebalancings', []):
     r['coverage'] = round(sum(b.get('w_brvm30', 0) for b in new_basket), 4)
     r['excl_w']   = round(sum(e.get('w_brvm30', 0) for e in new_excl),   4)
     n_updated += 1
-    # Source des poids
+
     ex_w = excel_weights.get(dt, {})
     n_from_excel = sum(1 for tk in official if tk in ex_w and ex_w[tk] > 0)
     n_from_sika  = len(official) - n_from_excel
-    print(f'  Poids : {n_from_excel} depuis Excel, {n_from_sika} estimés Sika')
+    print(f'  Poids : {n_from_excel} depuis Excel, {n_from_sika} estimes Sika')
 
 # ── Sauvegarde ────────────────────────────────────────────────────────────────
 if n_updated == 0:
-    print('\nAucune mise a jour necessaire — compositions et poids déjà synchronisés.')
+    print('\nAucune mise a jour necessaire.')
     sys.exit(0)
 
 rd_path = os.path.join(DATA, 'rebal_detail.json')
