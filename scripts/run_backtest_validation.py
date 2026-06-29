@@ -582,23 +582,105 @@ vl = {'stress_tests': stress_tests, 'ewma_sensitivity': ewma_sensitivity,
       'selection_params': bm['selection_params']}
 json.dump(vl, open(VL_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 
-# ── Scalabilité ──────────────────────────────────────────────────────────────
+# ── Scalabilité — backtest complet par palier d'AUM ─────────────────────────
+# Paliers : 5, 10, 15, 20, 25, 30, 40, 50 Md FCFA
+AUM_PALIERS = [5_000, 10_000, 15_000, 20_000, 25_000, 30_000, 40_000, 50_000]
+
 sc_results = []
-aum_scenarios = [('500M FCFA', 500), ('1 Md FCFA', 1_000),
-                 ('2.5 Md FCFA', 2_500), ('5 Md FCFA (actuel)', 5_000), ('10 Md FCFA', 10_000)]
 
-for sc_name, aum in aum_scenarios:
-    result = stress_with_selection('Trimestriel (référence)', 3, aum=aum)
-    cost_tx_ann  = 0.005 * result['turnover'] * 4   # spread 50bps × turnover scénario × 4 rebals
-    cost_tx_cumul = cost_tx_ann * (len(all_dates) / 252)
-    sc_results.append({'scenario': sc_name, 'aum_fcfa': aum * 1e6,
-                       'te': result['te'], 'td': result['td'],
-                       'turnover': result['turnover'],
-                       'cost_tx_cumul': round(cost_tx_cumul, 6),
-                       'basket_n_avg': bm.get('n_titres_avg', 27)})
-    print("   Scalabilité %s: TE=%.2f%%  TD=%+.2f%%" % (sc_name, result['te']*100, result['td']*100))
+for aum in AUM_PALIERS:
+    sc_label = f'{aum // 1000} Md FCFA' + (' (actuel)' if aum == AUM_MFCFA else '')
+    print(f"   Scalabilité {sc_label}…", flush=True)
 
-json.dump(sc_results, open(SC_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+    # Recalcul du panier à chaque rebalancement avec cet AUM
+    wh_sc = {}
+    rebal_detail_sc = []   # détail par trimestre
+
+    for rb in rebal_dates:
+        past = [d for d in brvm30_weights_hist if d <= rb]
+        closest = max(past) if past else min(brvm30_weights_hist.keys())
+        w_b30 = brvm30_weights_hist.get(closest, {})
+
+        # build_basket avec ADV-cap 62j/32j au nouvel AUM
+        bsk = build_basket(rb, w_b30, aum, MAX_EXEC_SMALL, MAX_EXEC_LARGE)
+        if not bsk:
+            past_rd = [d for d in rebal_dates if d <= rb]
+            closest_rd = max(past_rd) if past_rd else rebal_dates[0]
+            bsk = _get_weights(w_history, closest_rd)
+        wh_sc[rb] = bsk
+
+        # Titres plafonnés = ceux dont le poids ETF < poids BRVM30 normalisé aux éligibles
+        eligible_b30 = {tk: w for tk, w in w_b30.items() if tk in bsk}
+        tot_elig = sum(eligible_b30.values()) or 1.0
+        w_b30_norm = {tk: v / tot_elig for tk, v in eligible_b30.items()}
+        capped = [tk for tk in bsk if bsk[tk] < w_b30_norm.get(tk, 0) - 5e-5]
+        excluded = [tk for tk in w_b30 if tk not in bsk]
+
+        # ADV à cette date pour les titres plafonnés
+        adv_rb = {tk: compute_adv(tk, rb) for tk in (capped + excluded)}
+
+        rebal_detail_sc.append({
+            'date':      rb,
+            'basket_n':  len(bsk),
+            'exclu_n':   len(excluded),
+            'capped_n':  len(capped),
+            'exclu':     sorted(excluded),
+            'capped':    sorted(capped),
+            'coverage':  round(sum(w_b30.get(tk, 0) for tk in bsk), 4),
+            'adv_capped': {tk: round(adv_rb.get(tk, 0), 1) for tk in capped},
+            'adv_exclu':  {tk: round(adv_rb.get(tk, 0), 1) for tk in excluded},
+        })
+
+    # NAV complète sur tout l'historique avec ce panier
+    ng_sc, nn_sc = build_nav_pr(all_dates, sh, rebal_dates, wh_sc)
+    te_sc, td_sc, _ = compute_te_td(nn_sc, bench_s)
+
+    # Turnover moyen
+    tos_sc = []
+    for i in range(1, len(rebal_dates)):
+        wp = wh_sc[rebal_dates[i-1]]; wc = wh_sc[rebal_dates[i]]
+        tks = set(wp) | set(wc)
+        tos_sc.append(sum(abs(wc.get(t, 0) - wp.get(t, 0)) for t in tks) / 2)
+    to_sc = float(np.mean(tos_sc)) if tos_sc else 0.0
+
+    # Coût de transaction annualisé
+    cost_tx_ann = 0.005 * to_sc * 4
+
+    # Stats agrégées sur les trimestres
+    n_capped_avg  = float(np.mean([r['capped_n']  for r in rebal_detail_sc]))
+    n_exclu_avg   = float(np.mean([r['exclu_n']   for r in rebal_detail_sc]))
+    coverage_avg  = float(np.mean([r['coverage']  for r in rebal_detail_sc]))
+    basket_n_avg  = float(np.mean([r['basket_n']  for r in rebal_detail_sc]))
+
+    # Titres le plus souvent plafonnés ou exclus sur tout l'historique
+    from collections import Counter
+    capped_counter  = Counter(tk for r in rebal_detail_sc for tk in r['capped'])
+    exclu_counter   = Counter(tk for r in rebal_detail_sc for tk in r['exclu'])
+    n_rebals        = len(rebal_detail_sc)
+    top_capped  = [{'ticker': tk, 'freq': round(cnt/n_rebals, 2)}
+                   for tk, cnt in capped_counter.most_common(10)]
+    top_exclu   = [{'ticker': tk, 'freq': round(cnt/n_rebals, 2)}
+                   for tk, cnt in exclu_counter.most_common(10)]
+
+    sc_results.append({
+        'aum_mfcfa':      aum,
+        'label':          sc_label,
+        'te':             round(te_sc, 6),
+        'td':             round(td_sc, 6),
+        'turnover':       round(to_sc, 6),
+        'cost_tx_ann':    round(cost_tx_ann, 6),
+        'basket_n_avg':   round(basket_n_avg, 1),
+        'n_capped_avg':   round(n_capped_avg, 1),
+        'n_exclu_avg':    round(n_exclu_avg, 1),
+        'coverage_avg':   round(coverage_avg, 4),
+        'top_capped':     top_capped,
+        'top_exclu':      top_exclu,
+        'rebal_detail':   rebal_detail_sc,
+    })
+    print("     TE=%.2f%%  TD=%+.2f%%  plafonnés≈%.1f  exclus≈%.1f  couverture=%.1f%%" % (
+        te_sc*100, td_sc*100, n_capped_avg, n_exclu_avg, coverage_avg*100))
+
+json.dump(sc_results, open(SC_PATH, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 
 print()
 print("=== TERMINÉ ===")

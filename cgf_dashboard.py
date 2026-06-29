@@ -1777,41 +1777,186 @@ proportionnellement aux autres titres du panier.
     # ── Scalabilité ───────────────────────────────────────────────────────────
     elif _bsec == "scalabilite":
         if not sc:
-            st.caption("Pas de données scalabilité.")
+            st.caption("Pas de données scalabilité. Lancez rebuild_backtest.py.")
         else:
-            df_s = pd.DataFrame(sc)
-            col1, col2 = st.columns(2)
-            with col1:
-                if "te" in df_s.columns and "scenario" in df_s.columns:
-                    bar_colors = ["#2d7a4f" if v * 100 < 2.5 else "#c0392b" for v in df_s["te"]]
-                    fig_sc = go.Figure()
-                    fig_sc.add_trace(go.Bar(x=df_s["scenario"], y=df_s["te"] * 100,
-                        marker_color=bar_colors,
-                        text=[f"{v * 100:.2f}%" for v in df_s["te"]], textposition="outside"))
-                    fig_sc.add_hline(y=2.5, line_dash="dash", line_color="#c0392b", annotation_text="Seuil 2.5%")
-                    fig_sc.update_layout(**PLOTLY_LAYOUT, height=340,
-                        title="TE annualisée par scénario AuM",
-                        xaxis_tickangle=-25, yaxis_title="TE (%)", showlegend=False)
-                    st.plotly_chart(fig_sc, width='stretch')
-            with col2:
-                if "te" in df_s.columns and "cost_tx_cumul" in df_s.columns:
-                    fig_cost = go.Figure()
-                    fig_cost.add_trace(go.Scatter(x=df_s["scenario"], y=df_s["cost_tx_cumul"] * 100,
-                        mode="lines+markers", line=dict(color="#f59e0b", width=2), marker=dict(size=8)))
-                    fig_cost.update_layout(**PLOTLY_LAYOUT, height=340,
-                        title="Coûts de transaction cumulés",
-                        xaxis_tickangle=-25, yaxis_title="Coûts (%)", showlegend=False)
-                    st.plotly_chart(fig_cost, width='stretch')
+            # Normalisation : nouveau format (liste de dicts avec aum_mfcfa) ou ancien
+            _sc_new = [s for s in sc if 'aum_mfcfa' in s]
+            _sc_old = [s for s in sc if 'aum_mfcfa' not in s]
 
-            display_cols = {"scenario": "Scénario", "te": "TE", "td": "TD",
-                            "turnover": "Turnover", "cost_tx_cumul": "Coûts tx", "basket_n_avg": "Titres moy."}
-            avail   = {k: v for k, v in display_cols.items() if k in df_s.columns}
-            df_disp = df_s[list(avail.keys())].copy()
-            for c in ["te", "td", "turnover", "cost_tx_cumul"]:
-                if c in df_disp.columns:
-                    df_disp[c] = df_disp[c].map(lambda v: pct(v, c not in ("te", "turnover", "cost_tx_cumul"), 2))
-            df_disp.columns = list(avail.values())
-            st.dataframe(df_disp, width='stretch', hide_index=True)
+            if _sc_new:
+                df_s = pd.DataFrame(_sc_new)
+                _labels = df_s['label'].tolist()
+                _aums   = df_s['aum_mfcfa'].tolist()
+
+                # ── Métriques synthétiques ──────────────────────────────────
+                _section("Vue d'ensemble — Impact de l'AUM sur la réplication")
+
+                # Point de rupture : premier AUM où TE > 2%
+                _rupture = next((row['label'] for _, row in df_s.iterrows()
+                                 if row['te'] * 100 > 2.0), "≥ 50 Md")
+                _capped_max = df_s['n_capped_avg'].max()
+                _te_min = df_s['te'].min() * 100
+                _te_max = df_s['te'].max() * 100
+                _mc1, _mc2, _mc3, _mc4 = st.columns(4)
+                _mc1.metric("TE à 5 Md",  f"{df_s[df_s['aum_mfcfa']==5000]['te'].iloc[0]*100:.2f}%"
+                            if 5000 in _aums else "N/A")
+                _mc2.metric("TE à 10 Md", f"{df_s[df_s['aum_mfcfa']==10000]['te'].iloc[0]*100:.2f}%"
+                            if 10000 in _aums else "N/A")
+                _mc3.metric("Seuil TE > 2%", _rupture)
+                _mc4.metric("Plafonnés max (avg)", f"{_capped_max:.1f} titres")
+
+                st.markdown("---")
+
+                # ── Graphiques ──────────────────────────────────────────────
+                _gc1, _gc2 = st.columns(2)
+
+                with _gc1:
+                    _bar_c = ["#2d7a4f" if v*100 < 1 else "#c9861a" if v*100 < 2 else "#c0392b"
+                              for v in df_s["te"]]
+                    fig_te = go.Figure()
+                    fig_te.add_trace(go.Bar(
+                        x=_labels, y=df_s["te"]*100,
+                        marker_color=_bar_c,
+                        text=[f"{v*100:.2f}%" for v in df_s["te"]],
+                        textposition="outside", name="TE"))
+                    fig_te.add_trace(go.Scatter(
+                        x=_labels, y=df_s["td"]*100,
+                        mode="lines+markers",
+                        line=dict(color="#b8973f", width=2, dash="dot"),
+                        marker=dict(size=7), name="TD",
+                        yaxis="y2"))
+                    fig_te.add_hline(y=2.0, line_dash="dash", line_color="#c0392b",
+                                     annotation_text="Seuil 2%")
+                    fig_te.add_hline(y=1.0, line_dash="dot", line_color="#c9861a",
+                                     annotation_text="Seuil 1%")
+                    fig_te.update_layout(
+                        **PLOTLY_LAYOUT, height=380,
+                        title="TE & TD selon l'AUM",
+                        yaxis_title="TE (%)", showlegend=True,
+                        yaxis2=dict(title="TD (%)", overlaying="y", side="right",
+                                    showgrid=False),
+                        legend=dict(orientation="h", y=-0.25),
+                        xaxis_tickangle=-30,
+                    )
+                    st.plotly_chart(fig_te, width='stretch')
+
+                with _gc2:
+                    fig_cap = go.Figure()
+                    fig_cap.add_trace(go.Bar(
+                        x=_labels, y=df_s["n_capped_avg"],
+                        marker_color="#4a7fa5", opacity=0.85,
+                        text=[f"{v:.1f}" for v in df_s["n_capped_avg"]],
+                        textposition="outside", name="Plafonnés"))
+                    fig_cap.add_trace(go.Bar(
+                        x=_labels, y=df_s["n_exclu_avg"],
+                        marker_color="#c0392b", opacity=0.75,
+                        text=[f"{v:.1f}" for v in df_s["n_exclu_avg"]],
+                        textposition="outside", name="Exclus"))
+                    fig_cap.update_layout(
+                        **PLOTLY_LAYOUT, height=380,
+                        title="Titres plafonnés & exclus (moy. par trimestre)",
+                        barmode="stack", yaxis_title="Nb titres",
+                        legend=dict(orientation="h", y=-0.25),
+                        xaxis_tickangle=-30,
+                    )
+                    st.plotly_chart(fig_cap, width='stretch')
+
+                # ── Couverture BRVM30 ───────────────────────────────────────
+                fig_cov = go.Figure()
+                fig_cov.add_trace(go.Scatter(
+                    x=_labels, y=df_s["coverage_avg"]*100,
+                    mode="lines+markers+text",
+                    line=dict(color="#2d7a4f", width=2),
+                    marker=dict(size=8),
+                    text=[f"{v*100:.1f}%" for v in df_s["coverage_avg"]],
+                    textposition="top center",
+                ))
+                fig_cov.add_hline(y=95, line_dash="dash", line_color="#c0392b",
+                                  annotation_text="Seuil 95%")
+                fig_cov.update_layout(
+                    **PLOTLY_LAYOUT, height=240,
+                    title="Couverture moyenne du BRVM30 par l'ETF",
+                    yaxis_title="Couverture (%)", yaxis_range=[80, 102],
+                    xaxis_tickangle=-30, showlegend=False,
+                )
+                st.plotly_chart(fig_cov, width='stretch')
+
+                # ── Tableau récapitulatif ───────────────────────────────────
+                st.markdown("---")
+                _section("Tableau récapitulatif")
+                df_tbl = df_s[[
+                    'label', 'te', 'td', 'turnover', 'cost_tx_ann',
+                    'basket_n_avg', 'n_capped_avg', 'n_exclu_avg', 'coverage_avg'
+                ]].copy()
+                df_tbl['te']           = df_tbl['te'].map(lambda v: f"{v*100:.2f}%")
+                df_tbl['td']           = df_tbl['td'].map(lambda v: f"{v*100:+.2f}%")
+                df_tbl['turnover']     = df_tbl['turnover'].map(lambda v: f"{v*100:.1f}%")
+                df_tbl['cost_tx_ann']  = df_tbl['cost_tx_ann'].map(lambda v: f"{v*100:.3f}%")
+                df_tbl['basket_n_avg'] = df_tbl['basket_n_avg'].map(lambda v: f"{v:.1f}")
+                df_tbl['n_capped_avg'] = df_tbl['n_capped_avg'].map(lambda v: f"{v:.1f}")
+                df_tbl['n_exclu_avg']  = df_tbl['n_exclu_avg'].map(lambda v: f"{v:.1f}")
+                df_tbl['coverage_avg'] = df_tbl['coverage_avg'].map(lambda v: f"{v*100:.1f}%")
+                df_tbl.columns = ['AUM', 'TE', 'TD', 'Turnover', 'Coût tx/an',
+                                   'Titres moy.', 'Plafonnés moy.', 'Exclus moy.', 'Couverture']
+                st.dataframe(df_tbl, width='stretch', hide_index=True)
+
+                # ── Titres goulots d'étranglement ───────────────────────────
+                st.markdown("---")
+                _section("Titres goulots — lesquels bloquent en premier")
+
+                # Construire matrice ticker × AUM (fréquence de plafonnement)
+                _all_tickers_cap = sorted(set(
+                    r['ticker'] for s in _sc_new for r in s.get('top_capped', [])
+                ))
+                if _all_tickers_cap:
+                    _heatmap_data = []
+                    for s in _sc_new:
+                        _freq_map = {r['ticker']: r['freq'] for r in s.get('top_capped', [])}
+                        _heatmap_data.append([_freq_map.get(tk, 0) for tk in _all_tickers_cap])
+
+                    fig_heat = go.Figure(go.Heatmap(
+                        z=_heatmap_data,
+                        x=_all_tickers_cap,
+                        y=_labels,
+                        colorscale=[[0, '#f7f5f0'], [0.33, '#c9861a'], [1.0, '#c0392b']],
+                        zmin=0, zmax=1,
+                        text=[[f"{v:.0%}" if v > 0 else "" for v in row] for row in _heatmap_data],
+                        texttemplate="%{text}",
+                        colorbar=dict(title="Fréq. plaf.", tickformat=".0%"),
+                    ))
+                    fig_heat.update_layout(
+                        **PLOTLY_LAYOUT, height=320,
+                        title="Fréquence de plafonnement par titre et par AUM",
+                        xaxis_title="Ticker", yaxis_title="AUM",
+                    )
+                    st.plotly_chart(fig_heat, width='stretch')
+
+                # ── Détail trimestriel pour un AUM choisi ───────────────────
+                with st.expander("🔍 Détail trimestriel pour un AUM spécifique"):
+                    _sel_label = st.selectbox(
+                        "Choisir l'AUM", _labels, key="sc_aum_sel",
+                        index=min(1, len(_labels)-1)
+                    )
+                    _sel_sc = next((s for s in _sc_new if s['label'] == _sel_label), None)
+                    if _sel_sc and _sel_sc.get('rebal_detail'):
+                        _rd_sc = _sel_sc['rebal_detail']
+                        _rows_rd = []
+                        for r in _rd_sc:
+                            _rows_rd.append({
+                                'Date': r['date'],
+                                'Titres': r['basket_n'],
+                                'Plafonnés': r['capped_n'],
+                                'Exclus': r['exclu_n'],
+                                'Couverture': f"{r['coverage']*100:.1f}%",
+                                'Tickers plafonnés': ', '.join(r['capped']) or '—',
+                                'Tickers exclus': ', '.join(r['exclu']) or '—',
+                            })
+                        st.dataframe(pd.DataFrame(_rows_rd), width='stretch', hide_index=True)
+
+            elif _sc_old:
+                # Ancien format de compatibilité
+                df_s = pd.DataFrame(_sc_old)
+                st.dataframe(df_s, width='stretch', hide_index=True)
 
     # ── Walk-Forward ──────────────────────────────────────────────────────────
     elif _bsec == "walkforward":
