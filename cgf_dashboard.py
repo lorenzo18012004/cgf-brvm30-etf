@@ -1324,7 +1324,7 @@ Execution : verification **mensuelle** — on ne trade que les titres ayant deri
 """ % sp.get("drift_threshold_pct", 1))
             with col_r3:
                 st.markdown("""
-**Dividendes (Total Return)**
+**Dividendes (distribution semestrielle)**
 
 Ex-date : **1er juillet** de l'annee N+1 pour l'exercice N (convention BRVM).
 
@@ -2089,18 +2089,18 @@ Distribution : dernier jour de bourse de **juin et decembre**.
             note="Formule récursive : les frais s'accumulent jour après jour sans recalcul depuis J0. "
                  "Conforme à la pratique standard des fonds de gestion.")
 
-        _lx("Dividendes reçus — capitalisation au taux sans risque (Total Return)",
+        _lx("Dividendes reçus — réserve de distribution semestrielle",
             r"\text{Rés}_{t} = \left(\text{Rés}_{t-1} + \sum_i w_i^t \cdot \frac{d_i}{P_i^{t-1}} \cdot \text{NAV}_t\right) \times (1 + r_{\text{RF}})",
             legend=[
-                "Rés_t = réserve de dividendes cumulée (en pts NAV) capitalisée quotidiennement",
-                "d_i = dividende brut versé par le titre i (en FCFA/action) — ex-date ≈ 1er juillet de l'année N+1",
-                "P_i^{t-1} = prix de clôture de la veille (pour calculer le rendement du dividende)",
-                "w_i^t = poids effectif du titre i dans le portefeuille au jour de l'ex-date",
-                "r_RF = (1 + 3%/an)^{1/252} − 1 — taux de capitalisation quotidien",
+                "Rés_t = réserve de dividendes cumulée (en pts NAV), capitalisée quotidiennement au RF",
+                "d_i = dividende brut versé par le titre i (en FCFA/action) — ex-date ≈ 1er juillet de l'année N+1 (convention BRVM : exercice Y payé en Y+1)",
+                "P_i^{t-1} = prix de clôture de la veille (base de calcul du rendement dividende)",
+                "w_i^t = poids effectif du titre i au jour de l'ex-date",
+                "r_RF = (1 + 3%/an)^{1/252} − 1 — taux de placement de la réserve jusqu'à la distribution",
             ],
-            note="Convention BRVM : l'exercice Y est payé en Y+1. La réserve est distribuée "
-                 "le dernier jour ouvré de juin et de décembre (semestriel). "
-                 "Après distribution, NAV_TR = NAV_PR + Rés cumulée.")
+            note="L'ETF est un fonds à distribution (Price Return) — les dividendes NE sont PAS réinvestis dans la NAV. "
+                 "Ils sont mis en réserve et versés aux porteurs le dernier jour ouvré de juin et de décembre. "
+                 "La NAV reflète uniquement la performance prix du panier (hors dividendes reçus).")
 
         _lx("Benchmark BRVM30 PR (Price Return)",
             r"\text{Bench}_t = \frac{\text{BRVM30\_PR}_t}{\text{BRVM30\_PR}_{t_0}} \times 100",

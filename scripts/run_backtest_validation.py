@@ -1,5 +1,5 @@
 ﻿"""
-Reconstruction backtest Total Return (dividendes inclus) + tests de validation.
+Reconstruction backtest Price Return + distributions semestrielles + tests de validation.
 
 Méthodologie :
   - Panier : ADV-cap + redistribution (62j grands titres / 32j petits titres)
@@ -407,8 +407,8 @@ nav_gross_pr, nav_net_pr, _dist = build_nav_tr(
     all_dates, sh, rebal_dates, w_history, adv_at_rebal=_adv_at_rebal
 )
 # Alias pour compatibilité avec le reste du script
-nav_gross_pr = nav_gross_pr   # Total Return gross
-nav_net_pr   = nav_net_pr     # Total Return net
+nav_gross_pr = nav_gross_pr   # Price Return brut (distributions séparées)
+nav_net_pr   = nav_net_pr     # Price Return net de frais (distributions séparées)
 print("   NAV gross TR: %.2f → %.2f" % (nav_gross_pr.iloc[0], nav_gross_pr.iloc[-1]))
 print("   NAV net   TR: %.2f → %.2f" % (nav_net_pr.iloc[0],   nav_net_pr.iloc[-1]))
 if _dist:
@@ -637,7 +637,7 @@ bm.update({
         'spread_125bps_above_mfcfa': 5,
         'spread_175bps_below_mfcfa': 5,
         # ── Dividendes ───────────────────────────────────────────────────
-        'dividende_model':           'Total Return avec reserve capitalisée',
+        'dividende_model':           'Distribution semestrielle — reserve capitalisée au RF jusqu\'au versement',
         'dividende_ex_date':         '1er juillet de l\'année N+1 pour exercice N',
         'dividende_placement_taux':  RF_RATE_ANN * 100,
         'dividende_distribution':    'dernier jour de bourse de juin et décembre',
