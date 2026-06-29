@@ -4,7 +4,7 @@ Reconstruction backtest Total Return (dividendes inclus) + tests de validation.
 Méthodologie :
   - Panier : ADV-cap + redistribution (62j grands titres / 32j petits titres)
   - Participation max : 15% de l'ADV quotidien (screen trading)
-    → max_w = 0.15 × ADV × max_days / AUM
+    → max_w = 0.20 × ADV × max_days / AUM
   - Spread variable selon ADV : 25 bps (très liquide) → 175 bps (illiquide)
   - Dividendes : reçus ~juillet de chaque année (BRVM paie Y+1 pour exercice Y),
     capitalisés au taux sans risque 3%/an, distribués le 30 juin et 31 décembre
