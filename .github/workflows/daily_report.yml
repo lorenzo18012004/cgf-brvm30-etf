@@ -61,6 +61,9 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: python scripts/send_report_email.py || true
 
+      - name: Mettre à jour les refs distantes (pour force-with-lease)
+        run: git fetch origin
+
       - name: Commit & push
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
