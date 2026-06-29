@@ -38,13 +38,11 @@ RD_PATH = os.path.join(DATA, 'rebal_detail.json')
 EX_PATH = os.path.join(EXCEL_DIR, 'BRVM_Consolidated_Kendall_updated.xlsx')
 
 # ── Paramètres de sélection du panier ────────────────────────────────────────
-FORCE_WEIGHT      = 0.03    # Force inclusion si poids BRVM30 >= 3%
-STALE_THRESH      = 0.70    # Exclusion si >= 70% de jours stale
-STALE_WINDOW      = 63      # Fenêtre de calcul stale : 3 mois (≈ 63 jours ouvrés)
-MAX_EXEC_NEW_DAYS = 100     # Nouveaux entrants : max 100j d'exécution (bloc OTC)
-MAX_EXEC_EXIST_DAYS = 32    # Titres existants : max 32j d'exécution
-CONSEC_REBALS_EXIT  = 2     # Nb de rebalancements consécutifs > seuil avant sortie
-FLOAT_MIN_MFCFA   = 7_000  # Float minimum en M FCFA
+# Approche ADV-cap + redistribution (62j/32j) — identique à rebuild_backtest.py
+MAX_EXEC_SMALL    = 32      # Petits titres (<LARGE_THRESHOLD) : max 32j d'exécution
+MAX_EXEC_LARGE    = 62      # Grands titres (>=LARGE_THRESHOLD) : max 62j (OTC possible)
+LARGE_THRESHOLD   = 0.03    # Seuil "grand titre" : 3% du BRVM30
+MIN_ADV_MFCFA     = 0.5    # ADV minimum pour être inclus (M FCFA/j)
 MIN_BASKET_WEIGHT = 0.001   # Poids minimum dans le panier après redistribution (0.1%)
 MGMT_FEE_ANN      = 0.006  # Frais de gestion : 0.60%/an
 AUM_MFCFA         = 5_000  # AUM de référence en M FCFA (5 Md)
@@ -97,9 +95,6 @@ all_dates = sorted({d for tk in sh for d in sh[tk]
 # ══════════════════════════════════════════════════════════════════════════════
 
 def compute_adv(ticker: str, as_of_date: str, window_days: int = 63) -> float:
-    """ADV en M FCFA sur les `window_days` jours ouvrés précédant as_of_date.
-    Le dénominateur inclut tous les jours de la fenêtre (y compris jours sans volume)
-    pour ne pas surestimer la liquidité des titres semi-actifs."""
     hist  = sh.get(ticker, {})
     dates = sorted(d for d in hist if d < as_of_date)[-window_days:]
     vals  = [(hist[d].get('volume', 0) or 0) * (hist[d].get('close', 0) or 0) / 1e6
@@ -107,116 +102,62 @@ def compute_adv(ticker: str, as_of_date: str, window_days: int = 63) -> float:
     return float(sum(vals) / len(dates)) if dates else 0.0
 
 
-def compute_stale_ratio(ticker: str, as_of_date: str,
-                        window: int = STALE_WINDOW) -> float:
-    """Fraction de jours sans transaction sur la fenêtre glissante."""
-    hist  = sh.get(ticker, {})
-    dates = sorted(d for d in hist if d < as_of_date)[-window:]
-    if not dates:
-        return 1.0
-    stale = sum(1 for d in dates
-                if (hist[d].get('volume') or 0) == 0)
-    return stale / len(dates)
-
-
-def exec_days(ticker: str, trade_mfcfa: float, as_of_date: str) -> float:
-    """Nombre de jours théoriques pour exécuter trade_mfcfa M FCFA sans impact."""
-    adv = compute_adv(ticker, as_of_date)
-    if adv <= 0:
-        return 999.0
-    return trade_mfcfa / adv
-
-
-def select_basket(rebal_date: str,
-                  brvm30_tickers: list,
-                  w_brvm30: dict,
-                  prev_basket: set,
-                  excess_days_count: dict,   # {ticker: nb rebals consécutifs > seuil}
-                  aum_mfcfa: float = AUM_MFCFA) -> tuple:
+def build_basket(rebal_date: str, w_brvm30: dict,
+                 aum_mfcfa: float = AUM_MFCFA,
+                 max_small: int = MAX_EXEC_SMALL,
+                 max_large: int = MAX_EXEC_LARGE,
+                 large_thr: float = LARGE_THRESHOLD) -> dict:
     """
-    Applique les 5 règles de sélection et retourne (basket_weights, excluded, excess_days_count_new).
-
-    basket_weights : {ticker: weight_etf}  — poids normalisés à 1
-    excluded       : [{ticker, raison, ...}]
+    Applique la contrainte ADV-cap + redistribution (62j/32j).
+    Retourne {ticker: poids_final} normalisé à 1.
     """
-    forced   = []   # toujours inclus
-    included = []   # inclus (poids >= 3% ou ADV OK)
-    excluded = []   # exclus avec raison
+    tickers = list(w_brvm30.keys())
+    adv = {tk: compute_adv(tk, rebal_date) for tk in tickers}
 
-    excess_new = dict(excess_days_count)
+    # Filtrer titres sans ADV
+    eligible = [tk for tk in tickers if adv[tk] >= MIN_ADV_MFCFA]
+    if not eligible:
+        return {}
 
-    for tk in brvm30_tickers:
-        w_b30 = w_brvm30.get(tk, 0.0)
-        trade_mfcfa = w_b30 * aum_mfcfa   # taille du trade estimée
+    total_init = sum(w_brvm30[tk] for tk in eligible)
+    weights = {tk: w_brvm30[tk] / total_init for tk in eligible}
 
-        # ── Règle 4 : Float ───────────────────────────────────────────────
-        # (on ne dispose pas du float en temps réel → skip dans backtest,
-        #  géré manuellement via la composition BRVM30 officielle)
+    # Plafond ADV par titre
+    max_w = {}
+    for tk in eligible:
+        days = max_large if w_brvm30[tk] >= large_thr else max_small
+        max_w[tk] = min(adv[tk] * days / aum_mfcfa, 1.0)
 
-        # ── Règle 2 : Prix stale ──────────────────────────────────────────
-        stale = compute_stale_ratio(tk, rebal_date)
-        if stale >= STALE_THRESH and w_b30 < FORCE_WEIGHT:
-            excluded.append({'ticker': tk, 'raison': 'Stale %.0f%%' % (stale*100),
-                             'w_brvm30': w_b30, 'stale_ratio': round(stale, 3)})
-            excess_new.pop(tk, None)
-            continue
+    # Itération plafonner + redistribuer
+    for _ in range(50):
+        capped   = {tk for tk in eligible if weights[tk] > max_w[tk]}
+        uncapped = [tk for tk in eligible if tk not in capped]
+        if not capped:
+            break
+        excess = sum(weights[tk] - max_w[tk] for tk in capped)
+        for tk in capped:
+            weights[tk] = max_w[tk]
+        uncapped_total = sum(weights[tk] for tk in uncapped)
+        if uncapped_total <= 0 or not uncapped:
+            break
+        for tk in uncapped:
+            weights[tk] += excess * weights[tk] / uncapped_total
 
-        # ── Règle 1 : Force si poids >= 3% ───────────────────────────────
-        if w_b30 >= FORCE_WEIGHT:
-            forced.append((tk, w_b30))
-            excess_new.pop(tk, None)
-            continue
+    # Exclure poids < 0.1%
+    for _ in range(10):
+        tiny = [tk for tk in eligible if 0 < weights[tk] < MIN_BASKET_WEIGHT]
+        if not tiny:
+            break
+        for tk in tiny:
+            eligible.remove(tk)
+        if not eligible:
+            break
+        total_keep = sum(weights[tk] for tk in eligible)
+        for tk in eligible:
+            weights[tk] = weights[tk] / total_keep if total_keep > 0 else 1 / len(eligible)
 
-        # ── Règle 3 : ADV / jours d'exécution ────────────────────────────
-        adv     = compute_adv(tk, rebal_date)
-        is_new  = tk not in prev_basket
-        ex_days = exec_days(tk, trade_mfcfa, rebal_date)
-        max_days = MAX_EXEC_NEW_DAYS if is_new else MAX_EXEC_EXIST_DAYS
-
-        if ex_days > max_days:
-            if is_new:
-                # Nouveau entrant : exclure directement si > 100j
-                excluded.append({'ticker': tk, 'raison': 'ADV insuffisant (%.0fj > %dj)' % (ex_days, max_days),
-                                 'w_brvm30': w_b30, 'adv_mfcfa': round(adv, 1), 'exec_days': round(ex_days, 1)})
-                excess_new.pop(tk, None)
-            else:
-                # Titre existant : compter les rebals consécutifs au-dessus du seuil
-                excess_new[tk] = excess_new.get(tk, 0) + 1
-                if excess_new[tk] >= CONSEC_REBALS_EXIT:
-                    excluded.append({'ticker': tk, 'raison': 'ADV insuffisant %d rebals consécutifs' % CONSEC_REBALS_EXIT,
-                                     'w_brvm30': w_b30, 'adv_mfcfa': round(adv, 1), 'exec_days': round(ex_days, 1)})
-                    excess_new.pop(tk, None)
-                else:
-                    # Tolérance : on garde encore ce rebal
-                    included.append((tk, w_b30))
-        else:
-            # ADV OK
-            excess_new.pop(tk, None)
-            included.append((tk, w_b30))
-
-    # Assembler basket : forcés + inclus
-    basket_raw = forced + included
-    if not basket_raw:
-        return {}, excluded, excess_new
-
-    # ── Règle 5 : Poids minimum 0.1% ─────────────────────────────────────
-    total_w = sum(w for _, w in basket_raw)
-    final   = []
-    excl_min= []
-    for tk, w_b30 in basket_raw:
-        w_norm = w_b30 / total_w if total_w > 0 else 1 / len(basket_raw)
-        if w_norm < MIN_BASKET_WEIGHT and w_b30 < FORCE_WEIGHT:
-            excl_min.append({'ticker': tk, 'raison': 'Poids < %.1f%%' % (MIN_BASKET_WEIGHT*100),
-                             'w_brvm30': w_b30, 'w_basket': round(w_norm, 4)})
-        else:
-            final.append((tk, w_b30))
-    excluded += excl_min
-
-    # Normaliser les poids finaux
-    total_f = sum(w for _, w in final)
-    basket_weights = {tk: round(w / total_f, 6) for tk, w in final} if total_f > 0 else {}
-
-    return basket_weights, excluded, excess_new
+    total = sum(weights[tk] for tk in eligible)
+    return {tk: round(weights[tk] / total, 6) for tk in eligible} if total > 0 else {}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -506,15 +447,14 @@ bm.update({
     'annual': annual_new,
     # Paramètres de sélection documentés
     'selection_params': {
-        'force_weight_pct':       FORCE_WEIGHT * 100,
-        'stale_threshold_pct':    STALE_THRESH * 100,
-        'stale_window_days':      STALE_WINDOW,
-        'max_exec_new_days':      MAX_EXEC_NEW_DAYS,
-        'max_exec_exist_days':    MAX_EXEC_EXIST_DAYS,
-        'consec_rebals_exit':     CONSEC_REBALS_EXIT,
-        'float_min_mfcfa':        FLOAT_MIN_MFCFA,
+        'methode':                'ADV-cap + redistribution (62j/32j)',
+        'max_exec_large_days':    MAX_EXEC_LARGE,
+        'max_exec_small_days':    MAX_EXEC_SMALL,
+        'large_threshold_pct':    LARGE_THRESHOLD * 100,
+        'min_adv_mfcfa':          MIN_ADV_MFCFA,
         'min_basket_weight_pct':  MIN_BASKET_WEIGHT * 100,
         'mgmt_fee_ann_pct':       MGMT_FEE_ANN * 100,
+        'aum_mfcfa':              AUM_MFCFA,
     }
 })
 json.dump(bm, open(BM_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
@@ -526,9 +466,9 @@ print("[6/6] Génération des tests de validation…")
 
 
 def stress_with_selection(name, rebal_freq_months, fee=MGMT_FEE_ANN,
-                          aum=AUM_MFCFA):
-    """Stress test avec fréquence de rebalancement différente + règles de sélection."""
-    # Générer les dates de rebalancement
+                          aum=AUM_MFCFA,
+                          max_small=MAX_EXEC_SMALL, max_large=MAX_EXEC_LARGE):
+    """Stress test avec fréquence de rebalancement différente + contrainte ADV-cap."""
     rb_new = [START_DATE]
     last_ts = pd.Timestamp(START_DATE)
     for dt in all_dates[1:]:
@@ -537,28 +477,19 @@ def stress_with_selection(name, rebal_freq_months, fee=MGMT_FEE_ANN,
             rb_new.append(dt)
             last_ts = ts
 
-    # Construire les poids à chaque rebalancement avec les règles de sélection
-    wh_new       = {}
-    prev_basket  = set()
-    excess_cnt   = {}   # {ticker: nb rebals consécutifs > seuil}
-
+    wh_new = {}
     for rb in rb_new:
-        # Poids BRVM30 : dernière composition connue AVANT ou égale à rb (pas de look-ahead)
         past_dates = [d for d in brvm30_weights_hist if d <= rb]
         closest = max(past_dates) if past_dates else min(brvm30_weights_hist.keys())
-        w_b30   = brvm30_weights_hist.get(closest, {})
+        w_b30 = brvm30_weights_hist.get(closest, {})
         past_rd = [d for d in rebal_dates if d <= rb]
         closest_rd = max(past_rd) if past_rd else rebal_dates[0]
-        tickers = list(w_b30.keys()) or list(_get_weights(w_history, closest_rd).keys())
-
-        bw, _, excess_cnt = select_basket(rb, tickers, w_b30, prev_basket, excess_cnt, aum)
-        wh_new[rb]  = bw if bw else _get_weights(w_history, closest_rd)
-        prev_basket = set(wh_new[rb].keys())
+        bw = build_basket(rb, w_b30, aum, max_small, max_large)
+        wh_new[rb] = bw if bw else _get_weights(w_history, closest_rd)
 
     ng, nn = build_nav_pr(all_dates, sh, rb_new, wh_new, fee)
     te_s, td_s, _ = compute_te_td(nn, bench_s)
 
-    # Turnover moyen
     tos = []
     for i in range(1, len(rb_new)):
         wp = wh_new[rb_new[i-1]]; wc = wh_new[rb_new[i]]
@@ -580,71 +511,33 @@ stress_tests = [
 ]
 print("   Stress tests OK:", [s['name'] for s in stress_tests])
 
-# ── Sensibilité seuil force (au lieu d'EWMA) ─────────────────────────────────
+# ── Sensibilité seuil grand titre (LARGE_THRESHOLD) ──────────────────────────
+# Teste différentes valeurs de LARGE_THRESHOLD : au-dessus du seuil = 62j max, en dessous = 32j
 ewma_sensitivity = []
 for threshold in [0.01, 0.02, 0.03, 0.05, 0.08, 0.10, 0.15]:
-    # Simuler avec un seuil de force différent
-    rb_sim    = rebal_dates
-    prev_b    = set()
-    exc_c     = {}
-    wh_sim    = {}
-    for rb in rb_sim:
+    wh_sim = {}
+    for rb in rebal_dates:
         _past = [d for d in brvm30_weights_hist if d <= rb]
         closest = max(_past) if _past else min(brvm30_weights_hist.keys())
-        w_b30   = brvm30_weights_hist.get(closest, {})
-        tickers = list(w_b30.keys())
+        w_b30 = brvm30_weights_hist.get(closest, {})
+        wh_sim[rb] = build_basket(rb, w_b30, AUM_MFCFA,
+                                  max_small=MAX_EXEC_SMALL, max_large=MAX_EXEC_LARGE,
+                                  large_thr=threshold)
 
-        # Sélection avec seuil de force modifié
-        forced_tmp, included_tmp, excluded_tmp = [], [], []
-        exc_new = dict(exc_c)
-        for tk in tickers:
-            w = w_b30.get(tk, 0.0)
-            stale = compute_stale_ratio(tk, rb)
-            if w >= threshold:
-                forced_tmp.append((tk, w))
-                exc_new.pop(tk, None)
-            elif stale >= STALE_THRESH:
-                excluded_tmp.append(tk)
-                exc_new.pop(tk, None)
-            else:
-                adv    = compute_adv(tk, rb)
-                trade  = w * AUM_MFCFA
-                ex_d   = trade / adv if adv > 0 else 999
-                is_new = tk not in prev_b
-                mx     = MAX_EXEC_NEW_DAYS if is_new else MAX_EXEC_EXIST_DAYS
-                if ex_d > mx:
-                    if is_new:
-                        excluded_tmp.append(tk)
-                    else:
-                        exc_new[tk] = exc_new.get(tk, 0) + 1
-                        if exc_new[tk] >= CONSEC_REBALS_EXIT:
-                            excluded_tmp.append(tk)
-                        else:
-                            included_tmp.append((tk, w))
-                else:
-                    exc_new.pop(tk, None)
-                    included_tmp.append((tk, w))
-        exc_c = exc_new
-
-        basket_raw = forced_tmp + included_tmp
-        total_w    = sum(w for _, w in basket_raw)
-        wh_sim[rb] = {tk: round(w/total_w, 6) for tk, w in basket_raw} if total_w > 0 else {}
-        prev_b     = set(wh_sim[rb].keys())
-
-    ng, nn = build_nav_pr(all_dates, sh, rb_sim, wh_sim)
+    ng, nn = build_nav_pr(all_dates, sh, rebal_dates, wh_sim)
     te_f, td_f, _ = compute_te_td(nn, bench_s)
-    to_f = turnover_avg(wh_sim, rb_sim)
-    n_forced_avg = int(np.mean([sum(1 for tk in wh_sim[d]
-                                    if brvm30_weights_hist.get(
-                                        min(brvm30_weights_hist.keys(),
-                                            key=lambda x: abs(pd.Timestamp(x)-pd.Timestamp(d))),{}
-                                    ).get(tk, 0) >= threshold)
-                                for d in rb_sim]))
+    to_f = turnover_avg(wh_sim, rebal_dates)
+    n_large_avg = int(np.mean([sum(1 for tk in wh_sim[d]
+                                   if brvm30_weights_hist.get(
+                                       max((x for x in brvm30_weights_hist if x <= d),
+                                           default=min(brvm30_weights_hist.keys())),{}
+                                   ).get(tk, 0) >= threshold)
+                               for d in rebal_dates]))
     ewma_sensitivity.append({'threshold': threshold, 'te': round(te_f, 6),
                               'td': round(td_f, 6), 'turnover': round(to_f, 6),
-                              'n_forced_avg': n_forced_avg})
-    print("   Force ≥%.0f%%: TE=%.2f%%  TD=%+.2f%%  n_forced≈%d" % (
-        threshold*100, te_f*100, td_f*100, n_forced_avg))
+                              'n_large_avg': n_large_avg})
+    print("   Seuil grand ≥%.0f%% (62j): TE=%.2f%%  TD=%+.2f%%  n_grands≈%d" % (
+        threshold*100, te_f*100, td_f*100, n_large_avg))
 
 # ── Bootstrap TE ─────────────────────────────────────────────────────────────
 r_e = nav_net_pr.pct_change().dropna()

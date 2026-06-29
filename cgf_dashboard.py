@@ -1286,32 +1286,28 @@ def _render_backtest():
             col_r1, col_r2 = st.columns(2)
             with col_r1:
                 st.markdown("""
-**Inclusion forcée** — si le titre représente ≥ **%.0f%%** du poids de l'indice BRVM30,
-il est inclus dans le panier quelles que soient sa liquidité ou la fréquence de ses cotations.
+**Méthode** — %s
 
-**Exclusion stale** — si ≥ **%.0f%%** des jours ouvrés sur les **%d derniers jours** (3 mois)
-ne présentent aucune transaction, le titre est exclu *(sauf si forcé par le poids)*.
+**Grands titres (≥ %.0f%% BRVM30)** — plafonnés à **ADV × %d jours / AUM**.
+Ces titres peuvent être traités OTC, d'où la tolérance d'exécution étendue.
 
-**Float minimum** — les titres avec un flottant < **%d Md FCFA** sont exclus
-indépendamment de leur liquidité apparente.
-""" % (sp.get("force_weight_pct", 3),
-       sp.get("stale_threshold_pct", 70),
-       sp.get("stale_window_days", 63),
-       sp.get("float_min_mfcfa", 7000) // 1000))
+**Petits titres (< %.0f%% BRVM30)** — plafonnés à **ADV × %d jours / AUM**.
+""" % (sp.get("methode", "ADV-cap + redistribution"),
+       sp.get("large_threshold_pct", 3),
+       sp.get("max_exec_large_days", 62),
+       sp.get("large_threshold_pct", 3),
+       sp.get("max_exec_small_days", 32)))
             with col_r2:
                 st.markdown("""
-**Exclusion ADV — nouveaux entrants** — si l'exécution du trade dépasse
-**%d jours** sans impact marché, le titre n'entre pas dans le panier.
-L'ETF privilégie un bloc OTC pour ces positions.
+**Redistribution** — l'excès de poids des titres plafonnés est redistribué
+proportionnellement aux autres titres du panier.
 
-**Exclusion ADV — titres existants** — si le titre nécessite > **%d jours**
-d'exécution sur **%d rebalancements consécutifs**, il est retiré du panier.
+**ADV minimum** — tout titre avec un ADV < **%.1f M FCFA/j** est exclu
+(pas de liquidité mesurable).
 
-**Poids minimum** — après redistribution des exclusions, tout titre
-représentant < **%.1f%%** du panier est écarté (coût de transaction > apport en tracking).
-""" % (sp.get("max_exec_new_days", 100),
-       sp.get("max_exec_exist_days", 32),
-       sp.get("consec_rebals_exit", 2),
+**Poids minimum** — tout titre dont le poids résultant < **%.1f%%** est écarté
+(coût de transaction > apport en tracking).
+""" % (sp.get("min_adv_mfcfa", 0.5),
        sp.get("min_basket_weight_pct", 0.1)))
 
         nav_e = nav_e_full.loc[start_dt:end_dt]

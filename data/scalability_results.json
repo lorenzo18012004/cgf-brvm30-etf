@@ -20,28 +20,28 @@
   {
     "scenario": "2.5 Md FCFA",
     "aum_fcfa": 2500000000.0,
-    "te": 0.011049,
-    "td": -0.023046,
-    "turnover": 0.069548,
-    "cost_tx_cumul": 0.004659,
+    "te": 0.010895,
+    "td": -0.022748,
+    "turnover": 0.06901,
+    "cost_tx_cumul": 0.004623,
     "basket_n_avg": 27
   },
   {
     "scenario": "5 Md FCFA (actuel)",
     "aum_fcfa": 5000000000.0,
-    "te": 0.01185,
-    "td": -0.020545,
-    "turnover": 0.074508,
-    "cost_tx_cumul": 0.004991,
+    "te": 0.012499,
+    "td": -0.01671,
+    "turnover": 0.081474,
+    "cost_tx_cumul": 0.005457,
     "basket_n_avg": 27
   },
   {
     "scenario": "10 Md FCFA",
     "aum_fcfa": 10000000000.0,
-    "te": 0.012443,
-    "td": -0.021246,
-    "turnover": 0.081551,
-    "cost_tx_cumul": 0.005463,
+    "te": 0.020346,
+    "td": -0.025563,
+    "turnover": 0.104964,
+    "cost_tx_cumul": 0.007031,
     "basket_n_avg": 27
   }
 ]
