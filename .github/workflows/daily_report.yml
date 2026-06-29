@@ -2,8 +2,7 @@ name: Rapport Journalier 16h
 
 on:
   schedule:
-    # Planifié à 13h UTC — GitHub Actions décale souvent de 2-3h, cible réelle ~16h
-    - cron: '5 13 * * 1-5'
+    - cron: '0 17 * * 1-5'
   workflow_dispatch:
 
 jobs:
