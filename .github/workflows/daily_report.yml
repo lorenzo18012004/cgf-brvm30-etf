@@ -61,20 +61,21 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: python scripts/send_report_email.py || true
 
-      - name: Mettre à jour les refs distantes (pour force-with-lease)
-        run: git fetch origin
-
       - name: Commit & push
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "data: prix + NAV + rapport $(date -u +'%Y-%m-%d')"
-          file_pattern: |
-            data/sika_history.json
-            data/nav_latest.json
-            data/intraday_nav.json
-            data/nav_intraday_history.json
-            data/brvm30_index_history.json
-            data/pdfs/journalier/
-          commit_user_name: cgf-bot
-          commit_user_email: bot@cgf-bourse.ci
-          push_options: '--force-with-lease'
+        run: |
+          git config user.name "cgf-bot"
+          git config user.email "bot@cgf-bourse.ci"
+          git add \
+            data/sika_history.json \
+            data/nav_latest.json \
+            data/intraday_nav.json \
+            data/nav_intraday_history.json \
+            data/brvm30_index_history.json \
+            "data/pdfs/journalier/"
+          if git diff --cached --quiet; then
+            echo "[SKIP] Aucune modification à commiter."
+          else
+            git commit -m "data: prix + NAV + rapport $(date -u +'%Y-%m-%d')"
+            git pull --rebase origin main
+            git push origin main
+          fi
