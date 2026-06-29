@@ -26,9 +26,10 @@ RD_PATH = os.path.join(DATA, 'rebal_detail.json')
 DD_PATH = os.path.join(DATA, 'dashboard_data.json')
 
 # ── Paramètres ────────────────────────────────────────────────────────────────
-MAX_EXEC_SMALL  = 32      # jours max pour petits titres (<3% BRVM30)
-MAX_EXEC_LARGE  = 62      # jours max pour grands titres (≥3% BRVM30, OTC possible)
-LARGE_THRESHOLD = 0.03    # seuil "grand titre" (3%)
+MAX_EXEC_SMALL     = 32      # jours max pour petits titres (<3% BRVM30)
+MAX_EXEC_LARGE     = 62      # jours max pour grands titres (≥3% BRVM30, OTC possible)
+LARGE_THRESHOLD    = 0.03    # seuil "grand titre" (3%)
+PARTICIPATION_RATE = 0.15    # max 15% de l'ADV quotidien (screen trading)
 AUM_MFCFA       = 5_000  # AUM de référence en M FCFA
 MIN_ADV_MFCFA   = 0.5    # ADV minimum pour être inclus (500k FCFA/j)
 MIN_WEIGHT      = 0.001  # poids minimum après redistribution (0.1%)
@@ -86,7 +87,7 @@ def build_adv_capped_weights(univ, aum, max_days_small, max_days_large,
     max_w = {}
     for tk in eligible_tks:
         max_days = max_days_large if univ[tk]['w_brvm30'] >= large_thresh else max_days_small
-        max_w[tk] = min(adv[tk] * max_days / aum, 1.0)
+        max_w[tk] = min(PARTICIPATION_RATE * adv[tk] * max_days / aum, 1.0)
 
     # Itération plafonner + redistribuer
     for _ in range(50):

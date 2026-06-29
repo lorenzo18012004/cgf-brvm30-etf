@@ -1,20 +1,18 @@
-"""
-Reconstruction complète du backtest en Price Return pur (dividendes exclus)
-et génération des tests de validation : stress, walk-forward, scalabilité, bootstrap.
+﻿"""
+Reconstruction backtest Total Return (dividendes inclus) + tests de validation.
 
-Règles de sélection du panier (appliquées dans les scénarios stress) :
-  1. Force si w_brvm30 >= FORCE_WEIGHT  (3%) — inclus malgré ADV ou stale insuffisant
-  2. Exclusion stale si >= STALE_THRESH (70%) sur STALE_WINDOW jours glissants
-       → sauf si poids >= FORCE_WEIGHT
-  3. Exclusion ADV : si exécution > MAX_EXEC_NEW_DAYS  (100j) pour nouveaux entrants
-                     si exécution > MAX_EXEC_EXIST_DAYS (32j)  pour titres déjà en portefeuille
-                     → exit déclenché seulement après 2 rebalancements consécutifs > seuil
-  4. Exclusion Float < FLOAT_MIN_MFCFA (7 000 M FCFA)
-  5. Exclusion si poids redistribué < MIN_BASKET_WEIGHT (0.1%)
+Méthodologie :
+  - Panier : ADV-cap + redistribution (62j grands titres / 32j petits titres)
+  - Participation max : 15% de l'ADV quotidien (screen trading)
+    → max_w = 0.15 × ADV × max_days / AUM
+  - Spread variable selon ADV : 25 bps (très liquide) → 175 bps (illiquide)
+  - Dividendes : reçus ~juillet de chaque année (BRVM paie Y+1 pour exercice Y),
+    capitalisés au taux sans risque 3%/an, distribués le 30 juin et 31 décembre
+  - Frais de gestion : 0.60%/an (déduits quotidiennement)
 
 Usage :  python scripts/run_backtest_validation.py
 Sorties :
-  data/dashboard_data.json      → nav_etf, nav_gross, nav_bench mis à jour
+  data/dashboard_data.json
   data/validation_results.json
   data/scalability_results.json
   data/backtest_metrics.json
@@ -38,14 +36,15 @@ RD_PATH = os.path.join(DATA, 'rebal_detail.json')
 EX_PATH = os.path.join(EXCEL_DIR, 'BRVM_Consolidated_Kendall_updated.xlsx')
 
 # ── Paramètres de sélection du panier ────────────────────────────────────────
-# Approche ADV-cap + redistribution (62j/32j) — identique à rebuild_backtest.py
-MAX_EXEC_SMALL    = 32      # Petits titres (<LARGE_THRESHOLD) : max 32j d'exécution
-MAX_EXEC_LARGE    = 62      # Grands titres (>=LARGE_THRESHOLD) : max 62j (OTC possible)
-LARGE_THRESHOLD   = 0.03    # Seuil "grand titre" : 3% du BRVM30
-MIN_ADV_MFCFA     = 0.5    # ADV minimum pour être inclus (M FCFA/j)
-MIN_BASKET_WEIGHT = 0.001   # Poids minimum dans le panier après redistribution (0.1%)
-MGMT_FEE_ANN      = 0.006  # Frais de gestion : 0.60%/an
-AUM_MFCFA         = 5_000  # AUM de référence en M FCFA (5 Md)
+MAX_EXEC_SMALL      = 32      # Petits titres (<LARGE_THRESHOLD) : max 32j
+MAX_EXEC_LARGE      = 62      # Grands titres (>=LARGE_THRESHOLD) : max 62j (OTC)
+LARGE_THRESHOLD     = 0.03    # Seuil "grand titre" : 3% du BRVM30
+PARTICIPATION_RATE  = 0.15    # Max 15% de l'ADV quotidien (screen trading)
+MIN_ADV_MFCFA       = 0.5    # ADV minimum pour être inclus (M FCFA/j)
+MIN_BASKET_WEIGHT   = 0.001   # Poids minimum après redistribution (0.1%)
+MGMT_FEE_ANN        = 0.006  # Frais de gestion : 0.60%/an
+AUM_MFCFA           = 5_000  # AUM de référence en M FCFA (5 Md)
+RF_RATE_ANN         = 0.03   # Taux sans risque annuel (UEMOA) pour placement dividendes
 
 START_DATE = '2023-01-02'
 END_DATE   = '2026-04-01'
@@ -61,6 +60,30 @@ dd = json.load(open(DD_PATH, encoding='utf-8'))
 sh = json.load(open(SH_PATH, encoding='utf-8'))
 bm = json.load(open(BM_PATH, encoding='utf-8'))
 rd = json.load(open(RD_PATH, encoding='utf-8'))
+
+# ── Dividendes historiques ────────────────────────────────────────────────────
+# dividend_history : {ticker: {year: montant_fcfa_par_action}}
+# Convention BRVM : dividende versé en Y+1 pour exercice Y (ex-date ~juillet Y+1)
+_dh_raw   = json.load(open(os.path.join(DATA, 'dividend_history.json'), encoding='utf-8'))
+_div_hist  = _dh_raw.get('history', {})   # {ticker: {'2022': 753.0, '2023': 780.0, ...}}
+
+# Construire un calendrier ex-dividende : {date_str: {ticker: montant_fcfa}}
+# Ex-date assumée : 1er juillet de l'année de versement (Y+1)
+_div_calendar = {}   # {'2023-07-01': {'ORAC': 753.0, ...}, ...}
+for ticker, years in _div_hist.items():
+    for year_str, amount in years.items():
+        if amount is None or amount <= 0:
+            continue
+        try:
+            pay_year = int(year_str) + 1          # versé l'année suivante
+            ex_date  = f'{pay_year}-07-01'
+            if ex_date not in _div_calendar:
+                _div_calendar[ex_date] = {}
+            _div_calendar[ex_date][ticker] = float(amount)
+        except (ValueError, TypeError):
+            pass
+print(f"   Dividendes : {sum(len(v) for v in _div_calendar.values())} versements "
+      f"sur {len(_div_calendar)} dates (2023-2026)")
 
 w_history   = dd['w_history']
 rebal_dates = sorted(w_history.keys())
@@ -102,6 +125,15 @@ def compute_adv(ticker: str, as_of_date: str, window_days: int = 63) -> float:
     return float(sum(vals) / len(dates)) if dates else 0.0
 
 
+def spread_one_way(adv_mfcfa: float) -> float:
+    """Spread bid-ask one-way selon la liquidité du titre (en fraction, pas en bps)."""
+    if adv_mfcfa >= 100: return 0.0025   # 25 bps — très liquide
+    if adv_mfcfa >=  30: return 0.0040   # 40 bps
+    if adv_mfcfa >=  10: return 0.0080   # 80 bps
+    if adv_mfcfa >=   5: return 0.0125   # 125 bps
+    return 0.0175                          # 175 bps — quasi-illiquide
+
+
 def build_basket(rebal_date: str, w_brvm30: dict,
                  aum_mfcfa: float = AUM_MFCFA,
                  max_small: int = MAX_EXEC_SMALL,
@@ -122,11 +154,11 @@ def build_basket(rebal_date: str, w_brvm30: dict,
     total_init = sum(w_brvm30[tk] for tk in eligible)
     weights = {tk: w_brvm30[tk] / total_init for tk in eligible}
 
-    # Plafond ADV par titre
+    # Plafond ADV par titre (15% de l'ADV quotidien × max_days)
     max_w = {}
     for tk in eligible:
         days = max_large if w_brvm30[tk] >= large_thr else max_small
-        max_w[tk] = min(adv[tk] * days / aum_mfcfa, 1.0)
+        max_w[tk] = min(PARTICIPATION_RATE * adv[tk] * days / aum_mfcfa, 1.0)
 
     # Itération plafonner + redistribuer
     for _ in range(50):
@@ -175,30 +207,48 @@ def _get_weights(wh, date_key):
     return {}
 
 
-COST_TX = 0.005   # 50 bps spread one-way
+_daily_rf = (1 + RF_RATE_ANN) ** (1 / 252) - 1  # rendement RF quotidien
+_DIST_MMDD = {'06-30', '12-31'}                  # dates de distribution semestrielle
 
-def build_nav_pr(all_dates, sh, rb_dates, wh, fee_ann=MGMT_FEE_ANN, cost_tx=COST_TX):
-    """
-    Retourne (nav_gross_pr, nav_net_pr) en Series indexées par date string.
 
-    Corrections appliquées :
-      1. Poids mark-to-market : les valeurs de positions dérivent avec les prix
-         entre deux rebalancements (nombre d'actions fixe, pas les poids).
-      2. Coût de transaction : 50bps × turnover one-way déduit à chaque rebal.
-      3. Frais de gestion (nav_net) : formule récursive quotidienne (1-f)^(1/252)
-         appliquée jour après jour — pas de recalcul depuis J0.
+def build_nav_tr(all_dates, sh, rb_dates, wh,
+                 fee_ann=MGMT_FEE_ANN,
+                 div_cal=None,
+                 adv_at_rebal=None):
     """
+    Retourne (nav_gross_tr, nav_net_tr, nav_dist_series) :
+      - nav_gross_tr : Total Return avant frais (Price Return + dividendes réinvestis)
+      - nav_net_tr   : Total Return après frais de gestion 0.6%/an
+      - nav_dist_series : {date: montant_distribué} (distributions semestrielles)
+
+    Modèle de coûts :
+      - Spread variable par titre selon son ADV (spread_one_way())
+      - Participation max 15% de l'ADV (déjà intégré dans build_basket)
+      - Frais de gestion déduits quotidiennement
+
+    Modèle dividendes :
+      - Ex-date ~1er juillet de l'année Y+1 pour exercice Y
+      - Dividende ajouté à une réserve cash
+      - La réserve est capitalisée au taux sans risque 3%/an jusqu'à la distribution
+      - Distribution le 30 juin et 31 décembre (NAV ex-distribution affichée)
+    """
+    if div_cal is None:
+        div_cal = _div_calendar
+    if adv_at_rebal is None:
+        adv_at_rebal = {}
+
     gross_pts, net_pts = {}, {}
     nav_gross  = 100.0
     nav_net    = 100.0
     _daily_fee = (1 - fee_ann) ** (1 / 252)
 
+    div_reserve_gross = 0.0   # réserve dividendes en unités de NAV gross
+    div_reserve_net   = 0.0
+    nav_dist_series   = {}    # {date: montant distribué par part (en unités NAV)}
+
     rb_idx       = 0
     prev_weights = dict(_get_weights(wh, rb_dates[0]))
-
-    # Portefeuille mark-to-market : {ticker: valeur_fraction}
-    # Σ portfolio.values() = 1.0 à chaque rebalancement
-    portfolio = dict(prev_weights)
+    portfolio    = dict(prev_weights)
 
     for i, dt in enumerate(all_dates):
         if i == 0:
@@ -208,48 +258,100 @@ def build_nav_pr(all_dates, sh, rb_dates, wh, fee_ann=MGMT_FEE_ANN, cost_tx=COST
 
         prev_dt = all_dates[i - 1]
 
-        # ── Rendement journalier avec poids PRÉ-rebalancement ─────────────────
-        # Le rebalancement s'exécute à la clôture : le rendement du jour J
-        # est calculé avec les poids AVANT rebalancement, les nouveaux poids
-        # n'entrent en vigueur qu'à partir du jour J+1.
+        # ── Mark-to-market ────────────────────────────────────────────────────
         total_prev    = sum(portfolio.values()) or 1.0
         new_portfolio = {}
         for tk, v in portfolio.items():
             p1 = sh.get(tk, {}).get(prev_dt, {}).get('close')
             p2 = sh.get(tk, {}).get(dt,      {}).get('close')
             new_portfolio[tk] = v * (p2 / p1) if (p1 and p2 and p1 > 0) else v
-
         total_new = sum(new_portfolio.values())
         r_t       = (total_new / total_prev - 1) if total_prev > 0 else 0.0
-        portfolio = new_portfolio
+        portfolio  = new_portfolio
 
-        # ── Mise à jour NAV ───────────────────────────────────────────────────
         nav_gross *= (1 + r_t)
         nav_net   *= (1 + r_t) * _daily_fee
 
-        # ── Rebalancement en clôture → coûts + reset pour le lendemain ───────
+        # ── Dividendes reçus ce jour ──────────────────────────────────────────
+        if dt in div_cal:
+            for tk, div_amount in div_cal[dt].items():
+                if tk not in portfolio:
+                    continue
+                p_prev = sh.get(tk, {}).get(prev_dt, {}).get('close')
+                if not p_prev or p_prev <= 0:
+                    continue
+                div_yield = div_amount / p_prev
+                frac_in_port = portfolio[tk] / (sum(portfolio.values()) or 1.0)
+                div_income_gross = nav_gross * frac_in_port * div_yield
+                div_income_net   = nav_net   * frac_in_port * div_yield
+                div_reserve_gross += div_income_gross
+                div_reserve_net   += div_income_net
+
+        # ── Capitalisation quotidienne de la réserve au taux RF ───────────────
+        div_reserve_gross *= (1 + _daily_rf)
+        div_reserve_net   *= (1 + _daily_rf)
+
+        # ── Distribution semestrielle (dernier jour de bourse de juin et décembre)
+        # On ne teste pas '06-30'/'12-31' exactement (peut être férié/week-end),
+        # on distribue sur le DERNIER jour de bourse du mois de juin ou décembre.
+        cur_month  = dt[5:7]
+        next_month = all_dates[i + 1][5:7] if i + 1 < len(all_dates) else ''
+        is_last_day_of_sem = (cur_month in ('06', '12') and next_month != cur_month)
+        if is_last_day_of_sem and div_reserve_gross > 0:
+            nav_dist_series[dt] = round(div_reserve_gross, 6)
+            div_reserve_gross = 0.0
+            div_reserve_net   = 0.0
+
+        # ── Rebalancement → spread variable par titre ─────────────────────────
         while rb_idx + 1 < len(rb_dates) and dt >= rb_dates[rb_idx + 1]:
-            rb_idx      += 1
-            new_w        = _get_weights(wh, rb_dates[rb_idx])
-            all_tks      = set(prev_weights) | set(new_w)
-            total_port   = sum(portfolio.values()) or 1.0
-            curr_w_norm  = {tk: v / total_port for tk, v in portfolio.items()}
-            turnover     = sum(abs(new_w.get(t, 0) - curr_w_norm.get(t, 0))
-                               for t in all_tks) / 2
-            nav_gross   *= (1 - cost_tx * turnover)
-            nav_net     *= (1 - cost_tx * turnover)
-            portfolio    = dict(new_w)
+            rb_idx     += 1
+            new_w       = _get_weights(wh, rb_dates[rb_idx])
+            all_tks     = set(prev_weights) | set(new_w)
+            total_port  = sum(portfolio.values()) or 1.0
+            curr_w_norm = {tk: v / total_port for tk, v in portfolio.items()}
+
+            # Coût = Σ |Δw_t| × spread(ADV_t) pour chaque titre (one-way)
+            adv_rb = adv_at_rebal.get(rb_dates[rb_idx], {})
+            cost_rebal = sum(
+                abs(new_w.get(t, 0) - curr_w_norm.get(t, 0)) *
+                spread_one_way(adv_rb.get(t, compute_adv(t, rb_dates[rb_idx])))
+                for t in all_tks
+            ) / 2   # one-way (achète ET vend, mais chaque côté compte une fois)
+
+            nav_gross  *= (1 - cost_rebal)
+            nav_net    *= (1 - cost_rebal)
+            portfolio   = dict(new_w)
             prev_weights = dict(new_w)
 
         gross_pts[dt] = nav_gross
         net_pts[dt]   = nav_net
 
-    return pd.Series(gross_pts, dtype=float), pd.Series(net_pts, dtype=float)
+    return (pd.Series(gross_pts, dtype=float),
+            pd.Series(net_pts,   dtype=float),
+            nav_dist_series)
 
 
-nav_gross_pr, nav_net_pr = build_nav_pr(all_dates, sh, rebal_dates, w_history)
-print("   NAV gross PR: %.2f → %.2f" % (nav_gross_pr.iloc[0], nav_gross_pr.iloc[-1]))
-print("   NAV net   PR: %.2f → %.2f" % (nav_net_pr.iloc[0],   nav_net_pr.iloc[-1]))
+# ── Pré-calcul de l'ADV par titre à chaque rebal (évite de recalculer en boucle)
+_adv_at_rebal = {}
+for _rb in rebal_dates:
+    _adv_rb = {}
+    for _r in rd.get('rebalancings', []):
+        if _r.get('date') == _rb:
+            for _item in _r.get('basket', []) + _r.get('excluded', []):
+                if _item.get('ticker') and _item.get('adv_mfcfa'):
+                    _adv_rb[_item['ticker']] = _item['adv_mfcfa']
+    _adv_at_rebal[_rb] = _adv_rb
+
+nav_gross_pr, nav_net_pr, _dist = build_nav_tr(
+    all_dates, sh, rebal_dates, w_history, adv_at_rebal=_adv_at_rebal
+)
+# Alias pour compatibilité avec le reste du script
+nav_gross_pr = nav_gross_pr   # Total Return gross
+nav_net_pr   = nav_net_pr     # Total Return net
+print("   NAV gross TR: %.2f → %.2f" % (nav_gross_pr.iloc[0], nav_gross_pr.iloc[-1]))
+print("   NAV net   TR: %.2f → %.2f" % (nav_net_pr.iloc[0],   nav_net_pr.iloc[-1]))
+if _dist:
+    print("   Distributions:", {d: f"{v:.4f} pts NAV ({v/nav_gross_pr.get(d, 100)*100:.2f}% de NAV)" for d, v in sorted(_dist.items())})
 
 # ── Exec days (delta one-way par titre) pour la TE progressive ───────────────
 _adv_map = {}
@@ -279,7 +381,7 @@ for _i, _dt in enumerate(rebal_dates):
 
 
 def build_nav_pr_prog(all_dates, sh, rb_dates, wh, exec_days_map,
-                      fee_ann=MGMT_FEE_ANN, cost_tx=COST_TX):
+                      fee_ann=MGMT_FEE_ANN, cost_tx=0.005):
     """
     NAV avec exécution progressive : transition linéaire des poids sur
     exec_days_map[rb_date] jours. Coût réparti sur ces jours.
@@ -487,7 +589,7 @@ def stress_with_selection(name, rebal_freq_months, fee=MGMT_FEE_ANN,
         bw = build_basket(rb, w_b30, aum, max_small, max_large)
         wh_new[rb] = bw if bw else _get_weights(w_history, closest_rd)
 
-    ng, nn = build_nav_pr(all_dates, sh, rb_new, wh_new, fee)
+    ng, nn, _ = build_nav_tr(all_dates, sh, rb_new, wh_new, fee)
     te_s, td_s, _ = compute_te_td(nn, bench_s)
 
     tos = []
@@ -524,7 +626,7 @@ for threshold in [0.01, 0.02, 0.03, 0.05, 0.08, 0.10, 0.15]:
                                   max_small=MAX_EXEC_SMALL, max_large=MAX_EXEC_LARGE,
                                   large_thr=threshold)
 
-    ng, nn = build_nav_pr(all_dates, sh, rebal_dates, wh_sim)
+    ng, nn, _ = build_nav_tr(all_dates, sh, rebal_dates, wh_sim)
     te_f, td_f, _ = compute_te_td(nn, bench_s)
     to_f = turnover_avg(wh_sim, rebal_dates)
     n_large_avg = int(np.mean([sum(1 for tk in wh_sim[d]
@@ -632,7 +734,7 @@ for aum in AUM_PALIERS:
         })
 
     # NAV complète sur tout l'historique avec ce panier
-    ng_sc, nn_sc = build_nav_pr(all_dates, sh, rebal_dates, wh_sc)
+    ng_sc, nn_sc, _ = build_nav_tr(all_dates, sh, rebal_dates, wh_sc)
     te_sc, td_sc, _ = compute_te_td(nn_sc, bench_s)
 
     # Turnover moyen
