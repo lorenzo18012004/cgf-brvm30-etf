@@ -1046,7 +1046,7 @@ elif _page == "backtest" and _bsec and _bsec in _bt_sec_keys:  st.session_state[
 _live_labels = {
     "situation":            "Situation actuelle",
     "rebalancements":       "Rebalancements",
-    "rebalancement_action": "⚖️ Rebalancer",
+    "rebalancement_action": "Rebalancer",
     "ap":                   "AP",
     "analyse":              "Analyse approfondie",
 }
@@ -1100,7 +1100,7 @@ if _page in ("live", "backtest") and _nosplit != "1":
         return f'<a href="{_spurl(sv)}" target="_self" title="{title}" class="split-btn {"split-btn-on" if _on else ""}" style="{_s}">{icon}</a>'
     _sp_html = (
         f'<span style="margin-left:auto;display:flex;align-items:center;gap:3px;padding-bottom:5px">'
-        + _sbtn("1","▣","Vue unique") + _sbtn("2","▤","2 panneaux") + _sbtn("4","⊞","4 panneaux")
+        + _sbtn("1","[ ]","Vue unique") + _sbtn("2","[|]","2 panneaux") + _sbtn("4","[+]","4 panneaux")
         + '</span>'
     )
 else:
@@ -1138,7 +1138,7 @@ if _split != "1" and _nosplit != "1" and _page in ("live", "backtest"):
         st.markdown(
             f'<a href="{_clu}" target="_self" style="display:inline-block;margin-top:4px;padding:5px 12px;'
             'background:#e2e8f0;border-radius:6px;text-decoration:none;color:#374151;font-size:0.83rem">'
-            '✕ Vue simple</a>', unsafe_allow_html=True)
+            'Vue simple</a>', unsafe_allow_html=True)
     # Query-strings des panneaux — le chemin absolu vient du JS
     _panel_qs = []
     for _sec in _cur_panels:
@@ -1204,7 +1204,7 @@ elif _page == "live":
     _lv_secs = [
         ("situation",           "Situation actuelle"),
         ("rebalancements",      "Rebalancements"),
-        ("rebalancement_action","⚖️ Rebalancer"),
+        ("rebalancement_action","Rebalancer"),
         ("ap",                  "AP"),
         ("analyse",             "Analyse approfondie"),
     ]
@@ -1508,14 +1508,14 @@ proportionnellement aux autres titres du panier.
                 _basket_rows = []
                 for tk, v in w.items():
                     _bi = next((b for b in _basket_sel if b["ticker"] == tk), {})
-                    _tag = " ⚡" if tk in _forced_tks else ""
+                    _tag = " *" if tk in _forced_tks else ""
                     _basket_rows.append({
                         "Titre": tk + _tag,
                         "Poids ETF": f"{v*100:.2f}%",
                         "Poids indice": f"{_bi.get('w_brvm30', 0)*100:.2f}%" if _bi else "—",
                         "ADV (M FCFA)": f"{_bi.get('adv_mfcfa', 0):.1f}" if _bi else "—",
                     })
-                st.caption("⚡ = forcé malgré ADV insuffisant (poids indice ≥ 3%)")
+                st.caption("* = forcé malgré ADV insuffisant (poids indice >= 3%)")
                 st.dataframe(pd.DataFrame(_basket_rows), width='stretch', hide_index=True, height=360)
 
             # ── Titres exclus ──────────────────────────────────────────────
@@ -1542,7 +1542,7 @@ proportionnellement aux autres titres du panier.
                     # 'OK' = exclusion ADV standard dans l'ancien backtest
                     if adv > 0 and req > 0 and adv < req:
                         days_str = f" — {exec_d:.0f}j d'exécution estimés" if exec_d else ""
-                        forced_note = " ⚠️ aurait dû être forcé (≥ 3%)" if w_b >= 0.03 else ""
+                        forced_note = " (aurait du être forcé >= 3%)" if w_b >= 0.03 else ""
                         return f"ADV insuffisant : {adv:.1f} M FCFA (requis {req:.1f} M FCFA, ratio {ratio:.2f}){days_str}{forced_note}"
                     if adv > 0 and req > 0 and adv >= req:
                         return f"ADV OK ({adv:.1f}/{req:.1f}) — exclu pour autre raison"
@@ -1861,26 +1861,6 @@ proportionnellement aux autres titres du panier.
                     )
                     st.plotly_chart(fig_cap, width='stretch')
 
-                # ── Couverture BRVM30 ───────────────────────────────────────
-                fig_cov = go.Figure()
-                fig_cov.add_trace(go.Scatter(
-                    x=_labels, y=df_s["coverage_avg"]*100,
-                    mode="lines+markers+text",
-                    line=dict(color="#2d7a4f", width=2),
-                    marker=dict(size=8),
-                    text=[f"{v*100:.1f}%" for v in df_s["coverage_avg"]],
-                    textposition="top center",
-                ))
-                fig_cov.add_hline(y=95, line_dash="dash", line_color="#c0392b",
-                                  annotation_text="Seuil 95%")
-                fig_cov.update_layout(
-                    **PLOTLY_LAYOUT, height=240,
-                    title="Couverture moyenne du BRVM30 par l'ETF",
-                    yaxis_title="Couverture (%)", yaxis_range=[80, 102],
-                    xaxis_tickangle=-30, showlegend=False,
-                )
-                st.plotly_chart(fig_cov, width='stretch')
-
                 # ── Tableau récapitulatif ───────────────────────────────────
                 st.markdown("---")
                 _section("Tableau récapitulatif")
@@ -1932,7 +1912,7 @@ proportionnellement aux autres titres du panier.
                     st.plotly_chart(fig_heat, width='stretch')
 
                 # ── Détail trimestriel pour un AUM choisi ───────────────────
-                with st.expander("🔍 Détail trimestriel pour un AUM spécifique"):
+                with st.expander("Détail trimestriel pour un AUM spécifique"):
                     _sel_label = st.selectbox(
                         "Choisir l'AUM", _labels, key="sc_aum_sel",
                         index=min(1, len(_labels)-1)
@@ -2638,7 +2618,7 @@ def _render_live():
                          and d.get("date_detach") and d["date_detach"] < _launch_s]
             _dist_s   = _dlog_s.get("distribution_date", "2026-09-30")
             _distr_ok_s = _dlog_s.get("distribue", False)
-            _dist_lbl_s = ("DISTRIBUÉ ✓" if _distr_ok_s
+            _dist_lbl_s = ("DISTRIBUE" if _distr_ok_s
                            else pd.Timestamp(_dist_s).strftime("%d/%m/%Y") if _dist_s else "30/09")
             _dpp_s    = _dlog_s.get("dividende_par_part_fcfa", 0) or 0
             _rend_s   = _dlog_s.get("rendement_distribution") or 0
@@ -3271,7 +3251,7 @@ def _render_live():
                                     f'padding:10px 16px;cursor:{"pointer" if _has_detail else "default"};'
                                     f'background:#fff;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;'
                                     f'font-size:13px;user-select:none;{_border_top}">'
-                                    f'<span style="color:#6b7280;font-size:11px;min-width:90px">{"▶ " if _has_detail else ""}{_d["periode"]}</span>'
+                                    f'<span style="color:#6b7280;font-size:11px;min-width:90px">{"" if _has_detail else ""}{_d["periode"]}</span>'
                                     f'<span style="color:#9ca3af;font-size:11px">ETF</span>'
                                     f'<span style="color:{_ec};font-weight:600;min-width:55px">{_ed:+.3f}%</span>'
                                     f'<span style="color:#9ca3af;font-size:11px">BRVM30*</span>'
@@ -3365,7 +3345,7 @@ def _render_live():
                             f'<summary style="list-style:none;display:flex;align-items:center;gap:16px;'
                             f'padding:10px 16px;cursor:pointer;background:#fff;'
                             f'font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:13px;">'
-                            f'<span style="font-weight:600;color:#374151;min-width:100px">▶ {_day_label}</span>'
+                            f'<span style="font-weight:600;color:#374151;min-width:100px">{_day_label}</span>'
                             f'<span style="color:#9ca3af;font-size:11px">ETF journée</span>'
                             f'<span style="color:{_etf_col};font-weight:600;min-width:55px">{f"{_etf_j:+.3f}%" if _etf_j is not None else "—"}</span>'
                             f'<span style="color:#9ca3af;font-size:11px">BRVM30</span>'
@@ -3686,7 +3666,7 @@ def _render_live():
             st.markdown("---")
 
             # ── Corriger / éditer une composition historique (Kanban) ────────
-            with st.expander("✏️ Corriger une composition existante", expanded=False):
+            with st.expander("Corriger une composition existante", expanded=False):
                 st.caption("Sélectionne un rebalancement et corrige sa composition via les tickets.")
 
                 _ed_hist_path   = os.path.join(BRVM30_DIR, "brvm_composition_history.json")
@@ -3778,7 +3758,7 @@ def _render_live():
                 # Barre de recherche + tri
                 _sr_col, _sort_col = st.columns([3, 2])
                 _ed_search = _sr_col.text_input(
-                    "🔍 Rechercher", key="ed_search",
+                    "Rechercher", key="ed_search",
                     placeholder="ticker ou nom…"
                 ).strip().upper()
                 _ed_sort = _sort_col.selectbox(
@@ -4246,7 +4226,7 @@ def _render_live():
             help="Format YYYY-MM-DD. Par défaut : prochain jour ouvré de trimestre.",
         )
 
-        if st.button("🔍 Calculer le nouveau panier (dry-run)", key="btn_rebal_preview"):
+        if st.button("Calculer le nouveau panier (dry-run)", key="btn_rebal_preview"):
             with st.spinner("Calcul en cours…"):
                 _script_path = os.path.join(BASE, "scripts", "rebalance_live.py")
                 _res_prev = subprocess.run(
@@ -4270,10 +4250,10 @@ def _render_live():
             st.markdown("#### Étape 2 — Appliquer le rebalancement")
 
             if st.session_state.get("rebal_applied"):
-                st.success("✅ Rebalancement déjà appliqué dans cette session.")
+                st.success("Rebalancement déjà appliqué dans cette session.")
             else:
                 st.warning(
-                    "⚠️ **Action irréversible.** Vérifiez les ordres ci-dessus "
+                    "**Action irréversible.** Vérifiez les ordres ci-dessus "
                     "avant de confirmer. Les fichiers `nav_latest.json`, "
                     "`dashboard_data.json` et `rebal_detail.json` seront mis à jour "
                     "et un commit sera poussé sur GitHub."
@@ -4287,7 +4267,7 @@ def _render_live():
                 _btn_disabled = (_confirm_val.strip() != "CONFIRMER")
 
                 if st.button(
-                    "✅ Appliquer le rebalancement",
+                    "Appliquer le rebalancement",
                     key="btn_rebal_apply",
                     type="primary",
                     disabled=_btn_disabled,
@@ -4334,7 +4314,7 @@ def _render_live():
                             )
                         _push_ok = _git_push.returncode == 0
                         if _push_ok:
-                            st.success("✅ Pushé sur GitHub — le dashboard se mettra à jour.")
+                            st.success("Pushé sur GitHub — le dashboard se mettra à jour.")
                         else:
                             st.warning("Rebalancement appliqué localement mais push échoué.")
                             st.code(_git_push.stdout + _git_push.stderr)
@@ -4664,7 +4644,7 @@ def _render_live():
                 delta    = round(w_etf - w_live, 2) if w_live is not None else None
                 rows_cmp.append({
                     "Ticker":           tk,
-                    "Dans ETF":         "✓",
+                    "Dans ETF":         "oui",
                     "ETF %":            round(w_etf, 2),
                     "BRVM30 live %":    round(w_live, 2) if w_live is not None else None,
                     "BRVM30 hier %":    round(w_hier, 2) if w_hier is not None else None,
@@ -4681,7 +4661,7 @@ def _render_live():
                           round(-w_rebal, 2) if w_rebal else None)
                 rows_cmp.append({
                     "Ticker":           tk,
-                    "Dans ETF":         "✗ exclu",
+                    "Dans ETF":         "exclu",
                     "ETF %":            0.0,
                     "BRVM30 live %":    round(w_live, 2) if w_live is not None else None,
                     "BRVM30 hier %":    round(w_hier, 2) if w_hier is not None else None,
@@ -5134,7 +5114,7 @@ def _render_live():
         _events_etf  = _dlog_a.get("evenements", [])
         _launch_a    = launch.get("launch_date", "")
 
-        _stat_a = "DISTRIBUÉ ✓" if _distribue_a else f"Distribution le {_dist_str_a}"
+        _stat_a = "DISTRIBUE" if _distribue_a else f"Distribution le {_dist_str_a}"
         _c_stat = "#2d7a4f" if _distribue_a else "#b8973f"
         _kpi_html(
             ("Statut distribution",  _stat_a,                                           _c_stat),
@@ -5175,7 +5155,7 @@ def _render_live():
                     _st, _sc = "Avant lancement ETF", "#9e9e9e"
                 elif _dt <= _today_a:
                     _recv = any(e.get("ticker") == _tk for e in _events_etf)
-                    _st  = "Reçu ✓" if _recv else "Détaché — hors panier"
+                    _st  = "Recu" if _recv else "Détaché — hors panier"
                     _sc  = "#2d7a4f" if _recv else "#9e9e9e"
                 else:
                     _jj = (pd.Timestamp(_dt) - pd.Timestamp(_today_a)).days
@@ -5194,7 +5174,7 @@ def _render_live():
             if rows_ex:
                 _df_ex = pd.DataFrame(rows_ex)
                 _n_bask_ex = sum(1 for r in rows_ex if r["Panier ETF"] == "OUI")
-                _n_recu_ex = sum(1 for r in rows_ex if r["Statut"] == "Reçu ✓")
+                _n_recu_ex = sum(1 for r in rows_ex if r["Statut"] == "Recu")
                 _n_fut_ex  = sum(1 for r in rows_ex if r["Statut"].startswith("Dans "))
                 _n_prec_ex = sum(1 for r in rows_ex if r["Statut"] == "Date à préciser")
                 col_e1, col_e2, col_e3, col_e4 = st.columns(4)
@@ -5213,7 +5193,7 @@ def _render_live():
                 _df_b_ex = _df_ex[_df_ex["Panier ETF"] == "OUI"].copy()
                 if not _df_b_ex.empty:
                     _colors_ex = [
-                        COLOR if s == "Reçu ✓"
+                        COLOR if s == "Recu"
                         else (BENCH_COLOR if s.startswith("Dans ") else "#bdbdbd")
                         for s in _df_b_ex["Statut"]
                     ]
