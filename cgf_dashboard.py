@@ -851,6 +851,7 @@ _ALL_SEC_LABELS = {
     "stress": "Stress Tests", "scalabilite": "Scalabilité",
     "walkforward": "Walk-Forward", "methodologie": "Méthodologie",
     "situation": "Situation actuelle",
+    "rebalancement_action": "Rebalancer",
     "ap": "AP", "analyse": "Analyse approfondie",
 }
 
@@ -860,7 +861,7 @@ _split   = st.query_params.get("split", "1") if _page in ("live", "backtest") el
 _nosplit = st.query_params.get("nosplit", "0")
 _p = [st.query_params.get(f"p{i}", "") for i in range(1, 5)]
 
-_live_sec_keys = {"situation", "rebalancements", "ap", "analyse"}
+_live_sec_keys = {"situation", "rebalancements", "rebalancement_action", "ap", "analyse"}
 _bt_sec_keys   = {"overview", "performance", "te", "composition", "indice",
                   "rebalancements", "stress", "scalabilite", "walkforward", "methodologie"}
 _valid_secs    = _live_sec_keys if _page == "live" else _bt_sec_keys
@@ -1043,10 +1044,11 @@ elif _page == "backtest" and _bsec and _bsec in _bt_sec_keys:  st.session_state[
 
 # ── Header commun ────────────────────────────────────────────────────────────
 _live_labels = {
-    "situation":      "Situation actuelle",
-    "rebalancements": "Rebalancements",
-    "ap":             "AP",
-    "analyse":        "Analyse approfondie",
+    "situation":            "Situation actuelle",
+    "rebalancements":       "Rebalancements",
+    "rebalancement_action": "⚖️ Rebalancer",
+    "ap":                   "AP",
+    "analyse":              "Analyse approfondie",
 }
 _bt_labels = {
     "overview":       "Vue d'ensemble",
@@ -1200,10 +1202,11 @@ if _page == "backtest":
 
 elif _page == "live":
     _lv_secs = [
-        ("situation",      "Situation actuelle"),
-        ("rebalancements", "Rebalancements"),
-        ("ap",             "AP"),
-        ("analyse",        "Analyse approfondie"),
+        ("situation",           "Situation actuelle"),
+        ("rebalancements",      "Rebalancements"),
+        ("rebalancement_action","⚖️ Rebalancer"),
+        ("ap",                  "AP"),
+        ("analyse",             "Analyse approfondie"),
     ]
     _sub_items = ""
     for _sk, _sl in _lv_secs:
@@ -4050,6 +4053,149 @@ def _render_live():
                                 st.cache_data.clear()
                                 st.rerun()
 
+
+    # ── Prochain rebalancement (panneau d'action) ─────────────────────────────
+    elif _lsec == "rebalancement_action":
+        _nl_reb    = load_json_fresh(nav_latest_path) or {}
+        _sh_reb    = load_json(os.path.join(BRVM30_DIR, "sika_history.json")) or {}
+        _bch_reb   = load_json(os.path.join(BRVM30_DIR, "brvm_composition_history.json")) or []
+
+        _last_rebal_str = _nl_reb.get("last_rebal_date", "N/A")
+        _aum_reb        = float(_nl_reb.get("aum_mfcfa", 5000))
+
+        # Calcul prochain rebalancement
+        _rebal_months = {1, 4, 7, 10}
+        _today_ts = pd.Timestamp.now()
+
+        def _next_rebal_date(from_ts):
+            for m in range(1, 5):
+                cm = ((from_ts.month - 1 + m) % 12) + 1
+                cy = from_ts.year + ((from_ts.month - 1 + m) // 12)
+                if cm in _rebal_months:
+                    first = pd.Timestamp(cy, cm, 1)
+                    return first + pd.offsets.BDay(0)
+            return None
+
+        _next_rebal_ts  = _next_rebal_date(_today_ts)
+        _next_rebal_str = _next_rebal_ts.strftime("%Y-%m-%d") if _next_rebal_ts else "N/A"
+        _days_left      = int((_next_rebal_ts - _today_ts).days) if _next_rebal_ts else 999
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        _section("Prochain rebalancement trimestriel")
+
+        _mc1, _mc2, _mc3 = st.columns(3)
+        _mc1.metric("Dernier rebalancement", _last_rebal_str)
+        _mc2.metric("Prochain rebalancement", _next_rebal_str)
+        _mc3.metric("Jours restants", f"{max(0, _days_left)} j")
+
+        st.markdown("---")
+
+        # ── Étape 1 : Prévisualisation ─────────────────────────────────────
+        st.markdown("#### Étape 1 — Prévisualisation des ordres")
+        st.caption("Calcule le nouveau panier sans modifier aucun fichier.")
+
+        _prev_date_input = st.text_input(
+            "Date du rebalancement",
+            value=_next_rebal_str,
+            key="rebal_date_input",
+            help="Format YYYY-MM-DD. Par défaut : prochain jour ouvré de trimestre.",
+        )
+
+        if st.button("🔍 Calculer le nouveau panier (dry-run)", key="btn_rebal_preview"):
+            with st.spinner("Calcul en cours…"):
+                _script_path = os.path.join(BASE, "scripts", "rebalance_live.py")
+                _res_prev = subprocess.run(
+                    [sys.executable, _script_path, "--dry-run", "--force",
+                     "--date", _prev_date_input],
+                    capture_output=True, text=True, encoding="utf-8", errors="replace",
+                )
+                st.session_state["rebal_preview_out"]  = _res_prev.stdout
+                st.session_state["rebal_preview_err"]  = _res_prev.stderr
+                st.session_state["rebal_preview_date"] = _prev_date_input
+                st.session_state["rebal_applied"]      = False
+
+        if st.session_state.get("rebal_preview_out"):
+            st.code(st.session_state["rebal_preview_out"], language="text")
+            if st.session_state.get("rebal_preview_err"):
+                with st.expander("Erreurs / avertissements"):
+                    st.code(st.session_state["rebal_preview_err"], language="text")
+
+            # ── Étape 2 : Application ──────────────────────────────────────
+            st.markdown("---")
+            st.markdown("#### Étape 2 — Appliquer le rebalancement")
+
+            if st.session_state.get("rebal_applied"):
+                st.success("✅ Rebalancement déjà appliqué dans cette session.")
+            else:
+                st.warning(
+                    "⚠️ **Action irréversible.** Vérifiez les ordres ci-dessus "
+                    "avant de confirmer. Les fichiers `nav_latest.json`, "
+                    "`dashboard_data.json` et `rebal_detail.json` seront mis à jour "
+                    "et un commit sera poussé sur GitHub."
+                )
+
+                _confirm_val = st.text_input(
+                    "Tapez **CONFIRMER** pour activer le bouton",
+                    key="rebal_confirm_text",
+                    placeholder="CONFIRMER",
+                )
+                _btn_disabled = (_confirm_val.strip() != "CONFIRMER")
+
+                if st.button(
+                    "✅ Appliquer le rebalancement",
+                    key="btn_rebal_apply",
+                    type="primary",
+                    disabled=_btn_disabled,
+                ):
+                    _apply_date = st.session_state.get("rebal_preview_date", _next_rebal_str)
+                    with st.spinner(f"Application du rebalancement {_apply_date}…"):
+                        _script_path = os.path.join(BASE, "scripts", "rebalance_live.py")
+                        _res_apply = subprocess.run(
+                            [sys.executable, _script_path, "--apply", "--force",
+                             "--date", _apply_date],
+                            capture_output=True, text=True, encoding="utf-8", errors="replace",
+                        )
+
+                    if _res_apply.returncode != 0:
+                        st.error("Erreur lors de l'application du rebalancement.")
+                        st.code(_res_apply.stdout + "\n" + _res_apply.stderr, language="text")
+                    else:
+                        st.success(f"Rebalancement {_apply_date} appliqué.")
+                        st.code(_res_apply.stdout, language="text")
+                        st.session_state["rebal_applied"] = True
+
+                        # ── Commit + push Git ──────────────────────────────
+                        with st.spinner("Commit et push Git…"):
+                            _git_add = subprocess.run(
+                                ["git", "-C", BASE, "add",
+                                 "data/nav_latest.json",
+                                 "data/dashboard_data.json",
+                                 "data/rebal_detail.json",
+                                 "data/sika_history.json"],
+                                capture_output=True, text=True,
+                            )
+                            _git_commit = subprocess.run(
+                                ["git", "-C", BASE, "commit", "-m",
+                                 f"rebal: rebalancement trimestriel {_apply_date}"],
+                                capture_output=True, text=True,
+                            )
+                            _git_pull = subprocess.run(
+                                ["git", "-C", BASE, "pull", "--rebase", "origin", "main"],
+                                capture_output=True, text=True,
+                            )
+                            _git_push = subprocess.run(
+                                ["git", "-C", BASE, "push", "origin", "main"],
+                                capture_output=True, text=True,
+                            )
+                        _push_ok = _git_push.returncode == 0
+                        if _push_ok:
+                            st.success("✅ Pushé sur GitHub — le dashboard se mettra à jour.")
+                        else:
+                            st.warning("Rebalancement appliqué localement mais push échoué.")
+                            st.code(_git_push.stdout + _git_push.stderr)
+
+                        st.cache_data.clear()
+                        st.rerun()
 
     # ── AP ────────────────────────────────────────────────────────────────────
     elif _lsec == "ap":
