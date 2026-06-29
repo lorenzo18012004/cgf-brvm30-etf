@@ -55,6 +55,7 @@ MIN_ADV_MFCFA    = 0.5
 MIN_WEIGHT       = 0.001
 STALE_WINDOW     = 63
 FORCE_TOP_N      = 5       # top 5 titres BRVM30 tenus à leur poids exact (OTC)
+CASH_BUFFER      = 0.01   # poche de liquidité : 1% du NAV en cash
 
 
 def spread_one_way(adv_mfcfa: float) -> float:
@@ -322,6 +323,9 @@ def main():
         spread_one_way(compute_adv(sh, tk, today))
         for tk in all_tickers
     ) / 2
+    cash_mfcfa = aum_mfcfa * CASH_BUFFER
+    print(f"   Poche de liquidité : {CASH_BUFFER*100:.0f}% = {cash_mfcfa:.0f} MFCFA en cash")
+    print(f"   AUM investi (panier) : {(1-CASH_BUFFER)*100:.0f}% = {aum_mfcfa*(1-CASH_BUFFER):.0f} MFCFA")
     print(f"   Turnover one-way : {turnover*100:.1f}%")
     print(f"   Coût de transaction (spread variable) : {cost_pct*100:.3f}% de l'AUM")
     print()
@@ -364,7 +368,7 @@ def main():
         new_basket.append({
             'ticker':       tk,
             'poids_pct':    round(w * 100, 4),
-            'pv_mfcfa':     round(w * aum_mfcfa * (1 - cost_pct), 1),
+            'pv_mfcfa':     round(w * aum_mfcfa * (1 - CASH_BUFFER) * (1 - cost_pct), 1),
             'dernier_prix': prix,
             'prix_stale':   stale,
             'adv_mfcfa':    round(adv, 1),
@@ -372,11 +376,12 @@ def main():
             'force_otc':    tk in forced_tks,
         })
 
-    nl['basket']          = new_basket
-    nl['n_basket']        = len(new_basket)
-    nl['last_rebal_date'] = today
-    nl['nav_indice']      = round(nav_after, 4)
-    nl['aum_mfcfa']       = round(nav_after / nav_before * aum_mfcfa, 1) if nav_before > 0 else aum_mfcfa
+    nl['basket']           = new_basket
+    nl['n_basket']         = len(new_basket)
+    nl['last_rebal_date']  = today
+    nl['nav_indice']       = round(nav_after, 4)
+    nl['aum_mfcfa']        = round(nav_after / nav_before * aum_mfcfa, 1) if nav_before > 0 else aum_mfcfa
+    nl['cash_buffer_pct']  = CASH_BUFFER * 100
 
     json.dump(nl, open(NL_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
     print(f"   nav_latest.json    : {len(new_basket)} titres | NAV {nav_before:.4f} → {nav_after:.4f}")

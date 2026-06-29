@@ -2,133 +2,133 @@
   "stress_tests": [
     {
       "name": "Mensuel dérive 1% (référence)",
-      "te": 0.020809,
-      "td": -0.029,
+      "te": 0.020815,
+      "td": -0.034188,
       "turnover": 0.112167
     },
     {
       "name": "Trimestriel classique",
-      "te": 0.019219,
-      "td": -0.019668,
+      "te": 0.019247,
+      "td": -0.02503,
       "turnover": 0.112167
     },
     {
       "name": "Mensuel dérive 0% (trade tout)",
-      "te": 0.019785,
-      "td": -0.01954,
+      "te": 0.019815,
+      "td": -0.024951,
       "turnover": 0.112167
     },
     {
       "name": "Mensuel dérive 2%",
-      "te": 0.021008,
-      "td": 0.000626,
+      "te": 0.020914,
+      "td": -0.004968,
       "turnover": 0.112167
     },
     {
       "name": "Trimestriel +frais ×2",
-      "te": 0.019219,
-      "td": -0.039323,
+      "te": 0.019248,
+      "td": -0.044578,
       "turnover": 0.112167
     },
     {
       "name": "Trimestriel 0-frais",
-      "te": 0.019219,
-      "td": 0.000268,
+      "te": 0.019247,
+      "td": -0.005203,
       "turnover": 0.112167
     }
   ],
   "ewma_sensitivity": [
     {
       "threshold": 0.01,
-      "te": 0.01582,
-      "td": -0.00362,
+      "te": 0.015875,
+      "td": -0.009189,
       "turnover": 0.109186,
       "n_large_avg": 21
     },
     {
       "threshold": 0.02,
-      "te": 0.018923,
-      "td": -0.046643,
+      "te": 0.018891,
+      "td": -0.051571,
       "turnover": 0.120732,
       "n_large_avg": 11
     },
     {
       "threshold": 0.03,
-      "te": 0.019291,
-      "td": -0.018429,
+      "te": 0.019269,
+      "td": -0.023781,
       "turnover": 0.12068,
       "n_large_avg": 7
     },
     {
       "threshold": 0.05,
-      "te": 0.019719,
-      "td": -0.016042,
+      "te": 0.019694,
+      "td": -0.021437,
       "turnover": 0.127195,
       "n_large_avg": 3
     },
     {
       "threshold": 0.08,
-      "te": 0.019719,
-      "td": -0.016042,
+      "te": 0.019694,
+      "td": -0.021437,
       "turnover": 0.127195,
       "n_large_avg": 2
     },
     {
       "threshold": 0.1,
-      "te": 0.019719,
-      "td": -0.016042,
+      "te": 0.019694,
+      "td": -0.021437,
       "turnover": 0.127195,
       "n_large_avg": 1
     },
     {
       "threshold": 0.15,
-      "te": 0.019719,
-      "td": -0.016042,
+      "te": 0.019694,
+      "td": -0.021437,
       "turnover": 0.127195,
       "n_large_avg": 1
     }
   ],
   "bootstrap": {
     "n_sim": 500,
-    "te_med": 0.019298,
-    "te_p5": 0.018057,
-    "te_p95": 0.02045
+    "te_med": 0.019266,
+    "te_p5": 0.018069,
+    "te_p95": 0.02043
   },
   "walk_forward": [
     {
       "label": "Jan–Déc 2023",
-      "te_is": 0.023108,
-      "te_oos": 0.019236,
-      "td_oos": -0.00304,
-      "delta_te": -0.003873
+      "te_is": 0.023075,
+      "te_oos": 0.019282,
+      "td_oos": -0.005341,
+      "delta_te": -0.003794
     },
     {
       "label": "Jan–Déc 2024",
-      "te_is": 0.019236,
-      "te_oos": 0.016876,
-      "td_oos": -0.007346,
-      "delta_te": -0.002359
+      "te_is": 0.019282,
+      "te_oos": 0.016796,
+      "td_oos": -0.008829,
+      "delta_te": -0.002486
     },
     {
       "label": "Jan–Déc 2025",
-      "te_is": 0.016876,
-      "te_oos": 0.010773,
-      "td_oos": -0.006712,
-      "delta_te": -0.006103
+      "te_is": 0.016796,
+      "te_oos": 0.010646,
+      "td_oos": -0.008034,
+      "delta_te": -0.006149
     },
     {
       "label": "2023–2024 IS/2025 OOS",
-      "te_is": 0.021199,
-      "te_oos": 0.016876,
-      "td_oos": -0.007346,
-      "delta_te": -0.004323
+      "te_is": 0.021202,
+      "te_oos": 0.016796,
+      "td_oos": -0.008829,
+      "delta_te": -0.004406
     },
     {
       "label": "2023–2025 IS/2026 OOS",
-      "te_is": 0.019842,
-      "te_oos": 0.010773,
-      "td_oos": -0.006712,
-      "delta_te": -0.009068
+      "te_is": 0.019822,
+      "te_oos": 0.010646,
+      "td_oos": -0.008034,
+      "delta_te": -0.009175
     }
   ],
   "selection_params": {
@@ -156,6 +156,8 @@
     "dividende_placement_taux": 3.0,
     "dividende_distribution": "dernier jour de bourse de juin et décembre",
     "mgmt_fee_ann_pct": 0.6,
-    "aum_reference_mfcfa": 5000
+    "aum_reference_mfcfa": 5000,
+    "cash_buffer_pct": 1.0,
+    "cash_buffer_note": "1% du NAV en cash, capitalisé au RF 3%/an"
   }
 }

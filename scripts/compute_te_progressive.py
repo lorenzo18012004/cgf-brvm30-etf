@@ -19,6 +19,9 @@ bm = json.load(open(os.path.join(DATA, 'backtest_metrics.json'), encoding='utf-8
 AUM_MFCFA        = 5_000
 MGMT_FEE_ANN     = 0.006
 PARTICIPATION_RATE = 0.20   # 20% de l'ADV quotidien (screen + OTC petits blocs)
+CASH_BUFFER      = 0.01     # 1% du NAV en cash, capitalisé au RF
+RF_RATE_ANN      = 0.03
+_daily_rf        = (1 + RF_RATE_ANN) ** (1 / 252) - 1
 START_DATE   = '2023-01-02'
 END_DATE     = '2026-04-01'
 
@@ -130,7 +133,8 @@ def build_nav_instantaneous(all_dates, sh, rb_dates, wh):
             p1 = sh.get(tk, {}).get(prev_dt, {}).get('close')
             p2 = sh.get(tk, {}).get(dt,      {}).get('close')
             new_portfolio[tk] = v * (p2 / p1) if (p1 and p2 and p1 > 0) else v
-        r_t = sum(new_portfolio.values()) / total_prev - 1
+        r_basket  = sum(new_portfolio.values()) / total_prev - 1
+        r_t       = (1 - CASH_BUFFER) * r_basket + CASH_BUFFER * _daily_rf
         portfolio = new_portfolio
         nav_gross *= (1 + r_t)
         nav_net   *= (1 + r_t) * _fee
@@ -206,12 +210,13 @@ def build_nav_progressive(all_dates, sh, rb_dates, wh, exec_days_map):
 
         # ── Rendement journalier (basé sur les poids effectifs) ──────────────
         total_eff = sum(eff_w.values()) or 1.0
-        r_t = 0.0
+        r_basket = 0.0
         for tk, v in eff_w.items():
             p1 = sh.get(tk, {}).get(prev_dt, {}).get('close')
             p2 = sh.get(tk, {}).get(dt,      {}).get('close')
             if p1 and p2 and p1 > 0:
-                r_t += (v / total_eff) * (p2 / p1 - 1)
+                r_basket += (v / total_eff) * (p2 / p1 - 1)
+        r_t = (1 - CASH_BUFFER) * r_basket + CASH_BUFFER * _daily_rf
 
         # ── Coût + mise à jour NAV ────────────────────────────────────────────
         nav_gross *= (1 + r_t) * (1 - cost_today)

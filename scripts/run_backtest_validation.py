@@ -46,6 +46,7 @@ FORCE_TOP_N         = 5       # Top N titres (par poids BRVM30) tenus à leur po
 MGMT_FEE_ANN        = 0.006  # Frais de gestion : 0.60%/an
 AUM_MFCFA           = 5_000  # AUM de référence en M FCFA (5 Md)
 RF_RATE_ANN         = 0.03   # Taux sans risque annuel (UEMOA) pour placement dividendes
+CASH_BUFFER         = 0.01   # Poche de liquidité : 1% du NAV en cash (capitalisé au RF)
 
 START_DATE = '2023-01-02'
 END_DATE   = '2026-04-01'
@@ -292,7 +293,8 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
             p2 = sh.get(tk, {}).get(dt,      {}).get('close')
             new_portfolio[tk] = v * (p2 / p1) if (p1 and p2 and p1 > 0) else v
         total_new = sum(new_portfolio.values())
-        r_t       = (total_new / total_prev - 1) if total_prev > 0 else 0.0
+        r_basket  = (total_new / total_prev - 1) if total_prev > 0 else 0.0
+        r_t       = (1 - CASH_BUFFER) * r_basket + CASH_BUFFER * _daily_rf
         portfolio  = new_portfolio
 
         nav_gross *= (1 + r_t)
@@ -466,11 +468,14 @@ def build_nav_pr_prog(all_dates, sh, rb_dates, wh, exec_days_map,
             n_exec   = exec_days_map.get(rb_dates[rb_idx], 1)
             total_port = sum(portfolio.values()) or 1.0
             old_w    = {tk: v / total_port for tk, v in portfolio.items()}
-            all_tks_r = set(old_w) | set(new_w)
-            to = sum(abs(new_w.get(t, 0) - old_w.get(t, 0)) for t in all_tks_r) / 2
+            adv_rb    = _adv_map.get(rb_dates[rb_idx], {})
+            total_cost = sum(
+                abs(new_w.get(t, 0) - old_w.get(t, 0)) * spread_one_way(adv_rb.get(t, 0))
+                for t in set(old_w) | set(new_w)
+            )
             transition = {'old_w': dict(old_w), 'new_w': dict(new_w),
                           'n_days': n_exec, 'day_k': 0,
-                          'daily_cost': cost_tx * to / n_exec}
+                          'daily_cost': total_cost / n_exec}
 
         if transition is not None:
             frac = min(transition['day_k'] / transition['n_days'], 1.0)
@@ -489,12 +494,13 @@ def build_nav_pr_prog(all_dates, sh, rb_dates, wh, exec_days_map,
             cost_today = 0.0
 
         total_eff = sum(eff_w.values()) or 1.0
-        r_t = 0.0
+        r_basket = 0.0
         for tk, v in eff_w.items():
             p1 = sh.get(tk, {}).get(prev_dt, {}).get('close')
             p2 = sh.get(tk, {}).get(dt,      {}).get('close')
             if p1 and p2 and p1 > 0:
-                r_t += (v / total_eff) * (p2 / p1 - 1)
+                r_basket += (v / total_eff) * (p2 / p1 - 1)
+        r_t = (1 - CASH_BUFFER) * r_basket + CASH_BUFFER * _daily_rf
 
         nav_gross *= (1 + r_t) * (1 - cost_today)
         nav_net   *= (1 + r_t) * (1 - cost_today) * _daily_fee
@@ -638,6 +644,8 @@ bm.update({
         # ── Frais et AUM ─────────────────────────────────────────────────
         'mgmt_fee_ann_pct':          MGMT_FEE_ANN * 100,
         'aum_reference_mfcfa':       AUM_MFCFA,
+        'cash_buffer_pct':           CASH_BUFFER * 100,
+        'cash_buffer_note':          f'{CASH_BUFFER*100:.0f}% du NAV en cash, capitalisé au RF {RF_RATE_ANN*100:.0f}%/an',
     }
 })
 json.dump(bm, open(BM_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
