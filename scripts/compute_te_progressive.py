@@ -16,9 +16,9 @@ sh = json.load(open(os.path.join(DATA, 'sika_history.json'), encoding='utf-8'))
 rd = json.load(open(os.path.join(DATA, 'rebal_detail.json'), encoding='utf-8'))
 bm = json.load(open(os.path.join(DATA, 'backtest_metrics.json'), encoding='utf-8'))
 
-AUM_MFCFA    = 5_000
-MGMT_FEE_ANN = 0.006
-COST_TX      = 0.005
+AUM_MFCFA        = 5_000
+MGMT_FEE_ANN     = 0.006
+PARTICIPATION_RATE = 0.20   # 20% de l'ADV quotidien (screen + OTC petits blocs)
 START_DATE   = '2023-01-02'
 END_DATE     = '2026-04-01'
 
@@ -126,8 +126,9 @@ def build_nav_instantaneous(all_dates, sh, rb_dates, wh):
             total_port = sum(portfolio.values()) or 1.0
             curr_norm  = {tk: v / total_port for tk, v in portfolio.items()}
             to = sum(abs(new_w.get(t, 0) - curr_norm.get(t, 0)) for t in all_tks) / 2
-            nav_gross  *= (1 - COST_TX * to)
-            nav_net    *= (1 - COST_TX * to)
+            cost = 0.008 * to  # spread moyen 80 bps (approximation pour ce script)
+            nav_gross  *= (1 - cost)
+            nav_net    *= (1 - cost)
             portfolio   = dict(new_w)
             prev_weights = dict(new_w)
         gross_pts[dt] = nav_gross
@@ -168,7 +169,7 @@ def build_nav_progressive(all_dates, sh, rb_dates, wh, exec_days_map):
             all_tks_r = set(old_w) | set(new_w)
             to = sum(abs(new_w.get(t, 0) - old_w.get(t, 0)) for t in all_tks_r) / 2
             # Coût total réparti sur les n_exec jours d'exécution
-            daily_cost = COST_TX * to / n_exec
+            daily_cost = 0.008 * to / n_exec  # spread moyen 80 bps réparti sur n_exec jours
             transition = {'old_w': dict(old_w), 'new_w': dict(new_w),
                           'n_days': n_exec, 'day_k': 0, 'daily_cost': daily_cost}
 
