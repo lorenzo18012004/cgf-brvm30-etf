@@ -2,133 +2,133 @@
   "stress_tests": [
     {
       "name": "Trimestriel (référence)",
-      "te": 0.018834,
-      "td": -0.036673,
-      "turnover": 0.056439
+      "te": 0.031602,
+      "td": 0.079065,
+      "turnover": 0.11257
     },
     {
       "name": "Mensuel",
-      "te": 0.017843,
-      "td": -0.032686,
-      "turnover": 0.029906
+      "te": 0.031531,
+      "td": 0.062047,
+      "turnover": 0.044931
     },
     {
       "name": "Semestriel",
-      "te": 0.020588,
-      "td": -0.048786,
-      "turnover": 0.07546
+      "te": 0.03528,
+      "td": 0.038204,
+      "turnover": 0.117908
     },
     {
       "name": "Annuel",
-      "te": 0.021653,
-      "td": -0.054052,
-      "turnover": 0.120882
+      "te": 0.041441,
+      "td": -0.011844,
+      "turnover": 0.180216
     },
     {
       "name": "Trimestriel +frais ×2",
-      "te": 0.018834,
-      "td": -0.055988,
-      "turnover": 0.056439
+      "te": 0.031601,
+      "td": 0.057429,
+      "turnover": 0.11257
     },
     {
       "name": "Trimestriel 0-frais",
-      "te": 0.018834,
-      "td": -0.017083,
-      "turnover": 0.056439
+      "te": 0.031602,
+      "td": 0.101008,
+      "turnover": 0.11257
     }
   ],
   "ewma_sensitivity": [
     {
       "threshold": 0.01,
-      "te": 0.015839,
-      "td": -0.040864,
-      "turnover": 0.064001,
+      "te": 0.031068,
+      "td": 0.070342,
+      "turnover": 0.12157,
       "n_forced_avg": 21
     },
     {
       "threshold": 0.02,
-      "te": 0.015923,
-      "td": -0.039451,
-      "turnover": 0.065161,
+      "te": 0.031068,
+      "td": 0.070342,
+      "turnover": 0.12157,
       "n_forced_avg": 11
     },
     {
       "threshold": 0.03,
-      "te": 0.01668,
-      "td": -0.035054,
-      "turnover": 0.069141,
+      "te": 0.031176,
+      "td": 0.073319,
+      "turnover": 0.12361,
       "n_forced_avg": 7
     },
     {
       "threshold": 0.05,
-      "te": 0.017889,
-      "td": -0.029396,
-      "turnover": 0.07834,
+      "te": 0.030522,
+      "td": 0.046497,
+      "turnover": 0.12159,
       "n_forced_avg": 3
     },
     {
       "threshold": 0.08,
-      "te": 0.017889,
-      "td": -0.029396,
-      "turnover": 0.07834,
+      "te": 0.030522,
+      "td": 0.046497,
+      "turnover": 0.12159,
       "n_forced_avg": 2
     },
     {
       "threshold": 0.1,
-      "te": 0.017889,
-      "td": -0.029396,
-      "turnover": 0.07834,
+      "te": 0.030522,
+      "td": 0.046497,
+      "turnover": 0.12159,
       "n_forced_avg": 2
     },
     {
       "threshold": 0.15,
-      "te": 0.017889,
-      "td": -0.029396,
-      "turnover": 0.07834,
+      "te": 0.030522,
+      "td": 0.046497,
+      "turnover": 0.12159,
       "n_forced_avg": 2
     }
   ],
   "bootstrap": {
     "n_sim": 500,
-    "te_med": 0.01668,
-    "te_p5": 0.013549,
-    "te_p95": 0.019355
+    "te_med": 0.029126,
+    "te_p5": 0.027464,
+    "te_p95": 0.031205
   },
   "walk_forward": [
     {
       "label": "Jan–Déc 2023",
-      "te_is": 0.025294,
-      "te_oos": 0.006574,
-      "td_oos": -0.004777,
-      "delta_te": -0.01872
+      "te_is": 0.0315,
+      "te_oos": 0.021316,
+      "td_oos": 0.007264,
+      "delta_te": -0.010184
     },
     {
       "label": "Jan–Déc 2024",
-      "te_is": 0.006574,
-      "te_oos": 0.014729,
-      "td_oos": -0.007379,
-      "delta_te": 0.008156
+      "te_is": 0.021316,
+      "te_oos": 0.031645,
+      "td_oos": 0.020535,
+      "delta_te": 0.010328
     },
     {
       "label": "Jan–Déc 2025",
-      "te_is": 0.014729,
-      "te_oos": 0.001706,
-      "td_oos": -0.002805,
-      "delta_te": -0.013023
+      "te_is": 0.031645,
+      "te_oos": 0.037266,
+      "td_oos": -0.02176,
+      "delta_te": 0.005621
     },
     {
       "label": "2023–2024 IS/2025 OOS",
-      "te_is": 0.018431,
-      "te_oos": 0.014729,
-      "td_oos": -0.007379,
-      "delta_te": -0.003701
+      "te_is": 0.026822,
+      "te_oos": 0.031645,
+      "td_oos": 0.020535,
+      "delta_te": 0.004823
     },
     {
       "label": "2023–2025 IS/2026 OOS",
-      "te_is": 0.017352,
-      "te_oos": 0.001706,
-      "td_oos": -0.002805,
-      "delta_te": -0.015646
+      "te_is": 0.028524,
+      "te_oos": 0.037266,
+      "td_oos": -0.02176,
+      "delta_te": 0.008742
     }
   ],
   "selection_params": {
