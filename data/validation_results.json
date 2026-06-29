@@ -132,13 +132,30 @@
     }
   ],
   "selection_params": {
-    "methode": "ADV-cap + redistribution (62j/32j)",
+    "methode": "Hybride OTC top-N + ADV-cap redistribution",
+    "force_top_n": 5,
+    "force_top_n_note": "Top 5 titres BRVM30 tenus à leur poids exact via OTC (no ADV constraint)",
     "max_exec_large_days": 62,
     "max_exec_small_days": 32,
     "large_threshold_pct": 3.0,
+    "participation_rate_pct": 20.0,
     "min_adv_mfcfa": 0.5,
     "min_basket_weight_pct": 0.1,
+    "rebal_cible_freq": "trimestriel (jan/avr/jul/oct)",
+    "rebal_execution_freq": "mensuel avec seuil de dérive",
+    "drift_threshold_pct": 1.0,
+    "drift_note": "Trade uniquement si |w_actuel - w_cible| > 1% pour un titre",
+    "spread_model": "variable selon ADV : 25 bps (>=100 MFCFA) → 175 bps (<5 MFCFA)",
+    "spread_25bps_above_mfcfa": 100,
+    "spread_40bps_above_mfcfa": 30,
+    "spread_80bps_above_mfcfa": 10,
+    "spread_125bps_above_mfcfa": 5,
+    "spread_175bps_below_mfcfa": 5,
+    "dividende_model": "Total Return avec reserve capitalisée",
+    "dividende_ex_date": "1er juillet de l'année N+1 pour exercice N",
+    "dividende_placement_taux": 3.0,
+    "dividende_distribution": "dernier jour de bourse de juin et décembre",
     "mgmt_fee_ann_pct": 0.6,
-    "aum_mfcfa": 5000
+    "aum_reference_mfcfa": 5000
   }
 }

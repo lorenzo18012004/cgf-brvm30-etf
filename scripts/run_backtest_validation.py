@@ -608,14 +608,36 @@ bm.update({
     'annual': annual_new,
     # Paramètres de sélection documentés
     'selection_params': {
-        'methode':                'ADV-cap + redistribution (62j/32j)',
-        'max_exec_large_days':    MAX_EXEC_LARGE,
-        'max_exec_small_days':    MAX_EXEC_SMALL,
-        'large_threshold_pct':    LARGE_THRESHOLD * 100,
-        'min_adv_mfcfa':          MIN_ADV_MFCFA,
-        'min_basket_weight_pct':  MIN_BASKET_WEIGHT * 100,
-        'mgmt_fee_ann_pct':       MGMT_FEE_ANN * 100,
-        'aum_mfcfa':              AUM_MFCFA,
+        # ── Composition du panier ─────────────────────────────────────────
+        'methode':                   'Hybride OTC top-N + ADV-cap redistribution',
+        'force_top_n':               FORCE_TOP_N,
+        'force_top_n_note':          f'Top {FORCE_TOP_N} titres BRVM30 tenus à leur poids exact via OTC (no ADV constraint)',
+        'max_exec_large_days':       MAX_EXEC_LARGE,
+        'max_exec_small_days':       MAX_EXEC_SMALL,
+        'large_threshold_pct':       LARGE_THRESHOLD * 100,
+        'participation_rate_pct':    PARTICIPATION_RATE * 100,
+        'min_adv_mfcfa':             MIN_ADV_MFCFA,
+        'min_basket_weight_pct':     MIN_BASKET_WEIGHT * 100,
+        # ── Rebalancement ────────────────────────────────────────────────
+        'rebal_cible_freq':          'trimestriel (jan/avr/jul/oct)',
+        'rebal_execution_freq':      'mensuel avec seuil de dérive',
+        'drift_threshold_pct':       1.0,
+        'drift_note':                'Trade uniquement si |w_actuel - w_cible| > 1% pour un titre',
+        # ── Coûts de transaction ─────────────────────────────────────────
+        'spread_model':              'variable selon ADV : 25 bps (>=100 MFCFA) → 175 bps (<5 MFCFA)',
+        'spread_25bps_above_mfcfa':  100,
+        'spread_40bps_above_mfcfa':  30,
+        'spread_80bps_above_mfcfa':  10,
+        'spread_125bps_above_mfcfa': 5,
+        'spread_175bps_below_mfcfa': 5,
+        # ── Dividendes ───────────────────────────────────────────────────
+        'dividende_model':           'Total Return avec reserve capitalisée',
+        'dividende_ex_date':         '1er juillet de l\'année N+1 pour exercice N',
+        'dividende_placement_taux':  RF_RATE_ANN * 100,
+        'dividende_distribution':    'dernier jour de bourse de juin et décembre',
+        # ── Frais et AUM ─────────────────────────────────────────────────
+        'mgmt_fee_ann_pct':          MGMT_FEE_ANN * 100,
+        'aum_reference_mfcfa':       AUM_MFCFA,
     }
 })
 json.dump(bm, open(BM_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
