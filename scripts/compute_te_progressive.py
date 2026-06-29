@@ -80,6 +80,21 @@ for i, dt in enumerate(rebal_dates):
 print()
 
 # ── Fonctions de calcul ───────────────────────────────────────────────────────
+def spread_one_way(adv_mfcfa):
+    if adv_mfcfa >= 100: return 0.0025
+    if adv_mfcfa >= 30:  return 0.0040
+    if adv_mfcfa >= 10:  return 0.0080
+    if adv_mfcfa >= 5:   return 0.0125
+    return 0.0175
+
+def weighted_spread_cost(old_w, new_w, adv_dt):
+    """Coût total = somme(|delta_w_tk| * spread_tk) — spread variable par ADV."""
+    all_tks = set(old_w) | set(new_w)
+    return sum(
+        abs(new_w.get(tk, 0) - old_w.get(tk, 0)) * spread_one_way(adv_dt.get(tk, 0))
+        for tk in all_tks
+    )
+
 def compute_te_td(nav_s, bench_s_):
     idx = nav_s.index.intersection(bench_s_.index)
     e, b = nav_s[idx], bench_s_[idx]
@@ -122,11 +137,10 @@ def build_nav_instantaneous(all_dates, sh, rb_dates, wh):
         while rb_idx + 1 < len(rb_dates) and dt >= rb_dates[rb_idx + 1]:
             rb_idx += 1
             new_w      = _get_w(wh, rb_dates[rb_idx])
-            all_tks    = set(prev_weights) | set(new_w)
             total_port = sum(portfolio.values()) or 1.0
             curr_norm  = {tk: v / total_port for tk, v in portfolio.items()}
-            to = sum(abs(new_w.get(t, 0) - curr_norm.get(t, 0)) for t in all_tks) / 2
-            cost = 0.008 * to  # spread moyen 80 bps (approximation pour ce script)
+            adv_dt     = adv_map.get(rb_dates[rb_idx], {})
+            cost = weighted_spread_cost(curr_norm, new_w, adv_dt)
             nav_gross  *= (1 - cost)
             nav_net    *= (1 - cost)
             portfolio   = dict(new_w)
@@ -166,10 +180,9 @@ def build_nav_progressive(all_dates, sh, rb_dates, wh, exec_days_map):
             n_exec   = exec_days_map.get(rb_dates[rb_idx], 1)
             total_port = sum(portfolio.values()) or 1.0
             old_w    = {tk: v / total_port for tk, v in portfolio.items()}
-            all_tks_r = set(old_w) | set(new_w)
-            to = sum(abs(new_w.get(t, 0) - old_w.get(t, 0)) for t in all_tks_r) / 2
-            # Coût total réparti sur les n_exec jours d'exécution
-            daily_cost = 0.008 * to / n_exec  # spread moyen 80 bps réparti sur n_exec jours
+            adv_dt   = adv_map.get(rb_dates[rb_idx], {})
+            total_cost = weighted_spread_cost(old_w, new_w, adv_dt)
+            daily_cost = total_cost / n_exec
             transition = {'old_w': dict(old_w), 'new_w': dict(new_w),
                           'n_days': n_exec, 'day_k': 0, 'daily_cost': daily_cost}
 
