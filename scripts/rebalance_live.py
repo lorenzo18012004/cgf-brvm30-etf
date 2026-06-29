@@ -47,13 +47,23 @@ DD_PATH  = os.path.join(DATA, 'dashboard_data.json')
 RD_PATH  = os.path.join(DATA, 'rebal_detail.json')
 
 # ── Paramètres (identiques à rebuild_backtest.py) ─────────────────────────────
-MAX_EXEC_LARGE  = 62      # jours pour grands titres (>= 3% BRVM30)
-MAX_EXEC_SMALL  = 32      # jours pour petits titres (< 3% BRVM30)
-LARGE_THRESHOLD = 0.03
-MIN_ADV_MFCFA   = 0.5
-MIN_WEIGHT      = 0.001
-STALE_WINDOW    = 63
-COST_TX         = 0.005   # 50 bps spread one-way
+MAX_EXEC_LARGE   = 62      # jours pour grands titres (>= 3% BRVM30)
+MAX_EXEC_SMALL   = 32      # jours pour petits titres (< 3% BRVM30)
+LARGE_THRESHOLD  = 0.03
+PARTICIPATION_RATE = 0.20  # max 20% de l'ADV quotidien (screen + OTC petits blocs)
+MIN_ADV_MFCFA    = 0.5
+MIN_WEIGHT       = 0.001
+STALE_WINDOW     = 63
+FORCE_TOP_N      = 5       # top 5 titres BRVM30 tenus à leur poids exact (OTC)
+
+
+def spread_one_way(adv_mfcfa: float) -> float:
+    """Spread bid-ask one-way selon la liquidité du titre."""
+    if adv_mfcfa >= 100: return 0.0025
+    if adv_mfcfa >=  30: return 0.0040
+    if adv_mfcfa >=  10: return 0.0080
+    if adv_mfcfa >=   5: return 0.0125
+    return 0.0175
 
 # ── Détection date de rebalancement ──────────────────────────────────────────
 REBAL_MONTHS = {1, 4, 7, 10}   # trimestres BRVM30
@@ -127,24 +137,40 @@ def get_total_cap_weights(tickers, rebal_date, sh, soc):
         return {tk: 1 / len(tickers) for tk in tickers}
     return {tk: market_cap[tk] / total for tk in tickers}
 
-# ── ADV-cap + redistribution ──────────────────────────────────────────────────
+# ── Stratégie hybride : top N forcés OTC + ADV-cap sur les restants ──────────
 def build_adv_capped_weights(w_brvm30, rebal_date, aum_mfcfa, sh):
-    tickers = list(w_brvm30.keys())
-    adv = {tk: compute_adv(sh, tk, rebal_date) for tk in tickers}
+    """
+    Top FORCE_TOP_N titres : tenus à leur poids BRVM30 exact (OTC, sans contrainte ADV).
+    Restants : ADV-cap 20% × max_days + redistribution classique.
+    Retourne (final_weights, exclu_info, forced_set).
+    """
+    total_brvm30 = sum(w_brvm30.values()) or 1.0
+    w_norm = {tk: v / total_brvm30 for tk, v in w_brvm30.items()}
+    adv    = {tk: compute_adv(sh, tk, rebal_date) for tk in w_norm}
 
-    eligible = [tk for tk in tickers if adv[tk] >= MIN_ADV_MFCFA]
-    exclu    = [tk for tk in tickers if adv[tk] < MIN_ADV_MFCFA]
+    # Top N forcés (OTC)
+    sorted_tks  = sorted(w_norm, key=lambda x: -w_norm[x])
+    forced_tks  = set(sorted_tks[:FORCE_TOP_N])
+    rest_tks    = [tk for tk in sorted_tks if tk not in forced_tks]
+
+    forced_w     = {tk: w_norm[tk] for tk in forced_tks}
+    forced_total = sum(forced_w.values())
+    rest_budget  = 1.0 - forced_total
+
+    # Restants : filtrage ADV
+    eligible = [tk for tk in rest_tks if adv[tk] >= MIN_ADV_MFCFA]
+    exclu    = [tk for tk in rest_tks if adv[tk] < MIN_ADV_MFCFA]
 
     if not eligible:
-        return {}, {tk: 'ADV insuffisant' for tk in exclu}
+        return {tk: round(v, 6) for tk, v in forced_w.items()}, {tk: 'ADV insuffisant' for tk in exclu}, forced_tks
 
-    total_init = sum(w_brvm30[tk] for tk in eligible)
-    weights = {tk: w_brvm30[tk] / total_init for tk in eligible}
+    total_rest = sum(w_norm[tk] for tk in eligible) or 1.0
+    weights = {tk: w_norm[tk] / total_rest * rest_budget for tk in eligible}
 
     max_w = {}
     for tk in eligible:
-        days = MAX_EXEC_LARGE if w_brvm30[tk] >= LARGE_THRESHOLD else MAX_EXEC_SMALL
-        max_w[tk] = min(adv[tk] * days / aum_mfcfa, 1.0)
+        days = MAX_EXEC_LARGE if w_norm[tk] >= LARGE_THRESHOLD else MAX_EXEC_SMALL
+        max_w[tk] = min(PARTICIPATION_RATE * adv[tk] * days / aum_mfcfa, rest_budget)
 
     for _ in range(50):
         capped   = {tk for tk in eligible if weights[tk] > max_w[tk]}
@@ -171,19 +197,21 @@ def build_adv_capped_weights(w_brvm30, rebal_date, aum_mfcfa, sh):
             break
         total_keep = sum(weights[tk] for tk in eligible)
         for tk in eligible:
-            weights[tk] = weights[tk] / total_keep if total_keep > 0 else 1 / len(eligible)
+            weights[tk] = weights[tk] / total_keep * rest_budget if total_keep > 0 else rest_budget / len(eligible)
 
-    total = sum(weights[tk] for tk in eligible)
-    final = {tk: round(weights[tk] / total, 6) for tk in eligible} if total > 0 else {}
+    final = {**forced_w, **{tk: weights[tk] for tk in eligible if weights.get(tk, 0) > 0}}
+    total = sum(final.values())
+    if total > 0:
+        final = {tk: round(v / total, 6) for tk, v in final.items()}
 
     exclu_info = {}
     for tk in exclu:
-        if adv[tk] < MIN_ADV_MFCFA:
-            exclu_info[tk] = f'ADV {adv[tk]:.1f} MFCFA < {MIN_ADV_MFCFA}'
+        if adv.get(tk, 0) < MIN_ADV_MFCFA:
+            exclu_info[tk] = f'ADV {adv.get(tk,0):.1f} MFCFA < {MIN_ADV_MFCFA}'
         else:
             exclu_info[tk] = f'Poids < {MIN_WEIGHT*100:.1f}%'
 
-    return final, exclu_info
+    return final, exclu_info, forced_tks
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -250,10 +278,12 @@ def main():
     print("[2/5] Calcul des poids total cap Sika…")
     w_brvm30 = get_total_cap_weights(tickers, today, sh, soc)
 
-    # ── ADV-cap + redistribution ──────────────────────────────────────────────
-    print("[3/5] Application contrainte ADV-cap 62j/32j…")
-    new_basket_w, exclu_info = build_adv_capped_weights(w_brvm30, today, aum_mfcfa, sh)
+    # ── Stratégie hybride OTC + ADV-cap ──────────────────────────────────────
+    print(f"[3/5] Top {FORCE_TOP_N} OTC + ADV-cap 20%×62j/32j sur les restants…")
+    new_basket_w, exclu_info, forced_tks = build_adv_capped_weights(w_brvm30, today, aum_mfcfa, sh)
 
+    sorted_by_w = sorted(w_brvm30, key=lambda x: -w_brvm30.get(x, 0))
+    print(f"   Top {FORCE_TOP_N} OTC : {', '.join(sorted_by_w[:FORCE_TOP_N])}")
     print(f"   Panier final : {len(new_basket_w)} titres | {len(exclu_info)} exclus")
     for tk, raison in sorted(exclu_info.items()):
         print(f"   EXCLU {tk} : {raison}")
@@ -286,9 +316,14 @@ def main():
         turnover += abs(delta)
 
     turnover /= 2   # one-way turnover
-    cost_pct   = COST_TX * turnover
+    # Coût variable : spread selon ADV de chaque titre
+    cost_pct = sum(
+        abs(new_basket_w.get(tk, 0) - old_basket.get(tk, 0)) *
+        spread_one_way(compute_adv(sh, tk, today))
+        for tk in all_tickers
+    ) / 2
     print(f"   Turnover one-way : {turnover*100:.1f}%")
-    print(f"   Coût de transaction : {cost_pct*100:.2f}% de l'AUM")
+    print(f"   Coût de transaction (spread variable) : {cost_pct*100:.3f}% de l'AUM")
     print()
     print(f"   {'Ticker':<8} {'Sens':<8} {'Delta':>8} {'Montant':>12} {'Ancien':>8} {'Nouveau':>8}")
     print(f"   {'-'*60}")
@@ -334,6 +369,7 @@ def main():
             'prix_stale':   stale,
             'adv_mfcfa':    round(adv, 1),
             'w_brvm30':     round(w_brvm30.get(tk, 0), 6),
+            'force_otc':    tk in forced_tks,
         })
 
     nl['basket']          = new_basket
@@ -365,7 +401,8 @@ def main():
                 'w_brvm30':    round(w_brvm30.get(tk, 0), 6),
                 'adv_mfcfa':   round(compute_adv(sh, tk, today), 1),
                 'stale_ratio': round(compute_stale(sh, tk, today), 3),
-                'force':       False,
+                'force':       tk in forced_tks,
+                'force_otc':   tk in forced_tks,
             }
             for tk, w in new_basket_w.items()
         ],

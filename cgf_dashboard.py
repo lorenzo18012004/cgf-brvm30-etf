@@ -1487,7 +1487,7 @@ proportionnellement aux autres titres du panier.
                 None)
             _excluded_sel = _rebal_sel.get("excluded", []) if _rebal_sel else []
             _basket_sel   = _rebal_sel.get("basket",   []) if _rebal_sel else []
-            _forced_tks   = {b["ticker"] for b in _basket_sel if b.get("force")}
+            _forced_tks   = {b["ticker"] for b in _basket_sel if b.get("force_otc") or b.get("force")}
 
             col1, col2 = st.columns([1.2, 1])
             with col1:
@@ -1508,14 +1508,14 @@ proportionnellement aux autres titres du panier.
                 _basket_rows = []
                 for tk, v in w.items():
                     _bi = next((b for b in _basket_sel if b["ticker"] == tk), {})
-                    _tag = " *" if tk in _forced_tks else ""
+                    _tag = " OTC" if tk in _forced_tks else ""
                     _basket_rows.append({
                         "Titre": tk + _tag,
                         "Poids ETF": f"{v*100:.2f}%",
                         "Poids indice": f"{_bi.get('w_brvm30', 0)*100:.2f}%" if _bi else "—",
                         "ADV (M FCFA)": f"{_bi.get('adv_mfcfa', 0):.1f}" if _bi else "—",
                     })
-                st.caption("* = forcé malgré ADV insuffisant (poids indice >= 3%)")
+                st.caption("OTC = top 5 titres tenus a leur poids exact via gre-a-gre")
                 st.dataframe(pd.DataFrame(_basket_rows), width='stretch', hide_index=True, height=360)
 
             # ── Titres exclus ──────────────────────────────────────────────
@@ -4117,8 +4117,11 @@ def _render_live():
                                 if "trade_mfcfa" not in df_b.columns: df_b["trade_mfcfa"] = 0.0
                                 if "days_exec"   not in df_b.columns: df_b["days_exec"]   = 0.0
                                 if "force"       not in df_b.columns: df_b["force"]       = False
+                                if "force_otc"   not in df_b.columns: df_b["force_otc"]   = False
                                 df_b["trade_mfcfa"] = df_b["trade_mfcfa"].round(1)
-                                df_b["force"]       = df_b["force"].map(lambda v: "F" if v else "")
+                                df_b["force"]       = df_b.apply(
+                                    lambda r: "OTC" if (r.get("force_otc") or r.get("force")) else "", axis=1
+                                )
                                 _esnap = set(etf_entries)
                                 _xsnap = set(etf_exits)
                                 df_b["mvt"] = df_b["ticker"].map(
@@ -4129,11 +4132,11 @@ def _render_live():
                                         "ticker": "Ticker", "w_etf": "Poids %",
                                         "w_brvm30": "BRVM30 %", "delta": "Delta %",
                                         "trade_mfcfa": "Trade (MFCFA)", "days_exec": "J.",
-                                        "force": "F", "mvt": "Mvt",
+                                        "force": "OTC", "mvt": "Mvt",
                                     }).style.map(_color_cell, subset=["Trade (MFCFA)"]),
                                     width='stretch', hide_index=True,
                                     height=min(400, 44 + len(df_b) * 36),
-                                    column_order=["Ticker", "Poids %", "BRVM30 %",
+                                    column_order=["Ticker", "OTC", "Poids %", "BRVM30 %",
                                                   "Trade (MFCFA)", "J.", "Mvt"],
                                 )
                                 total_buy  = sum(b.get("trade_mfcfa", 0) for b in rebal["basket"] if b.get("trade_mfcfa", 0) > 0)
