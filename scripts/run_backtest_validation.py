@@ -39,9 +39,10 @@ EX_PATH = os.path.join(EXCEL_DIR, 'BRVM_Consolidated_Kendall_updated.xlsx')
 MAX_EXEC_SMALL      = 32      # Petits titres (<LARGE_THRESHOLD) : max 32j
 MAX_EXEC_LARGE      = 62      # Grands titres (>=LARGE_THRESHOLD) : max 62j (OTC)
 LARGE_THRESHOLD     = 0.03    # Seuil "grand titre" : 3% du BRVM30
-PARTICIPATION_RATE  = 0.15    # Max 15% de l'ADV quotidien (screen trading)
+PARTICIPATION_RATE  = 0.20    # Max 20% de l'ADV quotidien (screen + OTC petits blocs)
 MIN_ADV_MFCFA       = 0.5    # ADV minimum pour être inclus (M FCFA/j)
 MIN_BASKET_WEIGHT   = 0.001   # Poids minimum après redistribution (0.1%)
+FORCE_TOP_N         = 5       # Top N titres (par poids BRVM30) tenus à leur poids exact (OTC)
 MGMT_FEE_ANN        = 0.006  # Frais de gestion : 0.60%/an
 AUM_MFCFA           = 5_000  # AUM de référence en M FCFA (5 Md)
 RF_RATE_ANN         = 0.03   # Taux sans risque annuel (UEMOA) pour placement dividendes
@@ -138,27 +139,47 @@ def build_basket(rebal_date: str, w_brvm30: dict,
                  aum_mfcfa: float = AUM_MFCFA,
                  max_small: int = MAX_EXEC_SMALL,
                  max_large: int = MAX_EXEC_LARGE,
-                 large_thr: float = LARGE_THRESHOLD) -> dict:
+                 large_thr: float = LARGE_THRESHOLD,
+                 force_top_n: int = FORCE_TOP_N) -> dict:
     """
-    Applique la contrainte ADV-cap + redistribution (62j/32j).
     Retourne {ticker: poids_final} normalisé à 1.
+
+    Stratégie hybride :
+      - Top N titres (par poids BRVM30) : tenus à leur poids BRVM30 exact via OTC.
+        Aucune contrainte ADV — la position est construite progressivement en gré-à-gré.
+      - Titres restants : ADV-cap + redistribution classique (62j/32j).
+        Le budget de poids disponible = 1 - somme(forced).
     """
-    tickers = list(w_brvm30.keys())
-    adv = {tk: compute_adv(tk, rebal_date) for tk in tickers}
+    total_brvm30 = sum(w_brvm30.values()) or 1.0
+    # Normaliser les poids BRVM30 (au cas où ils ne somment pas à 1)
+    w_norm = {tk: v / total_brvm30 for tk, v in w_brvm30.items()}
 
-    # Filtrer titres sans ADV
-    eligible = [tk for tk in tickers if adv[tk] >= MIN_ADV_MFCFA]
+    # ── Top N forcés (OTC) ───────────────────────────────────────────────────
+    sorted_tks = sorted(w_norm, key=lambda x: -w_norm[x])
+    forced_tks = set(sorted_tks[:force_top_n])
+    rest_tks   = [tk for tk in sorted_tks if tk not in forced_tks]
+
+    forced_w = {tk: w_norm[tk] for tk in forced_tks}
+    forced_total = sum(forced_w.values())
+    rest_budget  = 1.0 - forced_total   # poids disponible pour les autres
+
+    # ── Restants : ADV-cap + redistribution ─────────────────────────────────
+    adv     = {tk: compute_adv(tk, rebal_date) for tk in rest_tks}
+    eligible = [tk for tk in rest_tks if adv[tk] >= MIN_ADV_MFCFA]
+
     if not eligible:
-        return {}
+        return {tk: round(v, 6) for tk, v in forced_w.items()}
 
-    total_init = sum(w_brvm30[tk] for tk in eligible)
-    weights = {tk: w_brvm30[tk] / total_init for tk in eligible}
+    # Poids cibles pour les restants, normalisés au sein du groupe puis
+    # mis à l'échelle du budget disponible
+    total_rest = sum(w_norm[tk] for tk in eligible) or 1.0
+    weights = {tk: w_norm[tk] / total_rest * rest_budget for tk in eligible}
 
-    # Plafond ADV par titre (15% de l'ADV quotidien × max_days)
+    # Plafond ADV (20% de l'ADV quotidien × max_days) pour les restants
     max_w = {}
     for tk in eligible:
-        days = max_large if w_brvm30[tk] >= large_thr else max_small
-        max_w[tk] = min(PARTICIPATION_RATE * adv[tk] * days / aum_mfcfa, 1.0)
+        days = max_large if w_norm[tk] >= large_thr else max_small
+        max_w[tk] = min(PARTICIPATION_RATE * adv[tk] * days / aum_mfcfa, rest_budget)
 
     # Itération plafonner + redistribuer
     for _ in range(50):
@@ -186,10 +207,12 @@ def build_basket(rebal_date: str, w_brvm30: dict,
             break
         total_keep = sum(weights[tk] for tk in eligible)
         for tk in eligible:
-            weights[tk] = weights[tk] / total_keep if total_keep > 0 else 1 / len(eligible)
+            weights[tk] = weights[tk] / total_keep * rest_budget if total_keep > 0 else rest_budget / len(eligible)
 
-    total = sum(weights[tk] for tk in eligible)
-    return {tk: round(weights[tk] / total, 6) for tk in eligible} if total > 0 else {}
+    # ── Assemblage final ─────────────────────────────────────────────────────
+    final = {**forced_w, **{tk: weights[tk] for tk in eligible if weights.get(tk, 0) > 0}}
+    total = sum(final.values())
+    return {tk: round(v / total, 6) for tk, v in final.items()} if total > 0 else {}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -214,23 +237,26 @@ _DIST_MMDD = {'06-30', '12-31'}                  # dates de distribution semestr
 def build_nav_tr(all_dates, sh, rb_dates, wh,
                  fee_ann=MGMT_FEE_ANN,
                  div_cal=None,
-                 adv_at_rebal=None):
+                 adv_at_rebal=None,
+                 monthly_rebal=True,
+                 drift_threshold=0.01):
     """
-    Retourne (nav_gross_tr, nav_net_tr, nav_dist_series) :
-      - nav_gross_tr : Total Return avant frais (Price Return + dividendes réinvestis)
-      - nav_net_tr   : Total Return après frais de gestion 0.6%/an
-      - nav_dist_series : {date: montant_distribué} (distributions semestrielles)
+    Retourne (nav_gross_tr, nav_net_tr, nav_dist_series).
+
+    Rebalancement :
+      - Trimestriel : mise à jour de la cible (nouvelle composition du panier)
+      - Mensuel (si monthly_rebal=True) : vérification de la dérive vs cible
+        → on ne trade que les titres dont |w_actuel - w_cible| > drift_threshold
+        → réduit les transactions et donc les frais, tout en limitant la dérive
 
     Modèle de coûts :
       - Spread variable par titre selon son ADV (spread_one_way())
-      - Participation max 15% de l'ADV (déjà intégré dans build_basket)
       - Frais de gestion déduits quotidiennement
 
     Modèle dividendes :
-      - Ex-date ~1er juillet de l'année Y+1 pour exercice Y
-      - Dividende ajouté à une réserve cash
-      - La réserve est capitalisée au taux sans risque 3%/an jusqu'à la distribution
-      - Distribution le 30 juin et 31 décembre (NAV ex-distribution affichée)
+      - Ex-date ~1er juillet (Y+1 pour exercice Y)
+      - Réserve capitalisée au taux RF 3%/an, distribuée dernier jour de bourse
+        de juin et décembre
     """
     if div_cal is None:
         div_cal = _div_calendar
@@ -242,13 +268,13 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
     nav_net    = 100.0
     _daily_fee = (1 - fee_ann) ** (1 / 252)
 
-    div_reserve_gross = 0.0   # réserve dividendes en unités de NAV gross
+    div_reserve_gross = 0.0
     div_reserve_net   = 0.0
-    nav_dist_series   = {}    # {date: montant distribué par part (en unités NAV)}
+    nav_dist_series   = {}
 
     rb_idx       = 0
-    prev_weights = dict(_get_weights(wh, rb_dates[0]))
-    portfolio    = dict(prev_weights)
+    target_w     = dict(_get_weights(wh, rb_dates[0]))
+    portfolio    = dict(target_w)
 
     for i, dt in enumerate(all_dates):
         if i == 0:
@@ -280,7 +306,7 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
                 p_prev = sh.get(tk, {}).get(prev_dt, {}).get('close')
                 if not p_prev or p_prev <= 0:
                     continue
-                div_yield = div_amount / p_prev
+                div_yield    = div_amount / p_prev
                 frac_in_port = portfolio[tk] / (sum(portfolio.values()) or 1.0)
                 div_income_gross = nav_gross * frac_in_port * div_yield
                 div_income_net   = nav_net   * frac_in_port * div_yield
@@ -291,37 +317,70 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
         div_reserve_gross *= (1 + _daily_rf)
         div_reserve_net   *= (1 + _daily_rf)
 
-        # ── Distribution semestrielle (dernier jour de bourse de juin et décembre)
-        # On ne teste pas '06-30'/'12-31' exactement (peut être férié/week-end),
-        # on distribue sur le DERNIER jour de bourse du mois de juin ou décembre.
+        # ── Distribution semestrielle (dernier jour de bourse de juin/décembre) ─
         cur_month  = dt[5:7]
         next_month = all_dates[i + 1][5:7] if i + 1 < len(all_dates) else ''
-        is_last_day_of_sem = (cur_month in ('06', '12') and next_month != cur_month)
-        if is_last_day_of_sem and div_reserve_gross > 0:
+        if cur_month in ('06', '12') and next_month != cur_month and div_reserve_gross > 0:
             nav_dist_series[dt] = round(div_reserve_gross, 6)
             div_reserve_gross = 0.0
             div_reserve_net   = 0.0
 
-        # ── Rebalancement → spread variable par titre ─────────────────────────
+        # ── Mise à jour de la cible (trimestrielle : nouvelle composition) ─────
+        target_updated = False
         while rb_idx + 1 < len(rb_dates) and dt >= rb_dates[rb_idx + 1]:
-            rb_idx     += 1
-            new_w       = _get_weights(wh, rb_dates[rb_idx])
-            all_tks     = set(prev_weights) | set(new_w)
+            rb_idx       += 1
+            target_w      = dict(_get_weights(wh, rb_dates[rb_idx]))
+            target_updated = True
+
+        # ── Rebalancement mensuel avec seuil de dérive ───────────────────────
+        # Premier jour de bourse du mois OU mise à jour de la cible trimestrielle
+        is_first_of_month = (dt[:7] != all_dates[i - 1][:7])
+        if monthly_rebal and (is_first_of_month or target_updated):
             total_port  = sum(portfolio.values()) or 1.0
             curr_w_norm = {tk: v / total_port for tk, v in portfolio.items()}
+            all_tks     = set(curr_w_norm) | set(target_w)
 
-            # Coût = Σ |Δw_t| × spread(ADV_t) pour chaque titre (one-way)
+            # Titres qui ont dérivé au-delà du seuil
+            drifted = {tk for tk in all_tks
+                       if abs(target_w.get(tk, 0) - curr_w_norm.get(tk, 0)) > drift_threshold}
+
+            if drifted:
+                adv_rb = adv_at_rebal.get(rb_dates[rb_idx], {})
+                cost_rebal = sum(
+                    abs(target_w.get(t, 0) - curr_w_norm.get(t, 0)) *
+                    spread_one_way(adv_rb.get(t, compute_adv(t, rb_dates[rb_idx])))
+                    for t in drifted
+                ) / 2
+
+                nav_gross *= (1 - cost_rebal)
+                nav_net   *= (1 - cost_rebal)
+
+                # Ramener les titres drifted à leur cible, garder les autres
+                new_w_partial = {}
+                for tk in all_tks:
+                    if tk in drifted:
+                        new_w_partial[tk] = target_w.get(tk, 0)
+                    elif tk in curr_w_norm:
+                        new_w_partial[tk] = curr_w_norm[tk]
+                total_partial = sum(new_w_partial.values())
+                if total_partial > 0:
+                    portfolio = {tk: v / total_partial
+                                 for tk, v in new_w_partial.items() if v > 0}
+
+        elif not monthly_rebal and target_updated:
+            # Mode trimestriel classique : rebalancement complet à chaque cible
+            all_tks     = set(portfolio) | set(target_w)
+            total_port  = sum(portfolio.values()) or 1.0
+            curr_w_norm = {tk: v / total_port for tk, v in portfolio.items()}
             adv_rb = adv_at_rebal.get(rb_dates[rb_idx], {})
             cost_rebal = sum(
-                abs(new_w.get(t, 0) - curr_w_norm.get(t, 0)) *
+                abs(target_w.get(t, 0) - curr_w_norm.get(t, 0)) *
                 spread_one_way(adv_rb.get(t, compute_adv(t, rb_dates[rb_idx])))
                 for t in all_tks
-            ) / 2   # one-way (achète ET vend, mais chaque côté compte une fois)
-
-            nav_gross  *= (1 - cost_rebal)
-            nav_net    *= (1 - cost_rebal)
-            portfolio   = dict(new_w)
-            prev_weights = dict(new_w)
+            ) / 2
+            nav_gross *= (1 - cost_rebal)
+            nav_net   *= (1 - cost_rebal)
+            portfolio   = dict(target_w)
 
         gross_pts[dt] = nav_gross
         net_pts[dt]   = nav_net
@@ -569,8 +628,9 @@ print("[6/6] Génération des tests de validation…")
 
 def stress_with_selection(name, rebal_freq_months, fee=MGMT_FEE_ANN,
                           aum=AUM_MFCFA,
-                          max_small=MAX_EXEC_SMALL, max_large=MAX_EXEC_LARGE):
-    """Stress test avec fréquence de rebalancement différente + contrainte ADV-cap."""
+                          max_small=MAX_EXEC_SMALL, max_large=MAX_EXEC_LARGE,
+                          monthly_rebal=True, drift_threshold=0.01):
+    """Stress test avec fréquence de mise à jour de la cible + seuil de dérive."""
     rb_new = [START_DATE]
     last_ts = pd.Timestamp(START_DATE)
     for dt in all_dates[1:]:
@@ -589,7 +649,9 @@ def stress_with_selection(name, rebal_freq_months, fee=MGMT_FEE_ANN,
         bw = build_basket(rb, w_b30, aum, max_small, max_large)
         wh_new[rb] = bw if bw else _get_weights(w_history, closest_rd)
 
-    ng, nn, _ = build_nav_tr(all_dates, sh, rb_new, wh_new, fee)
+    ng, nn, _ = build_nav_tr(all_dates, sh, rb_new, wh_new, fee,
+                             monthly_rebal=monthly_rebal,
+                             drift_threshold=drift_threshold)
     te_s, td_s, _ = compute_te_td(nn, bench_s)
 
     tos = []
@@ -604,12 +666,12 @@ def stress_with_selection(name, rebal_freq_months, fee=MGMT_FEE_ANN,
 
 
 stress_tests = [
-    stress_with_selection('Trimestriel (référence)', 3),
-    stress_with_selection('Mensuel',                 1),
-    stress_with_selection('Semestriel',              6),
-    stress_with_selection('Annuel',                 12),
-    stress_with_selection('Trimestriel +frais ×2',   3, fee=MGMT_FEE_ANN*2),
-    stress_with_selection('Trimestriel 0-frais',      3, fee=0.0),
+    stress_with_selection('Mensuel dérive 1% (référence)',  3, monthly_rebal=True,  drift_threshold=0.01),
+    stress_with_selection('Trimestriel classique',          3, monthly_rebal=False, drift_threshold=0.0),
+    stress_with_selection('Mensuel dérive 0% (trade tout)', 3, monthly_rebal=True,  drift_threshold=0.0),
+    stress_with_selection('Mensuel dérive 2%',              3, monthly_rebal=True,  drift_threshold=0.02),
+    stress_with_selection('Trimestriel +frais ×2',          3, monthly_rebal=False, fee=MGMT_FEE_ANN*2),
+    stress_with_selection('Trimestriel 0-frais',            3, monthly_rebal=False, fee=0.0),
 ]
 print("   Stress tests OK:", [s['name'] for s in stress_tests])
 
@@ -626,7 +688,8 @@ for threshold in [0.01, 0.02, 0.03, 0.05, 0.08, 0.10, 0.15]:
                                   max_small=MAX_EXEC_SMALL, max_large=MAX_EXEC_LARGE,
                                   large_thr=threshold)
 
-    ng, nn, _ = build_nav_tr(all_dates, sh, rebal_dates, wh_sim)
+    ng, nn, _ = build_nav_tr(all_dates, sh, rebal_dates, wh_sim,
+                             monthly_rebal=True, drift_threshold=0.01)
     te_f, td_f, _ = compute_te_td(nn, bench_s)
     to_f = turnover_avg(wh_sim, rebal_dates)
     n_large_avg = int(np.mean([sum(1 for tk in wh_sim[d]
@@ -733,8 +796,9 @@ for aum in AUM_PALIERS:
             'adv_exclu':  {tk: round(adv_rb.get(tk, 0), 1) for tk in excluded},
         })
 
-    # NAV complète sur tout l'historique avec ce panier
-    ng_sc, nn_sc, _ = build_nav_tr(all_dates, sh, rebal_dates, wh_sc)
+    # NAV complète sur tout l'historique avec ce panier (mensuel + dérive 1%)
+    ng_sc, nn_sc, _ = build_nav_tr(all_dates, sh, rebal_dates, wh_sc,
+                                   monthly_rebal=True, drift_threshold=0.01)
     te_sc, td_sc, _ = compute_te_td(nn_sc, bench_s)
 
     # Turnover moyen

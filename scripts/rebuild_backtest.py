@@ -29,7 +29,8 @@ DD_PATH = os.path.join(DATA, 'dashboard_data.json')
 MAX_EXEC_SMALL     = 32      # jours max pour petits titres (<3% BRVM30)
 MAX_EXEC_LARGE     = 62      # jours max pour grands titres (≥3% BRVM30, OTC possible)
 LARGE_THRESHOLD    = 0.03    # seuil "grand titre" (3%)
-PARTICIPATION_RATE = 0.15    # max 15% de l'ADV quotidien (screen trading)
+PARTICIPATION_RATE = 0.20    # max 20% de l'ADV quotidien (screen + OTC petits blocs)
+FORCE_TOP_N        = 5       # Top N titres tenus à leur poids BRVM30 exact (OTC)
 AUM_MFCFA       = 5_000  # AUM de référence en M FCFA
 MIN_ADV_MFCFA   = 0.5    # ADV minimum pour être inclus (500k FCFA/j)
 MIN_WEIGHT      = 0.001  # poids minimum après redistribution (0.1%)
@@ -55,41 +56,45 @@ def compute_stale(ticker, as_of_date, window=STALE_WINDOW):
         return 1.0
     return sum(1 for d in dates if (hist[d].get('volume') or 0) == 0) / len(dates)
 
-# ── Algorithme ADV-cap + redistribution ──────────────────────────────────────
+# ── Algorithme ADV-cap + redistribution avec top N forcés (OTC) ──────────────
 def build_adv_capped_weights(univ, aum, max_days_small, max_days_large,
-                              large_thresh, min_adv, min_w):
+                              large_thresh, min_adv, min_w, force_top_n=FORCE_TOP_N):
     """
-    Tous les titres sont soumis au plafond ADV — aucune force rule :
-      - Grand titre (w_brvm30 >= large_thresh=3%) : max = ADV × 62j / AUM
-      - Petit titre (w_brvm30 <  large_thresh=3%) : max = ADV × 32j / AUM
-    L'excès au-delà du plafond est redistribué proportionnellement aux non-plafonnés.
-    Titres sans ADV suffisant (< min_adv) : exclus.
-    Titres dont le poids résultant < min_w (0.1%) : exclus + redistribués.
-
+    Stratégie hybride :
+      - Top N titres (par poids BRVM30) : tenus à leur poids exact via OTC, sans contrainte ADV.
+      - Restants : ADV-cap 62j/32j + redistribution classique sur le budget disponible.
     Retourne ({ticker: poids_final}, {ticker: (raison, w_brvm30)})
     """
-    adv = {tk: info.get('adv_live', 0) or info.get('adv_mfcfa', 0)
-           for tk, info in univ.items()}
+    total_brvm30 = sum(info['w_brvm30'] for info in univ.values()) or 1.0
+    w_norm = {tk: info['w_brvm30'] / total_brvm30 for tk, info in univ.items()}
+    adv    = {tk: info.get('adv_live', 0) or info.get('adv_mfcfa', 0)
+              for tk, info in univ.items()}
 
-    # Filtrer les titres sans ADV suffisant
-    eligible_tks = [tk for tk in univ if adv[tk] >= min_adv]
-    exclu_tks    = [tk for tk in univ if adv[tk] < min_adv]
+    # ── Top N forcés (OTC) ───────────────────────────────────────────────────
+    sorted_tks = sorted(w_norm, key=lambda x: -w_norm[x])
+    forced_tks = set(sorted_tks[:force_top_n])
+    rest_tks   = [tk for tk in sorted_tks if tk not in forced_tks]
 
+    forced_w     = {tk: w_norm[tk] for tk in forced_tks}
+    forced_total = sum(forced_w.values())
+    rest_budget  = 1.0 - forced_total
+
+    # ── Restants : ADV-cap + redistribution ─────────────────────────────────
+    eligible_tks = [tk for tk in rest_tks if adv[tk] >= min_adv]
+    exclu_tks    = [tk for tk in rest_tks if adv[tk] < min_adv]
+
+    exclu_info = {}
     if not eligible_tks:
-        return {}, {tk: (f'ADV {adv[tk]:.1f} < {min_adv} MFCFA', univ[tk]['w_brvm30'])
-                    for tk in exclu_tks}
+        return {tk: round(v, 6) for tk, v in forced_w.items()}, exclu_info
 
-    # Poids initiaux = w_brvm30 normalisés aux éligibles
-    total_init = sum(univ[tk]['w_brvm30'] for tk in eligible_tks)
-    weights = {tk: univ[tk]['w_brvm30'] / total_init for tk in eligible_tks}
+    total_rest = sum(w_norm[tk] for tk in eligible_tks) or 1.0
+    weights = {tk: w_norm[tk] / total_rest * rest_budget for tk in eligible_tks}
 
-    # Plafond ADV par titre (62j pour grands, 32j pour petits)
     max_w = {}
     for tk in eligible_tks:
-        max_days = max_days_large if univ[tk]['w_brvm30'] >= large_thresh else max_days_small
-        max_w[tk] = min(PARTICIPATION_RATE * adv[tk] * max_days / aum, 1.0)
+        max_days = max_days_large if w_norm[tk] >= large_thresh else max_days_small
+        max_w[tk] = min(PARTICIPATION_RATE * adv[tk] * max_days / aum, rest_budget)
 
-    # Itération plafonner + redistribuer
     for _ in range(50):
         capped   = {tk for tk in eligible_tks if weights[tk] > max_w[tk]}
         uncapped = [tk for tk in eligible_tks if tk not in capped]
@@ -104,7 +109,6 @@ def build_adv_capped_weights(univ, aum, max_days_small, max_days_large,
         for tk in uncapped:
             weights[tk] += excess * weights[tk] / uncapped_total
 
-    # Exclure poids < min_w (0.1%) et redistribuer
     for _ in range(10):
         tiny = [tk for tk in eligible_tks if 0 < weights[tk] < min_w]
         if not tiny:
@@ -116,22 +120,19 @@ def build_adv_capped_weights(univ, aum, max_days_small, max_days_large,
             break
         total_keep = sum(weights[tk] for tk in eligible_tks)
         for tk in eligible_tks:
-            weights[tk] = weights[tk] / total_keep if total_keep > 0 else 1 / len(eligible_tks)
+            weights[tk] = weights[tk] / total_keep * rest_budget if total_keep > 0 else rest_budget / len(eligible_tks)
 
-    # Normalisation finale
-    final = {tk: weights[tk] for tk in eligible_tks}
+    final = {**forced_w, **{tk: weights[tk] for tk in eligible_tks if weights.get(tk, 0) > 0}}
     total = sum(final.values())
     if total > 0:
         final = {tk: round(v / total, 6) for tk, v in final.items()}
 
-    # Raisons d'exclusion
-    exclu_info = {}
     for tk in exclu_tks:
         a = adv[tk]
         if a < min_adv:
-            exclu_info[tk] = (f'ADV {a:.1f} MFCFA < {min_adv} MFCFA', univ[tk]['w_brvm30'])
+            exclu_info[tk] = (f'ADV {a:.1f} MFCFA < {min_adv} MFCFA', w_norm[tk])
         else:
-            exclu_info[tk] = (f'Poids < {min_w*100:.1f}% après redistribution', univ[tk]['w_brvm30'])
+            exclu_info[tk] = (f'Poids < {min_w*100:.1f}% après redistribution', w_norm[tk])
 
     return final, exclu_info
 
