@@ -2,46 +2,46 @@
   {
     "scenario": "500M FCFA",
     "aum_fcfa": 500000000.0,
-    "te": 0.02939,
-    "td": 0.077335,
-    "turnover": 0.109157,
-    "cost_tx_cumul": 0.007312,
+    "te": 0.010653,
+    "td": -0.026047,
+    "turnover": 0.067149,
+    "cost_tx_cumul": 0.004498,
     "basket_n_avg": 27
   },
   {
     "scenario": "1 Md FCFA",
     "aum_fcfa": 1000000000.0,
-    "te": 0.02939,
-    "td": 0.077335,
-    "turnover": 0.109157,
-    "cost_tx_cumul": 0.007312,
+    "te": 0.010653,
+    "td": -0.026047,
+    "turnover": 0.067149,
+    "cost_tx_cumul": 0.004498,
     "basket_n_avg": 27
   },
   {
     "scenario": "2.5 Md FCFA",
     "aum_fcfa": 2500000000.0,
-    "te": 0.02939,
-    "td": 0.077335,
-    "turnover": 0.109157,
-    "cost_tx_cumul": 0.007312,
+    "te": 0.011049,
+    "td": -0.023046,
+    "turnover": 0.069548,
+    "cost_tx_cumul": 0.004659,
     "basket_n_avg": 27
   },
   {
     "scenario": "5 Md FCFA (actuel)",
     "aum_fcfa": 5000000000.0,
-    "te": 0.029503,
-    "td": 0.079065,
-    "turnover": 0.11257,
-    "cost_tx_cumul": 0.00754,
+    "te": 0.01185,
+    "td": -0.020545,
+    "turnover": 0.074508,
+    "cost_tx_cumul": 0.004991,
     "basket_n_avg": 27
   },
   {
     "scenario": "10 Md FCFA",
     "aum_fcfa": 10000000000.0,
-    "te": 0.030344,
-    "td": 0.079445,
-    "turnover": 0.122053,
-    "cost_tx_cumul": 0.008176,
+    "te": 0.012443,
+    "td": -0.021246,
+    "turnover": 0.081551,
+    "cost_tx_cumul": 0.005463,
     "basket_n_avg": 27
   }
 ]
