@@ -32,15 +32,9 @@ def _get_w(wh, dt):
     if isinstance(val, list) and len(val) == 2: return val[1]
     return {}
 
-# ── Benchmark ────────────────────────────────────────────────────────────────
-wb = openpyxl.load_workbook(
-    os.path.join(BASE, 'excel', 'BRVM_Consolidated_Kendall_updated.xlsx'),
-    read_only=True, data_only=True)
-ws = wb['🏛️ BRVM_Indices']
-rows = list(ws.iter_rows(values_only=True))
-wb.close()
-brvm30_raw = {pd.Timestamp(r[0]).strftime('%Y-%m-%d'): float(r[2])
-              for r in rows[1:] if r[0] is not None and r[2] is not None}
+# ── Benchmark depuis Sika (brvm30_index_history.json) ────────────────────────
+_brvm30_raw = json.load(open(os.path.join(DATA, 'brvm30_index_history.json'), encoding='utf-8'))
+brvm30_raw = {k: float(v) for k, v in _brvm30_raw.items() if v}
 base_val = brvm30_raw[START_DATE]
 last_pr = 100.0
 bench_pts = {}

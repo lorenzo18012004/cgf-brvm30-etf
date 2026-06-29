@@ -82,18 +82,11 @@ for r in rd.get('rebalancings', []):
     if w_map:
         brvm30_weights_hist[dt] = w_map
 
-# ── BRVM30 PR depuis Excel ────────────────────────────────────────────────────
-print("[2/6] Lecture BRVM30 PR depuis Excel…")
-import openpyxl
-wb   = openpyxl.load_workbook(EX_PATH, read_only=True, data_only=True)
-ws   = wb['🏛️ BRVM_Indices']
-rows = list(ws.iter_rows(values_only=True))
-wb.close()
-brvm30_raw = {}
-for r in rows[1:]:
-    if r[0] is None or r[2] is None:
-        continue
-    brvm30_raw[pd.Timestamp(r[0]).strftime('%Y-%m-%d')] = float(r[2])
+# ── BRVM30 PR depuis Sika (brvm30_index_history.json) ────────────────────────
+print("[2/6] Lecture BRVM30 PR depuis Sika…")
+BRVM30_PATH = os.path.join(DATA, 'brvm30_index_history.json')
+_brvm30_raw = json.load(open(BRVM30_PATH, encoding='utf-8'))
+brvm30_raw = {k: float(v) for k, v in _brvm30_raw.items() if v}
 
 # Toutes les dates de trading dans sika
 all_dates = sorted({d for tk in sh for d in sh[tk]
