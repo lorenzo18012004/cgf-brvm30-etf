@@ -507,12 +507,12 @@ def build_section2(story, s):
          Paragraph('Concentration / OPCVM', s['td_l'])],
         [Paragraph('Poids minimum (si inclus)', s['td_l']), Paragraph('0.3%', s['td']),
          Paragraph('Coût de transaction', s['td_l'])],
-        [Paragraph('Turnover maximal / rebalancement', s['td_l']), Paragraph('15%', s['td']),
-         Paragraph('Minimisation de l\'impact marché', s['td_l'])],
-        [Paragraph('Bande de tolérance avant rebalancement', s['td_l']), Paragraph('±3%', s['td']),
-         Paragraph('Fréquence vs précision', s['td_l'])],
-        [Paragraph('Cash résiduel maximum', s['td_l']), Paragraph('2%', s['td']),
-         Paragraph('Cash drag limité', s['td_l'])],
+        [Paragraph('Participation max / ADV quotidien', s['td_l']), Paragraph('20%', s['td']),
+         Paragraph('Impact marché limité (screen + OTC petits blocs)', s['td_l'])],
+        [Paragraph('Seuil de dérive avant rebalancement', s['td_l']), Paragraph('1%', s['td']),
+         Paragraph('Mensuel si dérive > 1% sur un titre (cible trimestrielle)', s['td_l'])],
+        [Paragraph('Poche de liquidité (cash)', s['td_l']), Paragraph('1%', s['td']),
+         Paragraph('Flux souscription/rachat, capitalisé au RF 3%/an', s['td_l'])],
     ]
     story.append(make_table(poids_data, [CW*0.42, CW*0.15, CW*0.43]))
     story.append(PageBreak())

@@ -2089,6 +2089,19 @@ Distribution : dernier jour de bourse de **juin et decembre**.
             note="Formule récursive : les frais s'accumulent jour après jour sans recalcul depuis J0. "
                  "Conforme à la pratique standard des fonds de gestion.")
 
+        _lx("Dividendes reçus — capitalisation au taux sans risque (Total Return)",
+            r"\text{Rés}_{t} = \left(\text{Rés}_{t-1} + \sum_i w_i^t \cdot \frac{d_i}{P_i^{t-1}} \cdot \text{NAV}_t\right) \times (1 + r_{\text{RF}})",
+            legend=[
+                "Rés_t = réserve de dividendes cumulée (en pts NAV) capitalisée quotidiennement",
+                "d_i = dividende brut versé par le titre i (en FCFA/action) — ex-date ≈ 1er juillet de l'année N+1",
+                "P_i^{t-1} = prix de clôture de la veille (pour calculer le rendement du dividende)",
+                "w_i^t = poids effectif du titre i dans le portefeuille au jour de l'ex-date",
+                "r_RF = (1 + 3%/an)^{1/252} − 1 — taux de capitalisation quotidien",
+            ],
+            note="Convention BRVM : l'exercice Y est payé en Y+1. La réserve est distribuée "
+                 "le dernier jour ouvré de juin et de décembre (semestriel). "
+                 "Après distribution, NAV_TR = NAV_PR + Rés cumulée.")
+
         _lx("Benchmark BRVM30 PR (Price Return)",
             r"\text{Bench}_t = \frac{\text{BRVM30\_PR}_t}{\text{BRVM30\_PR}_{t_0}} \times 100",
             legend=[
