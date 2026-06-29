@@ -20,9 +20,17 @@ Sorties :
   - stdout                   ordres d'achat / vente
 
 Usage :
-  python scripts/rebalance_live.py           # auto-détecte si c'est le jour J
-  python scripts/rebalance_live.py --force   # force même si ce n'est pas le jour J
+  python scripts/rebalance_live.py              # auto-détecte + dry-run si c'est le jour J
+  python scripts/rebalance_live.py --dry-run    # calcule les ordres sans rien écrire (défaut en CI)
+  python scripts/rebalance_live.py --apply      # applique vraiment le rebalancement
+  python scripts/rebalance_live.py --force      # force même si ce n'est pas le jour J
   python scripts/rebalance_live.py --date 2026-07-01  # simule à une date précise
+
+Sécurité :
+  Sans --apply, le script ne modifie AUCUN fichier.
+  Le workflow quotidien tourne toujours en dry-run (prévisualisation).
+  Pour appliquer, déclencher manuellement le workflow "Appliquer rebalancement"
+  depuis GitHub Actions → onglet Actions → "Appliquer rebalancement trimestriel".
 """
 import sys, os, json, argparse
 import pandas as pd
@@ -181,11 +189,18 @@ def build_adv_capped_weights(w_brvm30, rebal_date, aum_mfcfa, sh):
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--force', action='store_true',
-                        help='Forcer le rebalancement même si ce n\'est pas le jour J')
-    parser.add_argument('--date',  default=None,
+    parser.add_argument('--apply',    action='store_true',
+                        help='Applique vraiment le rebalancement (modifie les fichiers)')
+    parser.add_argument('--force',    action='store_true',
+                        help='Ignore la vérification de date')
+    parser.add_argument('--dry-run',  action='store_true', dest='dry_run',
+                        help='Calcule les ordres sans rien écrire (comportement par défaut)')
+    parser.add_argument('--date',     default=None,
                         help='Date du rebalancement (YYYY-MM-DD), défaut = aujourd\'hui')
     args = parser.parse_args()
+
+    # Sans --apply, on est toujours en dry-run
+    dry_run = not args.apply
 
     today = args.date or pd.Timestamp.now().strftime('%Y-%m-%d')
 
@@ -193,10 +208,11 @@ def main():
     if not args.force and not is_rebal_day(today):
         print(f"[SKIP] {today} n'est pas une date de rebalancement BRVM30.")
         print(f"       Prochain rebal estimé : {next_rebal_date(today)}")
-        print("       Utilisez --force pour forcer le rebalancement.")
+        print("       Pour simuler : --force   Pour appliquer : --force --apply")
         sys.exit(0)
 
-    print(f"=== REBALANCEMENT BRVM30 ETF — {today} ===")
+    mode = "DRY-RUN (prévisualisation)" if dry_run else "APPLICATION RÉELLE"
+    print(f"=== REBALANCEMENT BRVM30 ETF — {today} [{mode}] ===")
     print()
 
     # ── Chargement ────────────────────────────────────────────────────────────
@@ -210,8 +226,8 @@ def main():
     aum_mfcfa = float(nl.get('aum_mfcfa', 5000))
     last_rebal = nl.get('last_rebal_date', '2026-04-01')
 
-    # Vérifier qu'on ne rebalance pas deux fois la même date
-    if today <= last_rebal and not args.force:
+    # Vérifier qu'on ne rebalance pas deux fois la même date (sauf dry-run)
+    if today <= last_rebal and not args.force and not dry_run:
         print(f"[SKIP] Dernier rebal : {last_rebal} — déjà à jour.")
         sys.exit(0)
 
@@ -281,54 +297,67 @@ def main():
               f" {o['montant_mfcfa']:>10.1f} MFCFA"
               f" {o['w_old_pct']:>7.2f}% → {o['w_new_pct']:.2f}%")
 
-    # ── Mise à jour nav_latest.json ───────────────────────────────────────────
-    print()
-    print("[5/5] Mise à jour nav_latest.json…")
-
-    # Appliquer le coût de transaction à la NAV
+    # ── Calcul NAV après coûts ────────────────────────────────────────────────
     nav_before = float(nl.get('nav_indice', 0))
     nav_after  = nav_before * (1 - cost_pct)
 
-    # Reconstruire le basket avec les nouveaux poids et prix actuels
+    # ── Résumé dry-run ────────────────────────────────────────────────────────
+    if dry_run:
+        print()
+        print("=" * 60)
+        print("  [DRY-RUN] AUCUN FICHIER MODIFIÉ")
+        print(f"  Panier projeté   : {len(new_basket_w)} titres")
+        print(f"  Turnover one-way : {turnover*100:.1f}%")
+        print(f"  Coût transaction : {cost_pct*100:.3f}%")
+        print(f"  NAV projetée     : {nav_before:.4f} → {nav_after:.4f}")
+        print()
+        print("  Pour appliquer le rebalancement :")
+        print("  → GitHub Actions > 'Appliquer rebalancement trimestriel' > Run workflow")
+        print("  → ou : python scripts/rebalance_live.py --apply [--force]")
+        print("=" * 60)
+        return
+
+    # ── Application réelle : écriture des fichiers ────────────────────────────
+    print()
+    print("[5/5] Application du rebalancement…")
+
     new_basket = []
     for tk, w in sorted(new_basket_w.items(), key=lambda x: -x[1]):
-        prix = last_price(sh, tk, today)
+        prix  = last_price(sh, tk, today)
         stale = compute_stale(sh, tk, today) > 0.5
         adv   = compute_adv(sh, tk, today)
         new_basket.append({
-            'ticker':      tk,
-            'poids_pct':   round(w * 100, 4),
-            'pv_mfcfa':    round(w * aum_mfcfa * (1 - cost_pct), 1),
+            'ticker':       tk,
+            'poids_pct':    round(w * 100, 4),
+            'pv_mfcfa':     round(w * aum_mfcfa * (1 - cost_pct), 1),
             'dernier_prix': prix,
-            'prix_stale':  stale,
-            'adv_mfcfa':   round(adv, 1),
-            'w_brvm30':    round(w_brvm30.get(tk, 0), 6),
+            'prix_stale':   stale,
+            'adv_mfcfa':    round(adv, 1),
+            'w_brvm30':     round(w_brvm30.get(tk, 0), 6),
         })
 
-    nl['basket']         = new_basket
-    nl['n_basket']       = len(new_basket)
+    nl['basket']          = new_basket
+    nl['n_basket']        = len(new_basket)
     nl['last_rebal_date'] = today
-    nl['nav_indice']     = round(nav_after, 4)
-    nl['aum_mfcfa']      = round(nav_after / nav_before * aum_mfcfa, 1) if nav_before > 0 else aum_mfcfa
+    nl['nav_indice']      = round(nav_after, 4)
+    nl['aum_mfcfa']       = round(nav_after / nav_before * aum_mfcfa, 1) if nav_before > 0 else aum_mfcfa
 
     json.dump(nl, open(NL_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
-    print(f"   nav_latest.json : {len(new_basket)} titres | NAV {nav_before:.4f} → {nav_after:.4f}")
+    print(f"   nav_latest.json    : {len(new_basket)} titres | NAV {nav_before:.4f} → {nav_after:.4f}")
 
-    # ── Mise à jour w_history dans dashboard_data.json ────────────────────────
     dd.setdefault('w_history', {})[today] = new_basket_w
     json.dump(dd, open(DD_PATH, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
-    print(f"   dashboard_data.json : w_history[{today}] ajouté")
+    print(f"   dashboard_data.json: w_history[{today}] ajouté")
 
-    # ── Mise à jour rebal_detail.json ─────────────────────────────────────────
     new_rebal_entry = {
-        'date':      today,
-        'skipped':   False,
-        'basket_n':  len(new_basket),
-        'excl_n':    len(exclu_info),
-        'coverage':  round(sum(w_brvm30.get(tk, 0) for tk in new_basket_w), 4),
-        'excl_w':    round(sum(w_brvm30.get(tk, 0) for tk in exclu_info), 4),
-        'turnover':  round(turnover, 4),
-        'cost_tx':   round(cost_pct, 6),
+        'date':     today,
+        'skipped':  False,
+        'basket_n': len(new_basket),
+        'excl_n':   len(exclu_info),
+        'coverage': round(sum(w_brvm30.get(tk, 0) for tk in new_basket_w), 4),
+        'excl_w':   round(sum(w_brvm30.get(tk, 0) for tk in exclu_info), 4),
+        'turnover': round(turnover, 4),
+        'cost_tx':  round(cost_pct, 6),
         'basket': [
             {
                 'ticker':      tk,
@@ -353,17 +382,15 @@ def main():
         'orders': orders,
     }
 
-    # Retirer l'entrée existante pour cette date si elle existe
     rebals = [r for r in rd.get('rebalancings', []) if r.get('date') != today]
     rebals.append(new_rebal_entry)
     rebals.sort(key=lambda r: r['date'])
     rd['rebalancings'] = rebals
-
     json.dump(rd, open(RD_PATH, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
-    print(f"   rebal_detail.json : entrée {today} ajoutée")
+    print(f"   rebal_detail.json  : entrée {today} ajoutée")
 
     print()
-    print("=== REBALANCEMENT TERMINÉ ===")
+    print("=== REBALANCEMENT APPLIQUÉ ===")
     print(f"   Panier : {len(new_basket)} titres")
     print(f"   Turnover one-way : {turnover*100:.1f}%")
     print(f"   Coût de transaction : {cost_pct*100:.3f}%")

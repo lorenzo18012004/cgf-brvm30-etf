@@ -30,8 +30,8 @@ jobs:
       - name: Mettre à jour les prix de clôture (Sika)
         run: python scripts/scrape_sika_history.py
 
-      - name: Rebalancement trimestriel (si applicable)
-        run: python scripts/rebalance_live.py
+      - name: Prévisualisation rebalancement (dry-run, aucun fichier modifié)
+        run: python scripts/rebalance_live.py --dry-run
 
       - name: Recalculer la NAV
         run: python scripts/calc_nav_cloud.py
