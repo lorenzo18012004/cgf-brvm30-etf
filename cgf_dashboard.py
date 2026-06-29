@@ -2044,25 +2044,29 @@ Distribution : dernier jour de bourse de **juin et decembre**.
             note="À chaque rebalancement, V_i est réinitialisé à w_i^cible. "
                  "Entre deux rebals, les poids dérivent avec les prix — ETF physique buy-and-hold.")
 
-        _lx("Rendement journalier du panier (Price Return, poids mark-to-market)",
-            r"r_t = \sum_i w_i^{t-1} \cdot \left(\frac{P_i^t}{P_i^{t-1}} - 1\right)",
+        _lx("Rendement journalier effectif (99% panier + 1% poche de liquidité)",
+            r"r_t = (1 - c_{\text{cash}}) \cdot \underbrace{\sum_i w_i^{t-1} \cdot \left(\frac{P_i^t}{P_i^{t-1}} - 1\right)}_{r_{\text{panier}}} + c_{\text{cash}} \cdot r_{\text{RF}}",
             legend=[
-                "r_t = rendement journalier brut du panier au jour t",
+                "r_t = rendement journalier effectif de l'ETF au jour t",
+                "c_cash = poche de liquidité = 1 % du NAV, tenue en cash",
+                "r_panier = rendement mark-to-market du panier de titres (99 % de l'AUM)",
+                "r_RF = rendement journalier sans risque = (1 + 3%/an)^{1/252} − 1 ≈ 0,0118 %/j",
                 "w_i^{t-1} = poids effectif de la veille (après dérive mark-to-market)",
-                "P_i^t / P_i^{t-1} = ratio de prix entre J et J-1 (= 1 si prix manquant)",
             ],
-            note="Seuls les titres ayant un prix valide à J et J-1 contribuent au rendement.")
+            note="La poche de 1 % facilite les flux de souscription/rachat et les frais. "
+                 "Elle est capitalisée au taux UEMOA (3 %/an). Seuls les titres avec prix valide à J et J-1 contribuent.")
 
-        _lx("Coût de transaction à chaque rebalancement",
-            r"\text{cost\_rebal} = c_{tx} \times \underbrace{\frac{1}{2}\sum_k \left|w_k^{\text{new}} - w_k^{\text{drift}}\right|}_{\text{turnover one-way}}",
+        _lx("Coût de transaction à chaque rebalancement (spread variable par titre)",
+            r"\text{cost\_rebal} = \sum_k \left|w_k^{\text{new}} - w_k^{\text{drift}}\right| \times s_k \div 2",
             legend=[
-                "c_tx = coût aller-simple = 50 bps (0,50%) — spread achat/vente estimé",
-                "w_k^new = poids cible du titre k après rebalancement (normalisé à 1)",
-                "w_k^drift = poids effectif du titre k juste avant rebalancement (après dérive)",
-                "turnover one-way = fraction du panier effectivement échangée",
+                "s_k = spread one-way du titre k selon son ADV : 25 bps (ADV ≥ 100 MFCFA), 40 bps (≥ 30), 80 bps (≥ 10), 125 bps (≥ 5), 175 bps (< 5 MFCFA)",
+                "w_k^new = poids cible du titre k après rebalancement",
+                "w_k^drift = poids effectif du titre k juste avant rebalancement (après dérive mark-to-market)",
+                "÷ 2 = conversion en turnover one-way (achats = ventes, on compte une seule fois)",
             ],
-            note="Le turnover est calculé en one-way (achats seuls = ventes seules). "
-                 "Exemple : turnover 15% → 15% du panier renouvelé → coût = 15% × 50 bps = 7,5 bps.")
+            note="Le spread variable reflète la liquidité réelle de la BRVM : les gros titres (SNTS, ORAC) "
+                 "coûtent 25 bps, les petits titres peu liquides jusqu'à 175 bps. "
+                 "Top 5 OTC : le spread s'applique sur les deltas uniquement (pas la position totale).")
 
         _lx("NAV brute (Price Return, après coûts de transaction)",
             r"\text{NAV\_gross}_t = \text{NAV\_gross}_{t-1} \times (1 + r_t) \times \begin{cases} (1 - \text{cost\_rebal}) & \text{si jour de rebalancement} \\ 1 & \text{sinon} \end{cases}",
@@ -2141,10 +2145,24 @@ Distribution : dernier jour de bourse de **juin et decembre**.
                 "w_k^{j-1} = poids du titre k après le rebalancement précédent",
             ],
             note="One-way : un turnover de 10% signifie que 10% du panier est vendu (et 10% acheté). "
-                 "Coût associé : 10% × 50 bps = 5 bps par rebalancement.")
+                 "Coût associé : 10% × spread_moyen (variable selon les titres tradés).")
 
         st.markdown("---")
-        st.markdown("#### Règles de sélection du panier")
+        st.markdown("#### Règles de sélection du panier — Stratégie hybride OTC + ADV-cap")
+
+        st.markdown(
+            "**Stratégie hybride (depuis 2024) :**\n\n"
+            "- **Top 5 titres BRVM30** (SNTS, ORAC, SGBC, ECOC, SIBC) : tenus à leur poids BRVM30 exact "
+            "via OTC (gré-à-gré). Aucune contrainte ADV — construction progressive en blocs OTC.\n"
+            "- **25 titres restants** : sélection ADV-cap + redistribution classique. "
+            "Exclus si ADV < 0,5 MFCFA/j ou poids résiduel < 0,1 %.\n\n"
+            "**Rebalancement :** cible mise à jour trimestriellement (jan/avr/jul/oct). "
+            "Vérification mensuelle : on ne trade que les titres dont |w_actuel − w_cible| > 1 % "
+            "(seuil de dérive), ce qui réduit les frais inutiles.\n\n"
+            "**Poche de liquidité :** 1 % du NAV tenu en cash (capitalisé au RF 3 %/an) — "
+            "absorbe les flux de souscription/rachat sans toucher au panier."
+        )
+        st.markdown("")
 
         _lx("ADV — Average Daily Volume (volume journalier moyen, en M FCFA)",
             r"\text{ADV}_i = \frac{\displaystyle\sum_{j=1}^{N} \text{Vol}_j^i \times P_j^i \times 10^{-6}}{N}"
@@ -2164,29 +2182,31 @@ Distribution : dernier jour de bourse de **juin et decembre**.
                 "Stale_i = proportion de jours sans volume pour le titre i sur la fenêtre de 63j",
                 "# {...} = nombre de jours vérifiant la condition Vol = 0",
             ],
-            note="Titre exclu si Stale ≥ 70% (moins de 30% des jours avec une transaction). "
-                 "Exception : si le poids BRVM30 du titre est ≥ 3%, il est forcé dans le panier quoi qu'il arrive.")
+            note="Titre exclu si Stale ≥ 70 % (moins de 30 % des jours avec une transaction). "
+                 "Exception : les top 5 titres BRVM30 (par capitalisation) sont tenus via OTC quoi qu'il arrive — le stale ratio ne s'applique pas à eux.")
 
-        _lx("Jours d'exécution estimés",
-            r"\text{exec\_days}_i = \frac{w_i^{\text{BRVM30}} \times \text{AUM}}{\text{ADV}_i}",
+        _lx("Plafond ADV — poids maximum exécutable en N jours (titres hors top 5 OTC)",
+            r"\text{max\_w}_i = \min\!\left(\frac{20\% \times \text{ADV}_i \times N_i}{\text{AUM}},\ w_{\text{budget}}\right)",
             legend=[
-                "exec_days_i = nombre de jours estimé pour entrer/sortir de la position sur le titre i",
-                "w_i^BRVM30 = poids du titre i dans l'indice BRVM30 officiel (fraction, ex. 0,05 pour 5%)",
-                "AUM = actif sous gestion de référence = 5 000 M FCFA (5 Md FCFA)",
-                "ADV_i = volume journalier moyen du titre i (en M FCFA)",
+                "max_w_i = poids maximum attribuable au titre i dans le panier ADV-capped",
+                "20 % = taux de participation maximum (screen + petits blocs OTC)",
+                "ADV_i = volume journalier moyen du titre i sur les 63 derniers jours (en M FCFA)",
+                "N_i = 62 jours si w_i^{BRVM30} ≥ 3 % (grand titre), sinon 32 jours (petit titre)",
+                "AUM = actif sous gestion de référence (M FCFA)",
+                "w_budget = 1 − Σ(poids des top 5 OTC) = budget disponible pour les 25 restants",
             ],
-            note="Hypothèse : exécution à l'ADV complet sans impact marché. "
-                 "Nouveau entrant exclu si exec_days > 100j. Titre existant exclu après 2 rebals consécutifs > 32j.")
+            note="Si le poids cible dépasse max_w_i, l'excédent est redistribué aux titres non-plafonnés. "
+                 "Itération jusqu'à convergence (max 50 tours). Les top 5 titres ne sont PAS soumis à cette contrainte.")
 
-        _lx("Poids minimum après redistribution",
-            r"w_i^{\text{norm}} = \frac{w_i^{\text{BRVM30}}}{\displaystyle\sum_{k \in \text{panier}} w_k^{\text{BRVM30}}} \geq 0{,}1\%",
+        _lx("Poids minimum après redistribution (titres hors top 5 OTC)",
+            r"w_i^{\text{rest}} = \frac{w_i^{\text{BRVM30}}}{\displaystyle\sum_{k \in \text{restants}} w_k^{\text{BRVM30}}} \times w_{\text{budget}} \geq 0{,}1\%",
             legend=[
-                "w_i^norm = poids normalisé du titre i dans le panier ETF (après exclusion des titres filtrés)",
+                "w_i^rest = poids du titre i parmi les 25 titres ADV-capped (normalisé au budget restant)",
                 "w_i^BRVM30 = poids brut du titre i dans l'indice BRVM30 officiel",
-                "Σ_k = somme sur tous les titres retenus dans le panier",
+                "w_budget = 1 − Σ(poids top 5 OTC) ≈ 40−50 % du panier",
             ],
-            note="Si w_norm < 0,1% et que le titre n'est pas forcé (poids BRVM30 < 3%) → exclu. "
-                 "Évite les micro-positions ingérables.")
+            note="Si w_rest < 0,1 % → titre exclu et budget redistribué. "
+                 "Les top 5 OTC sont toujours à leur poids BRVM30 exact — jamais exclus.")
 
         st.markdown("---")
         st.markdown("#### Bootstrap TE (N = 500 simulations)")
