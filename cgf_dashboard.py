@@ -2526,12 +2526,15 @@ def _render_live():
                 # Charger historique de l'indice BRVM30 officiel
                 _brvm30_hist_path = os.path.join(BRVM30_DIR, "brvm30_index_history.json")
                 _brvm30_hist = load_json(_brvm30_hist_path) or {}
-                # Valeur de référence = valeur BRVM30 le jour du lancement
-                _brvm30_at_launch = (launch or {}).get("brvm30_index_at_launch")
-                if not _brvm30_at_launch and _brvm30_hist and launch_date:
-                    _brvm30_at_launch = _brvm30_hist.get(launch_date)
-                    if _brvm30_at_launch:
-                        _brvm30_at_launch = float(_brvm30_at_launch)
+                # Valeur de référence = clôture officielle BRVM30 le jour du lancement
+                # Priorité à brvm30_index_history.json (clôture officielle) pour cohérence avec le KPI TD
+                _brvm30_at_launch = None
+                if _brvm30_hist and launch_date:
+                    _v = _brvm30_hist.get(launch_date)
+                    if _v:
+                        _brvm30_at_launch = float(_v)
+                if not _brvm30_at_launch:
+                    _brvm30_at_launch = (launch or {}).get("brvm30_index_at_launch")
 
                 # Construire série : dernier point par session >= launch_date uniquement
                 _launch_ts = pd.Timestamp(launch_date) if launch_date else pd.Timestamp("1900-01-01")
