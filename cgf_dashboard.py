@@ -1285,33 +1285,56 @@ def _render_backtest():
         # ── Règles de sélection du panier ─────────────────────────────────
         sp = bm.get("selection_params", {})
         if sp:
-            _section("Règles de sélection du panier (appliquées dans le backtest)")
-            col_r1, col_r2 = st.columns(2)
+            _section("Méthodologie complète (backtest)")
+            col_r1, col_r2, col_r3 = st.columns(3)
             with col_r1:
                 st.markdown("""
-**Méthode** — %s
+**Composition du panier**
 
-**Grands titres (≥ %.0f%% BRVM30)** — plafonnés à **ADV × %d jours / AUM**.
-Ces titres peuvent être traités OTC, d'où la tolérance d'exécution étendue.
+Top %d titres (par poids BRVM30) tenus a leur poids exact via **OTC** — aucune contrainte ADV.
 
-**Petits titres (< %.0f%% BRVM30)** — plafonnés à **ADV × %d jours / AUM**.
-""" % (sp.get("methode", "ADV-cap + redistribution"),
+25 restants : participation max **%.0f%% de l'ADV** quotidien.
+- Grands (>= %.0f%% BRVM30) : ADV x **%d j** / AUM
+- Petits (< %.0f%% BRVM30) : ADV x **%d j** / AUM
+
+ADV minimum : **%.1f M FCFA/j** (sinon exclu).
+Poids minimum : **%.1f%%** apres redistribution.
+""" % (sp.get("force_top_n", 5),
+       sp.get("participation_rate_pct", 20),
        sp.get("large_threshold_pct", 3),
        sp.get("max_exec_large_days", 62),
        sp.get("large_threshold_pct", 3),
-       sp.get("max_exec_small_days", 32)))
+       sp.get("max_exec_small_days", 32),
+       sp.get("min_adv_mfcfa", 0.5),
+       sp.get("min_basket_weight_pct", 0.1)))
             with col_r2:
                 st.markdown("""
-**Redistribution** — l'excès de poids des titres plafonnés est redistribué
-proportionnellement aux autres titres du panier.
+**Rebalancement**
 
-**ADV minimum** — tout titre avec un ADV < **%.1f M FCFA/j** est exclu
-(pas de liquidité mesurable).
+Cible mise a jour : **trimestriel** (jan/avr/jul/oct).
 
-**Poids minimum** — tout titre dont le poids résultant < **%.1f%%** est écarté
-(coût de transaction > apport en tracking).
-""" % (sp.get("min_adv_mfcfa", 0.5),
-       sp.get("min_basket_weight_pct", 0.1)))
+Execution : verification **mensuelle** — on ne trade que les titres ayant derive de plus de **%.0f%%** par rapport a la cible.
+
+**Spread variable selon ADV :**
+- >= 100 MFCFA/j : 25 bps
+- >= 30 : 40 bps
+- >= 10 : 80 bps
+- >= 5 : 125 bps
+- < 5 : 175 bps
+""" % sp.get("drift_threshold_pct", 1))
+            with col_r3:
+                st.markdown("""
+**Dividendes (Total Return)**
+
+Ex-date : **1er juillet** de l'annee N+1 pour l'exercice N (convention BRVM).
+
+Placement de la reserve au **taux sans risque %.0f%%/an** jusqu'a la distribution.
+
+Distribution : dernier jour de bourse de **juin et decembre**.
+
+**Frais de gestion : %.1f%%/an** deduits quotidiennement.
+""" % (sp.get("dividende_placement_taux", 3),
+       sp.get("mgmt_fee_ann_pct", 0.6)))
 
         nav_e = nav_e_full.loc[start_dt:end_dt]
         nav_b = nav_b_full.loc[start_dt:end_dt]
