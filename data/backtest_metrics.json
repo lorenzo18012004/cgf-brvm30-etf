@@ -17,9 +17,9 @@
   "td_structural_ann": -0.034219,
   "cost_tx_ann": 0.028306,
   "turnover_avg": 0.12068,
-  "n_titres_avg": 27,
-  "n_titres_min": 25,
-  "n_titres_max": 29,
+  "n_titres_avg": 30,
+  "n_titres_min": 28,
+  "n_titres_max": 30,
   "annual": [
     {
       "year": 2023,
