@@ -4,37 +4,37 @@
       "name": "Mensuel dérive 1% (référence)",
       "te": 0.021003,
       "td": -0.042833,
-      "turnover": 0.112167
+      "turnover": 0.090962
     },
     {
       "name": "Trimestriel classique",
       "te": 0.019617,
       "td": -0.036761,
-      "turnover": 0.112167
+      "turnover": 0.107485
     },
     {
       "name": "Mensuel dérive 0% (trade tout)",
       "te": 0.020171,
       "td": -0.041213,
-      "turnover": 0.112167
+      "turnover": 0.15696
     },
     {
       "name": "Mensuel dérive 2%",
       "te": 0.020989,
       "td": -0.009407,
-      "turnover": 0.112167
+      "turnover": 0.049241
     },
     {
       "name": "Trimestriel +frais ×2",
       "te": 0.019617,
       "td": -0.056074,
-      "turnover": 0.112167
+      "turnover": 0.107485
     },
     {
       "name": "Trimestriel 0-frais",
       "te": 0.019616,
       "td": -0.017172,
-      "turnover": 0.112167
+      "turnover": 0.107485
     }
   ],
   "ewma_sensitivity": [
