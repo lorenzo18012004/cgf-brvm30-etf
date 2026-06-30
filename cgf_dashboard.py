@@ -3649,9 +3649,9 @@ def _render_live():
                                  height=min(580, 44 + len(df_out) * 36))
                 with col_pie:
                     # Top 10 par poids + "Autres" pour le reste
-                    _pie_df = df_out[["Ticker", "Val. (M FCFA)", "Poids (%)"]].copy()
-                    _pie_df["Poids (%)"] = _pie_df["Poids (%)"].astype(float)
-                    _pie_df = _pie_df.sort_values("Poids (%)", ascending=False)
+                    _pie_df = df_out[["Ticker", "Val. (M FCFA)", "Poids live (%)"]].copy()
+                    _pie_df["Poids live (%)"] = _pie_df["Poids live (%)"].astype(float)
+                    _pie_df = _pie_df.sort_values("Poids live (%)", ascending=False)
                     _top10      = _pie_df.iloc[:10].copy()
                     _reste      = _pie_df.iloc[10:]
                     _n_autres   = len(_reste)
@@ -3660,7 +3660,7 @@ def _render_live():
                         _autres_row = pd.DataFrame([{
                             "Ticker": f"Autres ({_n_autres})",
                             "Val. (M FCFA)": _reste["Val. (M FCFA)"].sum(),
-                            "Poids (%)": _reste["Poids (%)"].sum(),
+                            "Poids live (%)": _reste["Poids live (%)"].sum(),
                         }])
                         _pie_main = pd.concat([_top10, _autres_row], ignore_index=True)
                     else:
@@ -3682,7 +3682,7 @@ def _render_live():
                     st.plotly_chart(fig_pie, width='stretch')
                     if _n_autres > 0:
                         _autres_str = " · ".join(
-                            f"{t} ({_pie_df.loc[_pie_df['Ticker']==t, 'Poids (%)'].values[0]:.4f}%)"
+                            f"{t} ({_pie_df.loc[_pie_df['Ticker']==t, 'Poids live (%)'].values[0]:.4f}%)"
                             for t in _autres_tickers
                         )
                         st.markdown(
