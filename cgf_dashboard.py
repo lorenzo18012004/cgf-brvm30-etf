@@ -1668,11 +1668,15 @@ Distribution : dernier jour de bourse de **juin et decembre**.
                         showarrow=False, font=dict(size=10, color="#7d8fa3"), xanchor="right")])
                 st.plotly_chart(fig_bidx, width='stretch')
             with col2:
+                _w_etf_idx = {b["ticker"]: b.get("w_etf", 0) * 100
+                              for b in (rd_rebal_idx.get("basket", []) if rd_rebal_idx else [])}
                 df_w_idx = pd.DataFrame({
-                    "Ticker":  w_sel.index,
-                    "Poids %": [f"{v*100:.2f}%" for v in w_sel.values],
-                    "Secteur": [sector_map.get(t, "—") for t in w_sel.index],
-                    "Statut":  ["ETF" if t in etf_tickers_idx else "Exclu" for t in w_sel.index],
+                    "Ticker":       w_sel.index,
+                    "Poids BRVM30": [f"{v*100:.2f}%" for v in w_sel.values],
+                    "Cible ETF %":  [f"{_w_etf_idx[t]:.2f}%" if t in _w_etf_idx else "exclu"
+                                     for t in w_sel.index],
+                    "Secteur":      [sector_map.get(t, "—") for t in w_sel.index],
+                    "Statut":       ["ETF" if t in etf_tickers_idx else "Exclu" for t in w_sel.index],
                 })
                 st.dataframe(df_w_idx, width='stretch', hide_index=True, height=360)
 
