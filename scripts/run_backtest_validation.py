@@ -272,6 +272,7 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
     div_reserve_gross = 0.0
     div_reserve_net   = 0.0
     nav_dist_series   = {}
+    total_turnover    = 0.0   # cumul de tous les trades (trimestriels + corrections mensuelles)
 
     rb_idx       = 0
     target_w     = dict(_get_weights(wh, rb_dates[0]))
@@ -353,6 +354,8 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
                     spread_one_way(adv_rb.get(t, compute_adv(t, rb_dates[rb_idx])))
                     for t in drifted
                 )  # spread one-way appliqué sur chaque trade (achat ET vente paient chacun)
+                total_turnover += sum(abs(target_w.get(t, 0) - curr_w_norm.get(t, 0))
+                                      for t in drifted) / 2
 
                 nav_gross *= (1 - cost_rebal)
                 nav_net   *= (1 - cost_rebal)
@@ -380,6 +383,8 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
                 spread_one_way(adv_rb.get(t, compute_adv(t, rb_dates[rb_idx])))
                 for t in all_tks
             )  # spread one-way appliqué sur chaque trade (achat ET vente paient chacun)
+            total_turnover += sum(abs(target_w.get(t, 0) - curr_w_norm.get(t, 0))
+                                  for t in all_tks) / 2
             nav_gross *= (1 - cost_rebal)
             nav_net   *= (1 - cost_rebal)
             portfolio   = dict(target_w)
@@ -389,7 +394,8 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
 
     return (pd.Series(gross_pts, dtype=float),
             pd.Series(net_pts,   dtype=float),
-            nav_dist_series)
+            nav_dist_series,
+            total_turnover)
 
 
 # ── Pré-calcul de l'ADV par titre à chaque rebal (évite de recalculer en boucle)
@@ -403,7 +409,7 @@ for _rb in rebal_dates:
                     _adv_rb[_item['ticker']] = _item['adv_mfcfa']
     _adv_at_rebal[_rb] = _adv_rb
 
-nav_gross_pr, nav_net_pr, _dist = build_nav_tr(
+nav_gross_pr, nav_net_pr, _dist, _ = build_nav_tr(
     all_dates, sh, rebal_dates, w_history, adv_at_rebal=_adv_at_rebal
 )
 # Alias pour compatibilité avec le reste du script
@@ -679,17 +685,13 @@ def stress_with_selection(name, rebal_freq_months, fee=MGMT_FEE_ANN,
         bw = build_basket(rb, w_b30, aum, max_small, max_large)
         wh_new[rb] = bw if bw else _get_weights(w_history, closest_rd)
 
-    ng, nn, _ = build_nav_tr(all_dates, sh, rb_new, wh_new, fee,
-                             monthly_rebal=monthly_rebal,
-                             drift_threshold=drift_threshold)
+    ng, nn, _, total_to = build_nav_tr(all_dates, sh, rb_new, wh_new, fee,
+                                       monthly_rebal=monthly_rebal,
+                                       drift_threshold=drift_threshold)
     te_s, td_s, _ = compute_te_td(nn, bench_s)
 
-    tos = []
-    for i in range(1, len(rb_new)):
-        wp = wh_new[rb_new[i-1]]; wc = wh_new[rb_new[i]]
-        tks = set(wp) | set(wc)
-        tos.append(sum(abs(wc.get(t,0)-wp.get(t,0)) for t in tks)/2)
-    to_s = float(np.mean(tos)) if tos else 0.0
+    n_q   = max(len(rb_new) - 1, 1)
+    to_s  = total_to / n_q   # turnover moyen par trimestre (inclus corrections mensuelles)
 
     return {'name': name, 'te': round(te_s, 6), 'td': round(td_s, 6),
             'turnover': round(to_s, 6)}
@@ -718,7 +720,7 @@ for threshold in [0.01, 0.02, 0.03, 0.05, 0.08, 0.10, 0.15]:
                                   max_small=MAX_EXEC_SMALL, max_large=MAX_EXEC_LARGE,
                                   large_thr=threshold)
 
-    ng, nn, _ = build_nav_tr(all_dates, sh, rebal_dates, wh_sim,
+    ng, nn, _, _ = build_nav_tr(all_dates, sh, rebal_dates, wh_sim,
                              monthly_rebal=True, drift_threshold=0.01)
     te_f, td_f, _ = compute_te_td(nn, bench_s)
     to_f = turnover_avg(wh_sim, rebal_dates)
@@ -827,7 +829,7 @@ for aum in AUM_PALIERS:
         })
 
     # NAV complète sur tout l'historique avec ce panier (mensuel + dérive 1%)
-    ng_sc, nn_sc, _ = build_nav_tr(all_dates, sh, rebal_dates, wh_sc,
+    ng_sc, nn_sc, _, _ = build_nav_tr(all_dates, sh, rebal_dates, wh_sc,
                                    monthly_rebal=True, drift_threshold=0.01)
     te_sc, td_sc, _ = compute_te_td(nn_sc, bench_s)
 

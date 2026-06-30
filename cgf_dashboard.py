@@ -4688,8 +4688,9 @@ def _render_live():
             st.markdown("---")
             _section(f"Poids ETF vs BRVM30 — {snap_time} UTC (live) | rebalancement {last_rb.get('date_label','—')}")
 
-            w_brvm_rebal = {b["ticker"]: b.get("w_brvm30", 0) * 100 for b in last_rb["basket"]}
-            excluded     = last_rb.get("excluded", [])
+            w_brvm_rebal      = {b["ticker"]: b.get("w_brvm30", 0) * 100 for b in last_rb["basket"]}
+            w_etf_cible       = {b["ticker"]: b.get("w_etf",   0) * 100 for b in last_rb["basket"]}
+            excluded          = last_rb.get("excluded", [])
             w_brvm_rebal_excl = {e["ticker"]: e.get("w_brvm30", 0) * 100 for e in excluded}
 
             rows_cmp = []
@@ -4700,13 +4701,14 @@ def _render_live():
                 w_live   = tc_live.get(tk, {}).get("w_brvm30_pct") if tc_live else None
                 w_hier   = tc_hier.get(tk, {}).get("w_brvm30_pct") if tc_hier else None
                 w_rebal  = w_brvm_rebal.get(tk)
+                w_cible  = w_etf_cible.get(tk)
                 delta    = round(w_etf - w_live, 2) if w_live is not None else None
                 rows_cmp.append({
                     "Ticker":           tk,
                     "Dans ETF":         "oui",
-                    "ETF %":            round(w_etf, 2),
+                    "ETF % (live)":     round(w_etf, 2),
+                    "Cible rebal %":    round(w_cible, 2) if w_cible is not None else None,
                     "BRVM30 live %":    round(w_live, 2) if w_live is not None else None,
-                    "BRVM30 hier %":    round(w_hier, 2) if w_hier is not None else None,
                     "BRVM30 rebal %":   round(w_rebal, 2) if w_rebal is not None else None,
                     "Écart (ETF-live)": delta,
                 })
@@ -4721,9 +4723,9 @@ def _render_live():
                 rows_cmp.append({
                     "Ticker":           tk,
                     "Dans ETF":         "exclu",
-                    "ETF %":            0.0,
+                    "ETF % (live)":     0.0,
+                    "Cible rebal %":    0.0,
                     "BRVM30 live %":    round(w_live, 2) if w_live is not None else None,
-                    "BRVM30 hier %":    round(w_hier, 2) if w_hier is not None else None,
                     "BRVM30 rebal %":   round(w_rebal, 2) if w_rebal else None,
                     "Écart (ETF-live)": delta,
                 })
@@ -4736,15 +4738,30 @@ def _render_live():
                 if val < -0.5: return "color: #C0392B; font-weight:600"
                 return "color: #888"
 
+            def _color_drift(row):
+                styles = [""] * len(row)
+                cols = list(row.index)
+                if "ETF % (live)" in cols and "Cible rebal %" in cols:
+                    live  = row["ETF % (live)"]
+                    cible = row["Cible rebal %"]
+                    if live is not None and cible is not None and not pd.isna(live) and not pd.isna(cible):
+                        drift = abs(live - cible)
+                        if drift > 1.0:
+                            idx = cols.index("ETF % (live)")
+                            styles[idx] = "color: #C0392B; font-weight:600"
+                return styles
+
+            fmt_pct = lambda x: f"{x:.2f}%" if x is not None and not (isinstance(x, float) and pd.isna(x)) else "—"
             st.dataframe(
                 df_cmp.style
                     .format({
-                        "ETF %":          "{:.2f}%",
-                        "BRVM30 live %":  lambda x: f"{x:.2f}%" if x is not None and not (isinstance(x, float) and pd.isna(x)) else "—",
-                        "BRVM30 hier %":  lambda x: f"{x:.2f}%" if x is not None and not (isinstance(x, float) and pd.isna(x)) else "—",
-                        "BRVM30 rebal %": lambda x: f"{x:.2f}%" if x is not None and not (isinstance(x, float) and pd.isna(x)) else "—",
+                        "ETF % (live)":     fmt_pct,
+                        "Cible rebal %":    fmt_pct,
+                        "BRVM30 live %":    fmt_pct,
+                        "BRVM30 rebal %":   fmt_pct,
                         "Écart (ETF-live)": lambda x: f"{x:+.2f}%" if x is not None and not (isinstance(x, float) and pd.isna(x)) else "—",
                     })
+                    .apply(_color_drift, axis=1)
                     .map(_color_delta, subset=["Écart (ETF-live)"]),
                 use_container_width=True, hide_index=True,
             )
