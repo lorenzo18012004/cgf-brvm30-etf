@@ -3592,6 +3592,8 @@ def _render_live():
                 if not sika_data:
                     st.info("ℹ Sika Finance indisponible — variations journalières non affichées.")
 
+                _w_brvm30_live = {b["ticker"]: round(b.get("w_brvm30", 0) * 100, 4)
+                                  for b in _last_rb_live.get("basket", [])}
                 rows = []
                 for _, r in df_basket.iterrows():
                     last  = r["dernier_prix"]   # clôture veille dans nav_latest
@@ -3600,14 +3602,16 @@ def _render_live():
                     var_j = sika.get("variation") if isinstance(sika, dict) else None
                     w_live  = round(r["poids_pct"], 4)
                     w_cible = _w_cible_live.get(r["ticker"])
+                    w_b30   = _w_brvm30_live.get(r["ticker"])
                     rows.append({
-                        "Ticker":        r["ticker"],
-                        "Poids live (%)": w_live,
+                        "Ticker":          r["ticker"],
+                        "Poids live (%)":  w_live,
                         "Cible rebal (%)": w_cible,
-                        "Clôture":       f"{int(last):,}" if last else "—",
-                        "Var. J (%)":    var_j,
-                        "Val. (M FCFA)": round(r["pv_mfcfa"], 1),
-                        "Stale":         "" if r["prix_stale"] else "",
+                        "Indice BRVM30 (%)": w_b30,
+                        "Clôture":         f"{int(last):,}" if last else "—",
+                        "Var. J (%)":      var_j,
+                        "Val. (M FCFA)":   round(r["pv_mfcfa"], 1),
+                        "Stale":           "" if r["prix_stale"] else "",
                     })
 
                 df_out = pd.DataFrame(rows)
@@ -3637,10 +3641,11 @@ def _render_live():
                     .apply(_color_drift_live, axis=1)\
                     .map(_color_pct, subset=["Var. J (%)"])\
                     .format({
-                        "Var. J (%)":      _fmt_var,
-                        "Poids live (%)":  "{:.4f}%",
-                        "Cible rebal (%)": lambda x: f"{x:.4f}%" if x is not None and not (isinstance(x, float) and pd.isna(x)) else "—",
-                        "Val. (M FCFA)":   "{:.1f}",
+                        "Var. J (%)":        _fmt_var,
+                        "Poids live (%)":    "{:.4f}%",
+                        "Cible rebal (%)":   lambda x: f"{x:.4f}%" if x is not None and not (isinstance(x, float) and pd.isna(x)) else "—",
+                        "Indice BRVM30 (%)": lambda x: f"{x:.4f}%" if x is not None and not (isinstance(x, float) and pd.isna(x)) else "—",
+                        "Val. (M FCFA)":     "{:.1f}",
                     })
 
                 col_tbl, col_pie = st.columns([3, 2])
