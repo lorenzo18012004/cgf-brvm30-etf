@@ -3572,6 +3572,13 @@ def _render_live():
 
                 df_basket = pd.DataFrame(nl["basket"])
 
+                # Poids cibles du dernier rebalancement (capés par ADV)
+                _rd_live = load_json(os.path.join(BRVM30_DIR, "rebal_detail.json")) or {}
+                _rebals_live = [r for r in _rd_live.get("rebalancings", []) if not r.get("skipped") and r.get("basket")]
+                _last_rb_live = _rebals_live[-1] if _rebals_live else {}
+                _w_cible_live = {b["ticker"]: round(b.get("w_etf", 0) * 100, 4)
+                                 for b in _last_rb_live.get("basket", [])}
+
                 # Var. journalière via Sika — on récupère la variation officielle du jour
                 sika_data = scrape_sika_open()
                 if not sika_data:
@@ -3582,15 +3589,17 @@ def _render_live():
                     last  = r["dernier_prix"]   # clôture veille dans nav_latest
                     ticker_upper = r["ticker"].upper()
                     sika  = sika_data.get(ticker_upper, {})
-                    # Variation officielle Sika (publiée sur leur site)
                     var_j = sika.get("variation") if isinstance(sika, dict) else None
+                    w_live  = round(r["poids_pct"], 4)
+                    w_cible = _w_cible_live.get(r["ticker"])
                     rows.append({
-                        "Ticker":       r["ticker"],
-                        "Poids (%)":    round(r["poids_pct"], 4),
-                        "Clôture":      f"{int(last):,}" if last else "—",
-                        "Var. J (%)":   var_j,
+                        "Ticker":        r["ticker"],
+                        "Poids live (%)": w_live,
+                        "Cible rebal (%)": w_cible,
+                        "Clôture":       f"{int(last):,}" if last else "—",
+                        "Var. J (%)":    var_j,
                         "Val. (M FCFA)": round(r["pv_mfcfa"], 1),
-                        "Stale":        "" if r["prix_stale"] else "",
+                        "Stale":         "" if r["prix_stale"] else "",
                     })
 
                 df_out = pd.DataFrame(rows)
@@ -3605,9 +3614,26 @@ def _render_live():
                         return f"{val:+.2f}%"
                     return "—"
 
+                def _color_drift_live(row):
+                    styles = [""] * len(row)
+                    cols = list(row.index)
+                    if "Poids live (%)" in cols and "Cible rebal (%)" in cols:
+                        live  = row["Poids live (%)"]
+                        cible = row["Cible rebal (%)"]
+                        if live is not None and cible is not None and not pd.isna(live) and not pd.isna(cible):
+                            if abs(live - cible) > 1.0:
+                                styles[cols.index("Poids live (%)")] = "color: #C0392B; font-weight:600"
+                    return styles
+
                 df_styled = df_out.style\
+                    .apply(_color_drift_live, axis=1)\
                     .map(_color_pct, subset=["Var. J (%)"])\
-                    .format({"Var. J (%)": _fmt_var, "Poids (%)": "{:.4f}%", "Val. (M FCFA)": "{:.1f}"})
+                    .format({
+                        "Var. J (%)":      _fmt_var,
+                        "Poids live (%)":  "{:.4f}%",
+                        "Cible rebal (%)": lambda x: f"{x:.4f}%" if x is not None and not (isinstance(x, float) and pd.isna(x)) else "—",
+                        "Val. (M FCFA)":   "{:.1f}",
+                    })
 
                 col_tbl, col_pie = st.columns([3, 2])
                 with col_tbl:
