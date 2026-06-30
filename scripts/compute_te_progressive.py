@@ -18,7 +18,7 @@ bm = json.load(open(os.path.join(DATA, 'backtest_metrics.json'), encoding='utf-8
 
 AUM_MFCFA        = 5_000
 MGMT_FEE_ANN     = 0.006
-PARTICIPATION_RATE = 0.20   # 20% de l'ADV quotidien (screen + OTC petits blocs)
+PARTICIPATION_RATE = 0.15   # 15% de l'ADV quotidien (screen + OTC petits blocs)
 CASH_BUFFER      = 0.01     # 1% du NAV en cash, capitalisé au RF
 RF_RATE_ANN      = 0.03
 _daily_rf        = (1 + RF_RATE_ANN) ** (1 / 252) - 1

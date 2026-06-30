@@ -39,7 +39,7 @@ EX_PATH = os.path.join(EXCEL_DIR, 'BRVM_Consolidated_Kendall_updated.xlsx')
 MAX_EXEC_SMALL      = 32      # Petits titres (<LARGE_THRESHOLD) : max 32j
 MAX_EXEC_LARGE      = 62      # Grands titres (>=LARGE_THRESHOLD) : max 62j (OTC)
 LARGE_THRESHOLD     = 0.03    # Seuil "grand titre" : 3% du BRVM30
-PARTICIPATION_RATE  = 0.20    # Max 20% de l'ADV quotidien (screen + OTC petits blocs)
+PARTICIPATION_RATE  = 0.15    # Max 15% de l'ADV quotidien (screen + OTC petits blocs)
 MIN_ADV_MFCFA       = 0.5    # ADV minimum pour être inclus (M FCFA/j)
 MIN_BASKET_WEIGHT   = 0.001   # Poids minimum après redistribution (0.1%)
 FORCE_TOP_N         = 5       # Top N titres (par poids BRVM30) tenus à leur poids exact (OTC)

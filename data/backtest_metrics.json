@@ -67,7 +67,7 @@
     "max_exec_large_days": 62,
     "max_exec_small_days": 32,
     "large_threshold_pct": 3.0,
-    "participation_rate_pct": 20.0,
+    "participation_rate_pct": 15.0,
     "min_adv_mfcfa": 0.5,
     "min_basket_weight_pct": 0.1,
     "rebal_cible_freq": "trimestriel (jan/avr/jul/oct)",

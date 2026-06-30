@@ -2,89 +2,89 @@
   "stress_tests": [
     {
       "name": "Mensuel dérive 1% (référence)",
-      "te": 0.021003,
-      "td": -0.042833,
-      "turnover": 0.090962
+      "te": 0.020101,
+      "td": -0.032668,
+      "turnover": 0.089795
     },
     {
       "name": "Trimestriel classique",
-      "te": 0.019617,
-      "td": -0.036761,
-      "turnover": 0.107485
+      "te": 0.019462,
+      "td": -0.029615,
+      "turnover": 0.115436
     },
     {
       "name": "Mensuel dérive 0% (trade tout)",
-      "te": 0.020171,
-      "td": -0.041213,
-      "turnover": 0.15696
+      "te": 0.019842,
+      "td": -0.032867,
+      "turnover": 0.164553
     },
     {
       "name": "Mensuel dérive 2%",
-      "te": 0.020989,
-      "td": -0.009407,
-      "turnover": 0.049241
+      "te": 0.021223,
+      "td": -0.018365,
+      "turnover": 0.052583
     },
     {
       "name": "Trimestriel +frais ×2",
-      "te": 0.019617,
-      "td": -0.056074,
-      "turnover": 0.107485
+      "te": 0.019462,
+      "td": -0.049071,
+      "turnover": 0.115436
     },
     {
       "name": "Trimestriel 0-frais",
-      "te": 0.019616,
-      "td": -0.017172,
-      "turnover": 0.107485
+      "te": 0.019462,
+      "td": -0.009881,
+      "turnover": 0.115436
     }
   ],
   "ewma_sensitivity": [
     {
       "threshold": 0.01,
-      "te": 0.01596,
-      "td": -0.017,
-      "turnover": 0.109186,
+      "te": 0.019335,
+      "td": -0.029186,
+      "turnover": 0.119822,
       "n_large_avg": 21
     },
     {
       "threshold": 0.02,
-      "te": 0.019076,
-      "td": -0.061131,
-      "turnover": 0.120732,
+      "te": 0.019815,
+      "td": -0.047148,
+      "turnover": 0.12452,
       "n_large_avg": 11
     },
     {
       "threshold": 0.03,
-      "te": 0.019438,
-      "td": -0.032885,
-      "turnover": 0.12068,
+      "te": 0.018629,
+      "td": -0.036827,
+      "turnover": 0.128494,
       "n_large_avg": 7
     },
     {
       "threshold": 0.05,
-      "te": 0.019858,
-      "td": -0.031205,
-      "turnover": 0.127195,
+      "te": 0.019904,
+      "td": -0.04676,
+      "turnover": 0.12691,
       "n_large_avg": 3
     },
     {
       "threshold": 0.08,
-      "te": 0.019858,
-      "td": -0.031205,
-      "turnover": 0.127195,
+      "te": 0.019904,
+      "td": -0.04676,
+      "turnover": 0.12691,
       "n_large_avg": 2
     },
     {
       "threshold": 0.1,
-      "te": 0.019858,
-      "td": -0.031205,
-      "turnover": 0.127195,
+      "te": 0.019904,
+      "td": -0.04676,
+      "turnover": 0.12691,
       "n_large_avg": 1
     },
     {
       "threshold": 0.15,
-      "te": 0.019858,
-      "td": -0.031205,
-      "turnover": 0.127195,
+      "te": 0.019904,
+      "td": -0.04676,
+      "turnover": 0.12691,
       "n_large_avg": 1
     }
   ],
@@ -138,7 +138,7 @@
     "max_exec_large_days": 62,
     "max_exec_small_days": 32,
     "large_threshold_pct": 3.0,
-    "participation_rate_pct": 20.0,
+    "participation_rate_pct": 15.0,
     "min_adv_mfcfa": 0.5,
     "min_basket_weight_pct": 0.1,
     "rebal_cible_freq": "trimestriel (jan/avr/jul/oct)",

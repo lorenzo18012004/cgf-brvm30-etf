@@ -50,7 +50,7 @@ RD_PATH  = os.path.join(DATA, 'rebal_detail.json')
 MAX_EXEC_LARGE   = 62      # jours pour grands titres (>= 3% BRVM30)
 MAX_EXEC_SMALL   = 32      # jours pour petits titres (< 3% BRVM30)
 LARGE_THRESHOLD  = 0.03
-PARTICIPATION_RATE = 0.20  # max 20% de l'ADV quotidien (screen + OTC petits blocs)
+PARTICIPATION_RATE = 0.15  # max 15% de l'ADV quotidien (screen + OTC petits blocs)
 MIN_ADV_MFCFA    = 0.5
 MIN_WEIGHT       = 0.001
 STALE_WINDOW     = 63
