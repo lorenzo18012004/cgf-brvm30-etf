@@ -1293,14 +1293,19 @@ def _render_backtest():
 
 Top %d titres (par poids BRVM30) tenus a leur poids exact via **OTC** — aucune contrainte ADV.
 
-25 restants : participation max **%.0f%% de l'ADV** quotidien.
-- Grands (>= %.0f%% BRVM30) : ADV x **%d j** / AUM
-- Petits (< %.0f%% BRVM30) : ADV x **%d j** / AUM
+25 restants : plafond ADV applique.
+
+**Formule du plafond :**
+`max_w = %.0f%% x ADV x N_jours / AUM`
+- Grands (>= %.0f%% BRVM30) : N = **%d j**
+- Petits (< %.0f%% BRVM30) : N = **%d j**
+
+Si `w_brvm30 > max_w` → titre **cape** a `max_w`. L'exces est redistribue proportionnellement aux titres non plafonnes.
 
 ADV minimum : **%.1f M FCFA/j** (sinon exclu).
-Poids minimum : **%.1f%%** apres redistribution.
+Poids minimum apres redistribution : **%.1f%%**.
 """ % (sp.get("force_top_n", 5),
-       sp.get("participation_rate_pct", 20),
+       sp.get("participation_rate_pct", 15),
        sp.get("large_threshold_pct", 3),
        sp.get("max_exec_large_days", 62),
        sp.get("large_threshold_pct", 3),
