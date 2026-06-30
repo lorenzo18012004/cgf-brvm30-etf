@@ -1537,13 +1537,17 @@ Distribution : dernier jour de bourse de **juin et decembre**.
                 for tk, v in w.items():
                     _bi = next((b for b in _basket_sel if b["ticker"] == tk), {})
                     _tag = " OTC" if tk in _forced_tks else ""
+                    _w_etf  = v * 100
+                    _w_b30  = _bi.get('w_brvm30', 0) * 100 if _bi else 0.0
+                    _capped = _w_b30 > 0 and (_w_etf < _w_b30 - 0.05) and tk not in _forced_tks
                     _basket_rows.append({
-                        "Titre": tk + _tag,
-                        "Poids ETF": f"{v*100:.2f}%",
-                        "Poids indice": f"{_bi.get('w_brvm30', 0)*100:.2f}%" if _bi else "—",
-                        "ADV (M FCFA)": f"{_bi.get('adv_mfcfa', 0):.1f}" if _bi else "—",
+                        "Titre":         tk + _tag,
+                        "Poids ETF":     f"{_w_etf:.2f}%",
+                        "Poids indice":  f"{_w_b30:.2f}%" if _bi else "—",
+                        "Capé ADV":      "⚠ oui" if _capped else "",
+                        "ADV (M FCFA)":  f"{_bi.get('adv_mfcfa', 0):.1f}" if _bi else "—",
                     })
-                st.caption("OTC = top 5 titres tenus a leur poids exact via gre-a-gre")
+                st.caption("OTC = top 5 titres tenus a leur poids exact via gre-a-gre  ·  ⚠ Capé = poids ETF < poids indice à cause de l'ADV")
                 st.dataframe(pd.DataFrame(_basket_rows), width='stretch', hide_index=True, height=360)
 
             # ── Titres exclus ──────────────────────────────────────────────
@@ -4637,14 +4641,24 @@ def _render_live():
                 )
                 st.plotly_chart(fig_pie, width='stretch')
             with col_bar:
-                df_bs = df_bask.sort_values("poids_pct", ascending=True)
-                fig_bw = go.Figure(go.Bar(
+                _w_cible_bar = {b["ticker"]: b.get("w_etf", 0) * 100 for b in last_rb.get("basket", [])}
+                df_bs = df_bask.sort_values("poids_pct", ascending=True).copy()
+                df_bs["cible_pct"] = df_bs["ticker"].map(lambda t: _w_cible_bar.get(t, 0))
+                fig_bw = go.Figure()
+                fig_bw.add_trace(go.Bar(
                     x=df_bs["poids_pct"], y=df_bs["ticker"], orientation="h",
-                    marker_color=COLOR,
-                    hovertemplate="%{y}<br><b>%{x:.2f}%</b><extra></extra>",
+                    name="Poids live", marker_color=COLOR,
+                    hovertemplate="%{y}<br>Live : <b>%{x:.2f}%</b><extra></extra>",
+                ))
+                fig_bw.add_trace(go.Scatter(
+                    x=df_bs["cible_pct"], y=df_bs["ticker"], mode="markers",
+                    name="Cible rebal", marker=dict(symbol="line-ns", size=10, color="#c0392b", line=dict(width=2, color="#c0392b")),
+                    hovertemplate="%{y}<br>Cible : <b>%{x:.2f}%</b><extra></extra>",
                 ))
                 fig_bw.update_layout(**PLOTLY_LAYOUT, height=340,
-                    title="Poids par titre (ETF %)", xaxis_title="%", showlegend=False)
+                    title="Poids par titre — live vs cible rebalancement",
+                    xaxis_title="%", showlegend=True,
+                    legend=dict(orientation="h", y=-0.15))
                 st.plotly_chart(fig_bw, width='stretch')
             top5  = df_bask.nlargest(5,  "poids_pct")["poids_pct"].sum()
             top10 = df_bask.nlargest(10, "poids_pct")["poids_pct"].sum()
@@ -4882,6 +4896,7 @@ def _render_live():
         # ── Onglet Attribution ────────────────────────────────────────────────
         with _tab_attr:
             if basket_now and launch_date and rh:
+                _w_cible_attr = {b["ticker"]: round(b.get("w_etf", 0) * 100, 2) for b in last_rb.get("basket", [])}
                 attr_rows = []
                 for item in basket_now:
                     tk      = item["ticker"]
@@ -4897,6 +4912,7 @@ def _render_live():
                     ret_pct   = (px_now / px_launch - 1) * 100 if px_launch > 0 else 0.0
                     attr_rows.append({
                         "ticker": tk, "poids": round(w * 100, 2),
+                        "cible": _w_cible_attr.get(tk),
                         "ret_pct": round(ret_pct, 2),
                         "contrib_pct": round(w * ret_pct, 3),
                     })
@@ -4928,14 +4944,15 @@ def _render_live():
                     with col_at2:
                         _max_poids = float(df_attr["poids"].max()) + 2
                         st.dataframe(
-                            df_attr.rename(columns={"ticker":"Ticker","poids":"Poids %",
-                                "ret_pct":"Perf. %","contrib_pct":"Contrib. pts"}),
+                            df_attr.rename(columns={"ticker":"Ticker","poids":"Poids live %",
+                                "cible":"Cible rebal %","ret_pct":"Perf. %","contrib_pct":"Contrib. pts"}),
                             column_config={
-                                "Ticker":       st.column_config.TextColumn("Ticker", width="small"),
-                                "Poids %":      st.column_config.ProgressColumn("Poids %", format="%.2f%%",
-                                                    min_value=0, max_value=_max_poids),
-                                "Perf. %":      st.column_config.NumberColumn("Perf. %", format="%+.2f%%"),
-                                "Contrib. pts": st.column_config.NumberColumn("Contrib. pts", format="%+.3f"),
+                                "Ticker":          st.column_config.TextColumn("Ticker", width="small"),
+                                "Poids live %":    st.column_config.ProgressColumn("Poids live %", format="%.2f%%",
+                                                       min_value=0, max_value=_max_poids),
+                                "Cible rebal %":   st.column_config.NumberColumn("Cible rebal %", format="%.2f%%"),
+                                "Perf. %":         st.column_config.NumberColumn("Perf. %", format="%+.2f%%"),
+                                "Contrib. pts":    st.column_config.NumberColumn("Contrib. pts", format="%+.3f"),
                             },
                             hide_index=True, height=480, use_container_width=True
                         )
@@ -4947,6 +4964,7 @@ def _render_live():
         # ── Onglet Risque ─────────────────────────────────────────────────────
         with _tab_rsk:
             if basket_now and rh:
+                _w_cible_rsk = {b["ticker"]: round(b.get("w_etf", 0) * 100, 2) for b in last_rb.get("basket", [])}
                 risk_rows = []
                 for item in basket_now:
                     tk      = item["ticker"]
@@ -4967,6 +4985,7 @@ def _render_live():
                     roll_max  = prices.cummax()
                     max_dd    = float(((prices - roll_max) / roll_max * 100).min())
                     risk_rows.append({"ticker": tk, "poids": round(w*100,2),
+                                       "cible": _w_cible_rsk.get(tk),
                                        "vol_ann": round(vol_ann,2), "max_dd": round(max_dd,2)})
                 if risk_rows:
                     df_risk = pd.DataFrame(risk_rows).sort_values("vol_ann", ascending=False)
@@ -4995,9 +5014,10 @@ def _render_live():
                     with col_rk2:
                         _max_poids_r = float(df_risk["poids"].max()) + 2
                         st.dataframe(
-                            df_risk.rename(columns={"ticker":"Ticker","poids":"Poids %",
-                                "vol_ann":"Vol. ann. %","max_dd":"Max DD %"}),
+                            df_risk.rename(columns={"ticker":"Ticker","poids":"Poids live %",
+                                "cible":"Cible rebal %","vol_ann":"Vol. ann. %","max_dd":"Max DD %"}),
                             column_config={
+                                "Cible rebal %": st.column_config.NumberColumn("Cible rebal %", format="%.2f%%"),
                                 "Ticker":    st.column_config.TextColumn("Ticker", width="small"),
                                 "Poids %":   st.column_config.ProgressColumn("Poids %", format="%.2f%%",
                                                  min_value=0, max_value=_max_poids_r),
