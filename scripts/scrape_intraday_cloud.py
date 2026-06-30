@@ -14,14 +14,14 @@ class IntradayScraperCloud(BaseScript):
         self.INTRADAY_FILE = os.path.join(self.data_dir, "intraday_nav.json")
         self.HIST_FILE     = os.path.join(self.data_dir, "nav_intraday_history.json")
 
-    def _is_market_open(self) -> bool:
+    def _is_market_open(self):
         now = datetime.now(timezone.utc)
         if now.weekday() >= 5:
             return False
         t = now.time().replace(tzinfo=None)
         return self.MARKET_OPEN <= t <= self.MARKET_CLOSE
 
-    def run(self, force: bool = False):
+    def run(self, force = False):
         os.chdir(self.data_dir)
         sys.path.insert(0, self.scripts_dir)
 

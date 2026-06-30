@@ -46,12 +46,12 @@ class BRVMCompositionScraper(BaseScript):
 
     # ------------------------------------------------------------------ #
 
-    def _fetch(self, url: str) -> str:
+    def _fetch(self, url):
         r = requests.get(url, headers=self.HEADERS, timeout=25, verify=False)
         r.raise_for_status()
         return r.text
 
-    def _parse_sika(self, html: str) -> list[str]:
+    def _parse_sika(self, html):
         """Extrait les tickers BRVM30 depuis la page Sika (tableau des cotations)."""
         soup = BeautifulSoup(html, "html.parser")
         tickers = []
@@ -68,7 +68,7 @@ class BRVMCompositionScraper(BaseScript):
                     tickers.append(tk_cell)
         return sorted(set(tickers))
 
-    def _parse_brvm(self, html: str) -> list[str]:
+    def _parse_brvm(self, html):
         """Extrait les tickers depuis la page officielle BRVM."""
         soup = BeautifulSoup(html, "html.parser")
         tickers = []
@@ -78,7 +78,7 @@ class BRVMCompositionScraper(BaseScript):
                 tickers.append(txt)
         return sorted(set(tickers))
 
-    def _scrape_tickers(self) -> list[str]:
+    def _scrape_tickers(self):
         """Tente Sika en premier, puis BRVM officiel en fallback."""
         for url, parser in [
             (self.SIKA_BRVM30_URL, self._parse_sika),
@@ -97,7 +97,7 @@ class BRVMCompositionScraper(BaseScript):
 
     # ------------------------------------------------------------------ #
 
-    def run(self, force: bool = False):
+    def run(self, force = False):
         today = date.today().isoformat()
 
         # Composition actuelle

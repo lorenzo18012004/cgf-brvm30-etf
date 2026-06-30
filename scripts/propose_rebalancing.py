@@ -41,7 +41,7 @@ class RebalancingProposer(BaseScript):
 
     # ------------------------------------------------------------------ #
 
-    def _load_current_basket(self) -> tuple:
+    def _load_current_basket(self):
         rd = self.load_json("rebal_detail.json", {"rebalancings": []})
         rebals = [r for r in rd.get("rebalancings", [])
                   if not r.get("skipped") and r.get("basket")]
@@ -52,7 +52,7 @@ class RebalancingProposer(BaseScript):
         excess = last.get("excess_days_cnt", {})
         return last["date"], last["basket"], excess
 
-    def _compute_adv(self, ticker: str, as_of_date: str, sika: dict) -> float:
+    def _compute_adv(self, ticker, as_of_date, sika):
         hist  = sika.get(ticker, {})
         dates = sorted(d for d in hist if d < as_of_date)[-STALE_WINDOW:]
         # Dénominateur = tous les jours de la fenêtre (y compris jours sans volume)
@@ -60,14 +60,14 @@ class RebalancingProposer(BaseScript):
                  for d in dates]
         return float(sum(vals) / len(dates)) if dates else 0.0
 
-    def _compute_stale(self, ticker: str, as_of_date: str, sika: dict) -> float:
+    def _compute_stale(self, ticker, as_of_date, sika):
         hist  = sika.get(ticker, {})
         dates = sorted(d for d in hist if d < as_of_date)[-STALE_WINDOW:]
         if not dates:
             return 1.0
         return sum(1 for d in dates if (hist[d].get("volume") or 0) == 0) / len(dates)
 
-    def _estimate_weights(self, tickers: list, sika: dict) -> dict:
+    def _estimate_weights(self, tickers, sika):
         """Estimation des poids BRVM30 depuis les prix (proxy market cap)."""
         prices = {}
         for tk in tickers:
@@ -96,7 +96,7 @@ class RebalancingProposer(BaseScript):
         excess_days_cnt: dict,
         sika: dict,
         aum_mfcfa: float,
-    ) -> tuple:
+    ):
         """
         Applique les 5 règles de sélection.
         Retourne (basket_weights, excluded_list, new_excess_days_cnt).
@@ -208,14 +208,14 @@ class RebalancingProposer(BaseScript):
 
         return basket_weights, basket_detail, excluded, new_excess
 
-    def _compute_turnover(self, old_basket: list, new_weights: dict) -> float:
+    def _compute_turnover(self, old_basket, new_weights):
         old_w = {b["ticker"]: b.get("w_etf", 0.0) for b in old_basket}
         all_tickers = set(old_w) | set(new_weights)
         tv = sum(abs(new_weights.get(tk, 0.0) - old_w.get(tk, 0.0))
                  for tk in all_tickers)
         return round(tv / 2 * 100, 1)
 
-    def _send_email(self, proposal: dict):
+    def _send_email(self, proposal):
         gmail_user = os.environ.get("GMAIL_USER")
         gmail_pass = os.environ.get("GMAIL_APP_PASSWORD")
         if not gmail_user:
@@ -270,7 +270,7 @@ class RebalancingProposer(BaseScript):
 
     # ------------------------------------------------------------------ #
 
-    def run(self, force: bool = False):
+    def run(self, force = False):
         last_rebal_date, current_basket, excess_days_cnt = self._load_current_basket()
 
         new_comp       = self.load_json("brvm_composition_latest.json", {})

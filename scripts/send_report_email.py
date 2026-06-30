@@ -20,7 +20,7 @@ class ReportEmailSender(BaseScript):
         super().__init__()
         self.RECIPIENT = "l.philippe@cgfgestion.com"
 
-    def _send_gmail(self, pdf_path: str, date_str: str, gmail_user: str, gmail_pass: str) -> bool:
+    def _send_gmail(self, pdf_path, date_str, gmail_user, gmail_pass):
         msg = MIMEMultipart()
         msg['From']    = gmail_user
         msg['To']      = self.RECIPIENT
@@ -49,7 +49,7 @@ class ReportEmailSender(BaseScript):
         print(f"[OK] Email envoyé via Gmail à {self.RECIPIENT}")
         return True
 
-    def _send_outlook(self, pdf_path: str, date_str: str) -> bool:
+    def _send_outlook(self, pdf_path, date_str):
         import win32com.client
         outlook = win32com.client.Dispatch("Outlook.Application")
         mail    = outlook.CreateItem(0)
@@ -67,7 +67,7 @@ class ReportEmailSender(BaseScript):
         print(f"[OK] Email envoyé via Outlook à {self.RECIPIENT}")
         return True
 
-    def _load_secrets(self) -> dict:
+    def _load_secrets(self):
         path = os.path.join(self.root_dir, "secrets.json")
         if os.path.exists(path):
             try:
@@ -76,7 +76,7 @@ class ReportEmailSender(BaseScript):
                 pass
         return {}
 
-    def send(self, date_str: str | None = None) -> bool:
+    def send(self, date_str = None):
         if date_str is None:
             date_str = datetime.date.today().strftime("%Y-%m-%d")
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 CGF ETF Dashboard — BRVM30 ETF
 """
 import json, os, re, sys, subprocess, base64, requests
@@ -518,7 +518,7 @@ def _gh_get_verified():
     except Exception:
         return None, None
 
-def _gh_save_verified(data: dict, sha):
+def _gh_save_verified(data):
     """Écrit verified_rebals.json sur GitHub via l'API."""
     if not _GITHUB_TOKEN or not _GITHUB_REPO:
         return False
@@ -574,10 +574,10 @@ PLOTLY_LAYOUT = dict(
 )
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-def _section(title: str) -> None:
+def _section(title):
     st.markdown(f'<p class="cgf-section">{title}</p>', unsafe_allow_html=True)
 
-def _kpi_html(*items) -> None:
+def _kpi_html(*items):
     """Affiche une rangée de cartes KPI compactes.
     items: tuples (label, value) ou (label, value, color_hex)
     """
@@ -624,7 +624,7 @@ EXCEL_PATH      = os.path.join(BASE, "BRVM_Consolidated_Kendall_updated.xlsx")
 RICHBOURSE_PATH = os.path.join(BRVM30_DIR, "richbourse_history.json")
 
 @st.cache_data(ttl=120)
-def _github_reachable() -> bool:
+def _github_reachable():
     """Vérifie si le dépôt GitHub de données live est accessible."""
     if not _GITHUB_RAW:
         return True
@@ -720,7 +720,7 @@ def richbourse_source_info():
     return "Aucune source"
 
 @st.cache_data(ttl=300)
-def detect_recent_splits(lookback_days: int = 10) -> list[dict]:
+def detect_recent_splits(lookback_days = 10):
     """
     Détecte les splits/ajustements récents depuis sika_history.json.
     Méthode : variation > 30% entre deux séances consécutives.
@@ -871,7 +871,7 @@ if _url_section and _page in ("live", "backtest") and _url_section not in _valid
     st.query_params.update({"page": _page})
     st.rerun()
 
-def _sub_url(page: str, section: str) -> str:
+def _sub_url(page, section):
     return f"?page={page}&section={section}"
 
 def _go_back():
@@ -882,7 +882,7 @@ def _go_back():
 # LANDING — helper : export Excel complet
 # ══════════════════════════════════════════════════════════════════════════════
 @st.cache_data(ttl=3600, show_spinner=False)
-def _build_excel_complet(_cache_key: str = "") -> bytes:
+def _build_excel_complet(_cache_key = ""):
     """Export Excel 100% données LIVE — aucune donnée backtest."""
     import io as _io
     _nl  = load_json(os.path.join(BRVM30_DIR, "nav_latest.json")) or {}
@@ -1090,7 +1090,7 @@ for _tk, _tl, _tc in _main_tabs:
     _tab_items += f'<a href="{_tu}" target="_self" class="{_cls}" style="text-decoration:none">{_dot}{_tl}</a>'
 
 if _page in ("live", "backtest") and _nosplit != "1":
-    def _spurl(sv: str) -> str:
+    def _spurl(sv):
         _q = [f"page={_page}", f"split={sv}"]
         if _url_section: _q.append(f"section={_url_section}")
         return "?" + "&".join(_q)
@@ -2746,7 +2746,7 @@ def _render_live():
                     combined = nlive.set_index("date")["value"]
 
                 # Insérer des NaN entre sessions distantes (nuit/week-end) pour couper la ligne
-                def _break_sessions(s: pd.Series, gap_h: float = 3.0) -> pd.Series:
+                def _break_sessions(s, gap_h = 3.0):
                     if len(s) < 2:
                         return s
                     diffs = pd.Series(s.index).diff().iloc[1:].values

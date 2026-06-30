@@ -9,7 +9,7 @@ class RebalDetailSaver(BaseScript):
         super().__init__()
         self.OUTPUT_FILE = os.path.join(self.data_dir, 'rebal_detail.json')
 
-    def _build_div_calendar(self, data: dict, _m) -> dict:
+    def _build_div_calendar(self, data):
         divs_net = data.get('divs_net')
         if divs_net is not None and not divs_net.empty:
             return _m.build_exdiv_calendar(data['prices'], divs_net)

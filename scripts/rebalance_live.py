@@ -58,7 +58,7 @@ FORCE_TOP_N      = 5       # top 5 titres BRVM30 tenus à leur poids exact (OTC)
 CASH_BUFFER      = 0.01   # poche de liquidité : 1% du NAV en cash
 
 
-def spread_one_way(adv_mfcfa: float) -> float:
+def spread_one_way(adv_mfcfa):
     """Spread bid-ask one-way selon la liquidité du titre."""
     if adv_mfcfa >= 100: return 0.0025
     if adv_mfcfa >=  30: return 0.0040
@@ -69,7 +69,7 @@ def spread_one_way(adv_mfcfa: float) -> float:
 # ── Détection date de rebalancement ──────────────────────────────────────────
 REBAL_MONTHS = {1, 4, 7, 10}   # trimestres BRVM30
 
-def is_rebal_day(date_str: str, tolerance_days: int = 3) -> bool:
+def is_rebal_day(date_str, tolerance_days = 3):
     """
     Retourne True si date_str est le 1er jour ouvré d'un mois de rebalancement,
     avec une tolérance de ±tolerance_days jours (au cas où le script tourne en retard).
@@ -83,7 +83,7 @@ def is_rebal_day(date_str: str, tolerance_days: int = 3) -> bool:
     delta = abs((dt - first_bday).days)
     return delta <= tolerance_days
 
-def next_rebal_date(from_date: str) -> str:
+def next_rebal_date(from_date):
     dt = pd.Timestamp(from_date)
     for months_ahead in range(1, 5):
         candidate_month = ((dt.month - 1 + months_ahead) % 12) + 1

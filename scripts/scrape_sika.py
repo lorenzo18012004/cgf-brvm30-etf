@@ -46,14 +46,14 @@ class SikaScraper(BaseScript):
         self.brvm30_hist_file = os.path.join(self.data_dir, 'brvm30_index_history.json')
         self.richbourse_history = os.path.join(self.data_dir, 'richbourse_history.json')
 
-    def _fetch_html(self, url: str, timeout: int = 20) -> str:
+    def _fetch_html(self, url, timeout = 20):
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         resp = requests.get(url, headers=self.headers, timeout=timeout, verify=False)
         resp.raise_for_status()
         return resp.text
 
-    def _ticker_from_href(self, href: str) -> str | None:
+    def _ticker_from_href(self, href):
         """Extrait le ticker depuis un href type '/marches/cotation_SNTS.ci'."""
         m = re.search(r'cotation_([A-Z0-9]+)', href, re.IGNORECASE)
         if not m:
@@ -61,7 +61,7 @@ class SikaScraper(BaseScript):
         code = m.group(1).upper()
         return code
 
-    def scrape_brvm30_history(self, max_rows: int = 500) -> dict:
+    def scrape_brvm30_history(self, max_rows = 500):
         """
         Scrape la page historiques/BRVM30 et retourne {date_iso: close_value}.
         Date format sur Sika : DD/MM/YYYY → converti en YYYY-MM-DD.
@@ -93,7 +93,7 @@ class SikaScraper(BaseScript):
 
         return result
 
-    def save_brvm30_index(self, value: float, trade_date: 'date') -> None:
+    def save_brvm30_index(self, value, trade_date):
         """Sauvegarde/met à jour une valeur de l'indice BRVM30 dans brvm30_index_history.json."""
         hist = {}
         if os.path.exists(self.brvm30_hist_file):
@@ -106,7 +106,7 @@ class SikaScraper(BaseScript):
         with open(self.brvm30_hist_file, 'w', encoding='utf-8') as f:
             json.dump(hist, f, ensure_ascii=False, indent=2)
 
-    def scrape_brvm30_index(self, html: str) -> float | None:
+    def scrape_brvm30_index(self, html):
         """
         Extrait la valeur courante de l'indice BRVM30 depuis la page aaz.
         Retourne None si non trouvé.
@@ -127,7 +127,7 @@ class SikaScraper(BaseScript):
                     continue
         return None
 
-    def scrape_prices(self, html: str) -> pd.Series:
+    def scrape_prices(self, html):
         """
         Parse la page aaz et renvoie une Series {ticker: prix_cloture}.
         Stratégie 1 : BeautifulSoup (extrait ticker via href + prix via colonnes)
@@ -214,14 +214,14 @@ class SikaScraper(BaseScript):
             "La structure du site a peut-être changé. Vérifiez manuellement."
         )
 
-    def _load_existing_prices(self) -> pd.DataFrame:
+    def _load_existing_prices(self):
         xl = pd.ExcelFile(self.prix_file)
         prices = xl.parse(self.prix_sheet, index_col=0, parse_dates=True)
         prices.index = pd.to_datetime(prices.index)
         prices = prices.sort_index().astype(float)
         return prices
 
-    def _last_trading_date(self) -> date:
+    def _last_trading_date(self):
         """Dernier jour de bourse (lun–ven, heure Abidjan = UTC).
         Utilise aujourd'hui si le marché est ouvert (09h-18h UTC), sinon hier.
         """
@@ -236,7 +236,7 @@ class SikaScraper(BaseScript):
         trade_date: date,
         existing: pd.DataFrame,
         dry_run: bool = False,
-    ) -> dict:
+    ):
         """
         Ajoute une nouvelle ligne de cours à l'Excel.
         Renvoie un dict de résumé.
@@ -307,7 +307,7 @@ class SikaScraper(BaseScript):
 
         return summary
 
-    def _print_summary(self, s: dict, scraped: pd.Series) -> None:
+    def _print_summary(self, s, scraped):
         W = 60
         print("=" * W)
         print("  Sika Finance → BRVM Consolidated")
@@ -333,7 +333,7 @@ class SikaScraper(BaseScript):
             print(f"\n  Tickers Sika non reconnus : {s['tickers_missing']}")
         print("=" * W)
 
-    def _fallback_from_richbourse(self, trade_date: date) -> pd.Series:
+    def _fallback_from_richbourse(self, trade_date):
         """Retourne les derniers cours connus depuis richbourse_history.json."""
         if not os.path.exists(self.richbourse_history):
             raise FileNotFoundError("richbourse_history.json introuvable — pas de fallback possible.")
@@ -349,7 +349,7 @@ class SikaScraper(BaseScript):
             raise ValueError("richbourse_history.json ne contient aucun cours utilisable.")
         return pd.Series(prices)
 
-    def run(self, trade_date: date | None = None, dry_run: bool = False) -> dict:
+    def run(self, trade_date = None, dry_run = False):
         os.chdir(self.data_dir)
 
         if trade_date is None:
@@ -406,13 +406,13 @@ class SikaScraper(BaseScript):
 # Aliases module-level pour les scripts qui importent ces fonctions directement
 SIKA_URL = 'https://sikafinance.com/marches/aaz'
 
-def _fetch_html(url: str, timeout: int = 20) -> str:
+def _fetch_html(url, timeout = 20):
     return SikaScraper()._fetch_html(url, timeout)
 
-def scrape_prices(html: str):
+def scrape_prices(html):
     return SikaScraper().scrape_prices(html)
 
-def scrape_brvm30_index(html: str):
+def scrape_brvm30_index(html):
     return SikaScraper().scrape_brvm30_index(html)
 
 

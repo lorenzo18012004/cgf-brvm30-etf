@@ -1,4 +1,4 @@
-﻿"""
+"""
 Reconstruction backtest Price Return + distributions semestrielles + tests de validation.
 
 Méthodologie :
@@ -119,7 +119,7 @@ all_dates = sorted({d for tk in sh for d in sh[tk]
 # MODULE DE SÉLECTION DU PANIER
 # ══════════════════════════════════════════════════════════════════════════════
 
-def compute_adv(ticker: str, as_of_date: str, window_days: int = 63) -> float:
+def compute_adv(ticker, as_of_date, window_days = 63):
     hist  = sh.get(ticker, {})
     dates = sorted(d for d in hist if d < as_of_date)[-window_days:]
     vals  = [(hist[d].get('volume', 0) or 0) * (hist[d].get('close', 0) or 0) / 1e6
@@ -127,7 +127,7 @@ def compute_adv(ticker: str, as_of_date: str, window_days: int = 63) -> float:
     return float(sum(vals) / len(dates)) if dates else 0.0
 
 
-def spread_one_way(adv_mfcfa: float) -> float:
+def spread_one_way(adv_mfcfa):
     """Spread bid-ask one-way selon la liquidité du titre (en fraction, pas en bps)."""
     if adv_mfcfa >= 100: return 0.0025   # 25 bps — très liquide
     if adv_mfcfa >=  30: return 0.0040   # 40 bps
@@ -136,12 +136,12 @@ def spread_one_way(adv_mfcfa: float) -> float:
     return 0.0175                          # 175 bps — quasi-illiquide
 
 
-def build_basket(rebal_date: str, w_brvm30: dict,
+def build_basket(rebal_date, w_brvm30,
                  aum_mfcfa: float = AUM_MFCFA,
                  max_small: int = MAX_EXEC_SMALL,
                  max_large: int = MAX_EXEC_LARGE,
                  large_thr: float = LARGE_THRESHOLD,
-                 force_top_n: int = FORCE_TOP_N) -> dict:
+                 force_top_n: int = FORCE_TOP_N):
     """
     Retourne {ticker: poids_final} normalisé à 1.
 

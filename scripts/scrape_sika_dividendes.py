@@ -103,11 +103,11 @@ class SikaDividendesScraper(BaseScript):
             "ORGT":                             "ORGT",
         }
 
-    def _norm(self, name: str) -> str:
+    def _norm(self, name):
         """Normalise un nom pour la comparaison."""
         return re.sub(r'\s+', ' ', name.strip().upper())
 
-    def _to_ticker(self, name: str) -> str | None:
+    def _to_ticker(self, name):
         n = self._norm(name)
         if n in self.nom_to_ticker:
             return self.nom_to_ticker[n]
@@ -116,14 +116,14 @@ class SikaDividendesScraper(BaseScript):
                 return v
         return None
 
-    def _parse_date(self, txt: str) -> str | None:
+    def _parse_date(self, txt):
         txt = txt.strip()
         m = re.match(r'(\d{2})/(\d{2})/(\d{4})', txt)
         if m:
             return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
         return None
 
-    def _parse_float(self, txt: str) -> float | None:
+    def _parse_float(self, txt):
         txt = txt.strip().replace(',', '.').replace('\xa0', '').replace(' ', '')
         txt = re.sub(r'[^\d.]', '', txt)
         try:
@@ -131,7 +131,7 @@ class SikaDividendesScraper(BaseScript):
         except ValueError:
             return None
 
-    def scrape(self, year: int | None = None) -> dict:
+    def scrape(self, year = None):
         if year is None:
             year = datetime.now().year
 
@@ -209,7 +209,7 @@ class SikaDividendesScraper(BaseScript):
 
         return result
 
-    def _update_dividend_history(self, historique: dict, dividendes: list, year: int) -> None:
+    def _update_dividend_history(self, historique, dividendes, year):
         """Merge les données historiques + dividendes confirmés de l'année dans dividend_history.json."""
         if os.path.exists(self.hist_file):
             with open(self.hist_file, 'r', encoding='utf-8') as f:

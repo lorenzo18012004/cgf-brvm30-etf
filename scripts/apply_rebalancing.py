@@ -16,7 +16,7 @@ from base import BaseScript
 
 class RebalancingApplier(BaseScript):
 
-    def run(self) -> bool:
+    def run(self):
         pending = self.load_json("rebal_pending.json", {})
 
         if not pending:

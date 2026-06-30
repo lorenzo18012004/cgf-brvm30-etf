@@ -20,7 +20,7 @@ class NavCalculatorCloud(BaseScript):
         self.SIKA_PATH   = os.path.join(self.data_dir, "sika_history.json")
         self.LAUNCH_PATH = os.path.join(self.data_dir, "launch_state.json")
 
-    def run(self) -> None:
+    def run(self):
         os.chdir(self.data_dir)
 
         now_utc   = datetime.now(timezone.utc)

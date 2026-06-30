@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(py -m pip install scikit-learn cvxpy matplotlib seaborn --quiet 2>&1)",
+      "PowerShell(py -c \"import sklearn; import cvxpy; import matplotlib; import seaborn; print\\('OK - tous les packages sont l�'\\)\" 2>&1)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONIOENCODING=\"utf-8\"; py test_load.py 2>&1)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONIOENCODING=\"utf-8\"; py test_optim.py 2>&1)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONIOENCODING=\"utf-8\"; py test.py 2>&1)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONIOENCODING = \"utf-8\"; py test.py 2>&1 | Select-Object -First 300)",
+      "PowerShell($f = \"C:\\\\Users\\\\L7784~1.PHI\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-l-philippe-OneDrive---CGF-BOURSE-Bureau-test-BRVM30\\\\3bac12c1-46de-438f-8c1c-6ecfb4bfec4a\\\\tasks\\\\b5jwzur3g.output\"; Test-Path $f; if \\(Test-Path $f\\) { \\(Get-Item $f\\).Length })",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; py test.py > test_output.txt 2>&1; echo \"Exit: $LASTEXITCODE\")",
+      "PowerShell(Start-Sleep -Seconds 30; $f = \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\\\\test_output.txt\"; if \\(Test-Path $f\\) { \\(Get-Item $f\\).Length; Get-Content $f -Tail 40 } else { \"file not found\" })",
+      "PowerShell($f = \"C:\\\\Users\\\\L7784~1.PHI\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-l-philippe-OneDrive---CGF-BOURSE-Bureau-test-BRVM30\\\\3bac12c1-46de-438f-8c1c-6ecfb4bfec4a\\\\tasks\\\\bdhy13s69.output\"; \\(Get-Item $f\\).Length; Get-Content $f | Select-Object -Last 60)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONUTF8 = \"1\"; py test.py 2>&1)",
+      "PowerShell($f = \"C:\\\\Users\\\\L7784~1.PHI\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-l-philippe-OneDrive---CGF-BOURSE-Bureau-test-BRVM30\\\\3bac12c1-46de-438f-8c1c-6ecfb4bfec4a\\\\tasks\\\\bfiytovps.output\"; \\(Get-Item $f\\).Length)",
+      "PowerShell(Start-Sleep -Seconds 60; $f = \"C:\\\\Users\\\\L7784~1.PHI\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-l-philippe-OneDrive---CGF-BOURSE-Bureau-test-BRVM30\\\\3bac12c1-46de-438f-8c1c-6ecfb4bfec4a\\\\tasks\\\\bmy26ij4l.output\"; \\(Get-Item $f\\).Length; Get-Content $f -Tail 30 2>&1)",
+      "PowerShell($f = \"C:\\\\Users\\\\L7784~1.PHI\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-l-philippe-OneDrive---CGF-BOURSE-Bureau-test-BRVM30\\\\3bac12c1-46de-438f-8c1c-6ecfb4bfec4a\\\\tasks\\\\bmy26ij4l.output\"; \\(Get-Item $f\\).Length; Get-Content $f | Select-String \"RESUME|Coherence|TE hebdo\" | Select-Object -Last 20)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONUTF8 = \"1\"; py -c \"import test as t; print\\('Import OK'\\)\" 2>&1)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONUTF8 = \"1\"; py -c \"import test as t; print\\('OK'\\)\" 2>&1)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONUTF8 = \"1\"; py -c \"import test as t; print\\('OK'\\)\" 2>&1; py test.py 2>&1)",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; cd \"C:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; python test.py 2>&1 | Select-Object -First 120)",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; cd \"C:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; py test.py 2>&1 | Select-Object -First 120)",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; cd \"C:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; py test.py | Select-Object -First 200)",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; cd \"C:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; py _analyze.py)",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; cd \"C:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; py test.py > output.txt; Get-Content output.txt | Select-Object -Last 30)",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; cd \"C:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; py _analyze2.py)",
+      "PowerShell(cd \"C:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; Select-String -Path \"output.txt\" -Pattern \"SNTS\" | Select-Object -First 50 | ForEach-Object { $_.Line })",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; cd \"C:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; py test.py > output2.txt; Get-Content output2.txt | Select-Object -Last 20)",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; cd \"C:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; py _check_data.py)",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; cd \"C:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; py _check_volumes.py)",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; cd \"C:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; py test.py > output3.txt; Get-Content output3.txt | Select-Object -First 60)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONUTF8=\"1\"; py test.py 2>&1 | Tee-Object output4.txt | Select-Object -Last 80)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONUTF8=\"1\"; Start-Process -NoNewWindow -FilePath \"py\" -ArgumentList \"test_grid_search.py\" -RedirectStandardOutput \"grid_output.txt\" -RedirectStandardError \"grid_errors.txt\")",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONUTF8=\"1\"; py test.py 2>&1 | Select-Object -Last 30)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONUTF8=\"1\"; py -c \"import test as m; import pandas as pd; data = m.load_consolidated\\(m.DATA_FILE\\); adv = m.load_adv\\(m.EXPORT_FILE\\); sc = m.screen_universe\\(data['prices'], data['caps'], data['sectors'], data['composition'], adv=adv\\); print\\('Eligibles:', sc[sc.eligible].index.tolist\\(\\)\\); print\\('N:', sc.eligible.sum\\(\\)\\)\" 2>&1)",
+      "PowerShell(cd \"c:\\\\Users\\\\l.philippe\\\\OneDrive - CGF BOURSE\\\\Bureau\\\\test_BRVM30\"; $env:PYTHONUTF8=\"1\"; Start-Process -NoNewWindow -FilePath \"py\" -ArgumentList \"test.py\" -RedirectStandardOutput \"output5.txt\" -RedirectStandardError \"output5_err.txt\")"
+    ]
+  }
+}

@@ -49,8 +49,8 @@ class SikaHistoryScraper(BaseScript):
             'TTLS': 'sn', 'UNLC': 'ci', 'UNXC': 'ci',
         }
 
-    def _fetch_chunk(self, ticker_full: str, d_from: date, d_to: date,
-                     retries: int = 3) -> list:
+    def _fetch_chunk(self, ticker_full, d_from, d_to,
+                     retries: int = 3):
         """Appel API pour un chunk de max 90j. Retourne une liste de dicts."""
         payload = {
             'ticker':  ticker_full,
@@ -77,15 +77,15 @@ class SikaHistoryScraper(BaseScript):
                 time.sleep(2)
         return []
 
-    def _chunks(self, start: date, end: date, days: int = 88):
+    def _chunks(self, start, end, days = 88):
         """Génère des tuples (debut, fin) par tranches de `days` jours."""
         cur = start
         while cur <= end:
             yield cur, min(cur + timedelta(days=days), end)
             cur += timedelta(days=days + 1)
 
-    def scrape_ticker(self, ticker: str, since: date | None = None,
-                      delay: float = 0.4) -> dict:
+    def scrape_ticker(self, ticker, since = None,
+                      delay: float = 0.4):
         """
         Scrape tout l'historique d'un ticker depuis `since` (ou self.start_date).
         Retourne un dict {date_iso: {close, volume, open, high, low}}.
@@ -119,7 +119,7 @@ class SikaHistoryScraper(BaseScript):
 
         return result
 
-    def load_existing(self) -> dict:
+    def load_existing(self):
         if os.path.exists(self.out_file):
             with open(self.out_file, encoding='utf-8') as f:
                 try:
@@ -128,7 +128,7 @@ class SikaHistoryScraper(BaseScript):
                     return {}
         return {}
 
-    def save(self, data: dict) -> None:
+    def save(self, data):
         with open(self.out_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False)
 

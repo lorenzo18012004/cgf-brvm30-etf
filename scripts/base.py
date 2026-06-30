@@ -17,7 +17,7 @@ class BaseScript:
     # JSON helpers                                                         #
     # ------------------------------------------------------------------ #
 
-    def load_json(self, filename: str, default=None):
+    def load_json(self, filename =None):
         """Charge un JSON depuis data_dir. Retourne `default` si absent."""
         path = os.path.join(self.data_dir, filename)
         if not os.path.exists(path):
@@ -25,20 +25,20 @@ class BaseScript:
         with open(path, encoding="utf-8") as f:
             return json.load(f)
 
-    def save_json(self, filename: str, data, indent: int = 2):
+    def save_json(self, filename, indent = 2):
         """Écrit un JSON dans data_dir."""
         path = os.path.join(self.data_dir, filename)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=indent)
 
-    def load_json_path(self, path: str, default=None):
+    def load_json_path(self, path =None):
         """Charge un JSON depuis un chemin absolu."""
         if not os.path.exists(path):
             return default
         with open(path, encoding="utf-8") as f:
             return json.load(f)
 
-    def save_json_path(self, path: str, data, indent: int = 2):
+    def save_json_path(self, path, indent = 2):
         """Écrit un JSON à un chemin absolu."""
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=indent)

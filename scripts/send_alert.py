@@ -31,7 +31,7 @@ class AlertSender(BaseScript):
         with open(path, encoding="utf-8") as f:
             return json.load(f)
 
-    def _send_email(self, cfg: dict, subject: str, body_html: str) -> bool:
+    def _send_email(self, cfg, subject, body_html):
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
@@ -49,7 +49,7 @@ class AlertSender(BaseScript):
             print(f"[ERREUR] Email non envoye : {e}")
             return False
 
-    def check_and_alert(self, force: bool = False, test: bool = False) -> list:
+    def check_and_alert(self, force = False, test = False):
         cfg = self._load(self.CONFIG_PATH)
         if not cfg:
             print("[WARN] alert_config.json introuvable -- alertes desactivees.")

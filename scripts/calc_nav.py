@@ -45,7 +45,7 @@ class NavCalculator(BaseScript):
     # 1. Chargement des données
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _load_historical_nav(self) -> pd.Series:
+    def _load_historical_nav(self):
         """Série VL depuis dashboard_data.json, ou nav_latest.json en fallback (cloud)."""
         if os.path.exists(self.DASHBOARD_FILE):
             d = self.load_json_path(self.DASHBOARD_FILE, default={})
@@ -67,7 +67,7 @@ class NavCalculator(BaseScript):
             raise ValueError("nav_latest.json ne contient pas nav_indice/calc_date")
         return pd.Series({pd.Timestamp(nav_date): float(nav_val)}, name='nav_indice')
 
-    def _load_last_basket(self) -> tuple[pd.Timestamp, dict]:
+    def _load_last_basket(self):
         """Renvoie (date_rebal, {ticker: w_etf}) du dernier rebalancement effectif."""
         d = self.load_json_path(self.REBAL_FILE, default={})
         rebals = [r for r in d['rebalancings'] if not r.get('skipped', False) and r.get('basket')]
@@ -80,7 +80,7 @@ class NavCalculator(BaseScript):
         basket = {k: v / total for k, v in basket.items()}
         return dt, basket
 
-    def _load_prices(self) -> pd.DataFrame:
+    def _load_prices(self):
         """Charge la feuille Cours_Close depuis le fichier consolidé. Retourne DataFrame vide si absent."""
         if not os.path.exists(self.PRIX_FILE):
             return pd.DataFrame()
@@ -90,7 +90,7 @@ class NavCalculator(BaseScript):
         prices = prices.sort_index().astype(float)
         return prices
 
-    def _load_prices_sika(self) -> pd.DataFrame | None:
+    def _load_prices_sika(self):
         """Cours de clôture depuis sika_history.json (source principale)."""
         sh = self.load_json('sika_history.json', default=None)
         if sh is None:
@@ -110,7 +110,7 @@ class NavCalculator(BaseScript):
         df.index = pd.to_datetime(df.index)
         return df.sort_index().astype(float)
 
-    def _load_prices_adj(self) -> pd.DataFrame | None:
+    def _load_prices_adj(self):
         """Cours ajustés depuis richbourse_history.json — fallback uniquement."""
         rh = self.load_json('richbourse_history.json', default=None)
         if rh is None:
@@ -149,7 +149,7 @@ class NavCalculator(BaseScript):
         basket: dict,
         prices: pd.DataFrame,
         fee_annual: float | None = None,
-    ) -> pd.Series:
+    ):
         """
         Étend la série VL depuis rebal_date jusqu'au dernier prix disponible.
         Utilise les poids fixes du dernier rebalancement (dérive naturelle).
@@ -211,7 +211,7 @@ class NavCalculator(BaseScript):
     # 3. Calcul des métriques finales
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _load_launch_state(self) -> dict | None:
+    def _load_launch_state(self):
         """Charge launch_state.json s'il existe."""
         return self.load_json('launch_state.json', default=None)
 
@@ -223,7 +223,7 @@ class NavCalculator(BaseScript):
         prices: pd.DataFrame,
         par_fcfa: float,
         aum_ref_fcfa: float,
-    ) -> dict:
+    ):
         """Construit le rapport complet de VL."""
         today            = pd.Timestamp.today().normalize()
         last_price_date  = nav.index[-1]
@@ -341,7 +341,7 @@ class NavCalculator(BaseScript):
             'nav_live_series':       nav_live_series_out,
         }
 
-    def _nav_at_year_start(self, nav: pd.Series, year: int) -> float | None:
+    def _nav_at_year_start(self, nav, year):
         pts = nav[nav.index.year == year - 1]
         if len(pts) > 0:
             return float(pts.iloc[-1])
@@ -354,7 +354,7 @@ class NavCalculator(BaseScript):
     # 4. Affichage terminal
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _print_report(self, r: dict) -> None:
+    def _print_report(self, r):
         W = 70
         print("=" * W)
         print(f"  CGF BRVM30 ETF — Valeur Liquidative Indicative")
@@ -399,7 +399,7 @@ class NavCalculator(BaseScript):
         print(f"  Export : nav_latest.json  ({r['calc_timestamp']})")
         print("=" * W)
 
-    def _fmt_pct(self, v) -> str:
+    def _fmt_pct(self, v):
         if v is None:
             return '   —'
         sign = '+' if v >= 0 else ''
@@ -409,9 +409,9 @@ class NavCalculator(BaseScript):
     # 5. Point d'entrée
     # ─────────────────────────────────────────────────────────────────────────
 
-    def run(self, par_fcfa: float | None = None,
+    def run(self, par_fcfa = None,
             aum_fcfa: float | None = None,
-            quiet: bool = False) -> dict:
+            quiet: bool = False):
         """Calcule la VL, exporte nav_latest.json et renvoie le rapport."""
         if par_fcfa is None:
             par_fcfa = self.DEFAULT_PAR_FCFA

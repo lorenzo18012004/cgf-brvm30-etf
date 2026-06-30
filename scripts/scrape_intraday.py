@@ -16,24 +16,24 @@ class IntradayScraper(BaseScript):
         self.LOG_DIR       = os.path.join(self.root_dir, 'logs')
         self.HIST_FILE     = os.path.join(self.data_dir, 'nav_intraday_history.json')
 
-    def _is_market_open(self) -> bool:
+    def _is_market_open(self):
         now_utc = datetime.now(timezone.utc)
         if now_utc.weekday() >= 5:
             return False
         t = now_utc.time().replace(tzinfo=None)
         return self.MARKET_OPEN <= t <= self.MARKET_CLOSE
 
-    def _load_intraday(self) -> dict:
+    def _load_intraday(self):
         if os.path.exists(self.INTRADAY_FILE):
             with open(self.INTRADAY_FILE, encoding='utf-8') as f:
                 return json.load(f)
         return {'date': None, 'snapshots': []}
 
-    def _save_intraday(self, data: dict) -> None:
+    def _save_intraday(self, data):
         with open(self.INTRADAY_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-    def _log(self, msg: str) -> None:
+    def _log(self, msg):
         os.makedirs(self.LOG_DIR, exist_ok=True)
         today = datetime.now().strftime('%Y%m%d')
         log_file = os.path.join(self.LOG_DIR, f'intraday_{today}.log')
@@ -41,7 +41,7 @@ class IntradayScraper(BaseScript):
             ts = datetime.now().strftime('%H:%M:%S')
             f.write(f'[{ts}] {msg}\n')
 
-    def run(self, force: bool = False) -> dict | None:
+    def run(self, force = False):
         os.chdir(self.data_dir)
         sys.path.insert(0, self.scripts_dir)
 
