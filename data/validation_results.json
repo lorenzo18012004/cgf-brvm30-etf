@@ -2,133 +2,133 @@
   "stress_tests": [
     {
       "name": "Mensuel dérive 1% (référence)",
-      "te": 0.020815,
-      "td": -0.034188,
+      "te": 0.021003,
+      "td": -0.042833,
       "turnover": 0.112167
     },
     {
       "name": "Trimestriel classique",
-      "te": 0.019247,
-      "td": -0.02503,
+      "te": 0.019617,
+      "td": -0.036761,
       "turnover": 0.112167
     },
     {
       "name": "Mensuel dérive 0% (trade tout)",
-      "te": 0.019815,
-      "td": -0.024951,
+      "te": 0.020171,
+      "td": -0.041213,
       "turnover": 0.112167
     },
     {
       "name": "Mensuel dérive 2%",
-      "te": 0.020914,
-      "td": -0.004968,
+      "te": 0.020989,
+      "td": -0.009407,
       "turnover": 0.112167
     },
     {
       "name": "Trimestriel +frais ×2",
-      "te": 0.019248,
-      "td": -0.044578,
+      "te": 0.019617,
+      "td": -0.056074,
       "turnover": 0.112167
     },
     {
       "name": "Trimestriel 0-frais",
-      "te": 0.019247,
-      "td": -0.005203,
+      "te": 0.019616,
+      "td": -0.017172,
       "turnover": 0.112167
     }
   ],
   "ewma_sensitivity": [
     {
       "threshold": 0.01,
-      "te": 0.015875,
-      "td": -0.009189,
+      "te": 0.01596,
+      "td": -0.017,
       "turnover": 0.109186,
       "n_large_avg": 21
     },
     {
       "threshold": 0.02,
-      "te": 0.018891,
-      "td": -0.051571,
+      "te": 0.019076,
+      "td": -0.061131,
       "turnover": 0.120732,
       "n_large_avg": 11
     },
     {
       "threshold": 0.03,
-      "te": 0.019269,
-      "td": -0.023781,
+      "te": 0.019438,
+      "td": -0.032885,
       "turnover": 0.12068,
       "n_large_avg": 7
     },
     {
       "threshold": 0.05,
-      "te": 0.019694,
-      "td": -0.021437,
+      "te": 0.019858,
+      "td": -0.031205,
       "turnover": 0.127195,
       "n_large_avg": 3
     },
     {
       "threshold": 0.08,
-      "te": 0.019694,
-      "td": -0.021437,
+      "te": 0.019858,
+      "td": -0.031205,
       "turnover": 0.127195,
       "n_large_avg": 2
     },
     {
       "threshold": 0.1,
-      "te": 0.019694,
-      "td": -0.021437,
+      "te": 0.019858,
+      "td": -0.031205,
       "turnover": 0.127195,
       "n_large_avg": 1
     },
     {
       "threshold": 0.15,
-      "te": 0.019694,
-      "td": -0.021437,
+      "te": 0.019858,
+      "td": -0.031205,
       "turnover": 0.127195,
       "n_large_avg": 1
     }
   ],
   "bootstrap": {
     "n_sim": 500,
-    "te_med": 0.019266,
-    "te_p5": 0.018069,
-    "te_p95": 0.02043
+    "te_med": 0.019445,
+    "te_p5": 0.018233,
+    "te_p95": 0.020594
   },
   "walk_forward": [
     {
       "label": "Jan–Déc 2023",
-      "te_is": 0.023075,
-      "te_oos": 0.019282,
-      "td_oos": -0.005341,
-      "delta_te": -0.003794
+      "te_is": 0.023414,
+      "te_oos": 0.01937,
+      "td_oos": -0.00751,
+      "delta_te": -0.004044
     },
     {
       "label": "Jan–Déc 2024",
-      "te_is": 0.019282,
-      "te_oos": 0.016796,
-      "td_oos": -0.008829,
-      "delta_te": -0.002486
+      "te_is": 0.01937,
+      "te_oos": 0.016832,
+      "td_oos": -0.010336,
+      "delta_te": -0.002539
     },
     {
       "label": "Jan–Déc 2025",
-      "te_is": 0.016796,
-      "te_oos": 0.010646,
-      "td_oos": -0.008034,
-      "delta_te": -0.006149
+      "te_is": 0.016832,
+      "te_oos": 0.010848,
+      "td_oos": -0.00857,
+      "delta_te": -0.005984
     },
     {
       "label": "2023–2024 IS/2025 OOS",
-      "te_is": 0.021202,
-      "te_oos": 0.016796,
-      "td_oos": -0.008829,
-      "delta_te": -0.004406
+      "te_is": 0.021432,
+      "te_oos": 0.016832,
+      "td_oos": -0.010336,
+      "delta_te": -0.004601
     },
     {
       "label": "2023–2025 IS/2026 OOS",
-      "te_is": 0.019822,
-      "te_oos": 0.010646,
-      "td_oos": -0.008034,
-      "delta_te": -0.009175
+      "te_is": 0.019995,
+      "te_oos": 0.010848,
+      "td_oos": -0.00857,
+      "delta_te": -0.009147
     }
   ],
   "selection_params": {
@@ -151,7 +151,7 @@
     "spread_80bps_above_mfcfa": 10,
     "spread_125bps_above_mfcfa": 5,
     "spread_175bps_below_mfcfa": 5,
-    "dividende_model": "Total Return avec reserve capitalisée",
+    "dividende_model": "Distribution semestrielle — reserve capitalisée au RF jusqu'au versement",
     "dividende_ex_date": "1er juillet de l'année N+1 pour exercice N",
     "dividende_placement_taux": 3.0,
     "dividende_distribution": "dernier jour de bourse de juin et décembre",

@@ -4,12 +4,12 @@
   "n_years": 3.2,
   "n_rebal": 13,
   "mgmt_fee_ann": 0.006,
-  "te_full": 0.019269,
+  "te_full": 0.019438,
   "te_p1": 0.020984,
   "te_p2": 0.011912,
   "te_prog": 0.018679,
-  "td_full": -0.023781,
-  "td_full_ann": -0.007391,
+  "td_full": -0.032885,
+  "td_full_ann": -0.010254,
   "mgmt_fee_cumul": 0.019185,
   "cost_tx_cumul": 0.091835,
   "basket_gap_cumul": 0.049388,
@@ -23,43 +23,43 @@
   "annual": [
     {
       "year": 2023,
-      "te": 0.023075,
-      "td": -0.002661,
-      "td_gross": 0.003527,
+      "te": 0.023414,
+      "td": -0.006114,
+      "td_gross": 5.3e-05,
       "cost_tx": 0.052685,
       "mgmt_fee": 0.005894,
-      "basket_gap": 0.003527
+      "basket_gap": 5.3e-05
     },
     {
       "year": 2024,
-      "te": 0.019244,
-      "td": -0.005377,
-      "td_gross": 0.000818,
+      "te": 0.019348,
+      "td": -0.008322,
+      "td_gross": -0.002146,
       "cost_tx": 0.030589,
       "mgmt_fee": 0.005964,
-      "basket_gap": 0.000818
+      "basket_gap": -0.002146
     },
     {
       "year": 2025,
-      "te": 0.016766,
-      "td": -0.008519,
-      "td_gross": -0.002415,
+      "te": 0.016799,
+      "td": -0.010477,
+      "td_gross": -0.004385,
       "cost_tx": 0.016151,
       "mgmt_fee": 0.006012,
-      "basket_gap": -0.002415
+      "basket_gap": -0.004385
     },
     {
       "year": 2026,
-      "te": 0.010702,
-      "td": -0.007293,
-      "td_gross": -0.005775,
+      "te": 0.010813,
+      "td": -0.008178,
+      "td_gross": -0.006661,
       "cost_tx": 0.006393,
       "mgmt_fee": 0.001518,
-      "basket_gap": -0.005775
+      "basket_gap": -0.006661
     }
   ],
-  "td_gross": -0.003929,
-  "td_gross_ann": -0.001213,
+  "td_gross": -0.013218,
+  "td_gross_ann": -0.004093,
   "selection_params": {
     "methode": "Hybride OTC top-N + ADV-cap redistribution",
     "force_top_n": 5,
@@ -80,7 +80,7 @@
     "spread_80bps_above_mfcfa": 10,
     "spread_125bps_above_mfcfa": 5,
     "spread_175bps_below_mfcfa": 5,
-    "dividende_model": "Total Return avec reserve capitalisée",
+    "dividende_model": "Distribution semestrielle — reserve capitalisée au RF jusqu'au versement",
     "dividende_ex_date": "1er juillet de l'année N+1 pour exercice N",
     "dividende_placement_taux": 3.0,
     "dividende_distribution": "dernier jour de bourse de juin et décembre",

@@ -322,7 +322,7 @@ def main():
         abs(new_basket_w.get(tk, 0) - old_basket.get(tk, 0)) *
         spread_one_way(compute_adv(sh, tk, today))
         for tk in all_tickers
-    ) / 2
+    )  # spread one-way sur chaque trade (achat ET vente paient chacun, pas de /2)
     cash_mfcfa = aum_mfcfa * CASH_BUFFER
     print(f"   Poche de liquidité : {CASH_BUFFER*100:.0f}% = {cash_mfcfa:.0f} MFCFA en cash")
     print(f"   AUM investi (panier) : {(1-CASH_BUFFER)*100:.0f}% = {aum_mfcfa*(1-CASH_BUFFER):.0f} MFCFA")

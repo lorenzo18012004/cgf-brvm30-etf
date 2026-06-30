@@ -352,7 +352,7 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
                     abs(target_w.get(t, 0) - curr_w_norm.get(t, 0)) *
                     spread_one_way(adv_rb.get(t, compute_adv(t, rb_dates[rb_idx])))
                     for t in drifted
-                ) / 2
+                )  # spread one-way appliqué sur chaque trade (achat ET vente paient chacun)
 
                 nav_gross *= (1 - cost_rebal)
                 nav_net   *= (1 - cost_rebal)
@@ -379,7 +379,7 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
                 abs(target_w.get(t, 0) - curr_w_norm.get(t, 0)) *
                 spread_one_way(adv_rb.get(t, compute_adv(t, rb_dates[rb_idx])))
                 for t in all_tks
-            ) / 2
+            )  # spread one-way appliqué sur chaque trade (achat ET vente paient chacun)
             nav_gross *= (1 - cost_rebal)
             nav_net   *= (1 - cost_rebal)
             portfolio   = dict(target_w)
