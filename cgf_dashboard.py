@@ -3629,12 +3629,28 @@ def _render_live():
                 def _color_drift_live(row):
                     styles = [""] * len(row)
                     cols = list(row.index)
+                    cible = row.get("Cible rebal (%)")
+                    b30   = row.get("Indice BRVM30 (%)")
+                    # Titre capé par ADV : cible significativement sous l'indice
+                    capped = (cible is not None and b30 is not None
+                              and not pd.isna(cible) and not pd.isna(b30)
+                              and b30 > 0 and cible < b30 - 0.05)
+                    if capped:
+                        for i in range(len(styles)):
+                            styles[i] = "background-color: #FDEDEC"
+                        if "Ticker" in cols:
+                            styles[cols.index("Ticker")] = "background-color: #FDEDEC; color: #C0392B; font-weight:700"
+                        if "Cible rebal (%)" in cols:
+                            styles[cols.index("Cible rebal (%)")] = "background-color: #FDEDEC; color: #C0392B; font-weight:600"
+                    # Dérive live vs cible > 1%
                     if "Poids live (%)" in cols and "Cible rebal (%)" in cols:
-                        live  = row["Poids live (%)"]
-                        cible = row["Cible rebal (%)"]
+                        live = row["Poids live (%)"]
                         if live is not None and cible is not None and not pd.isna(live) and not pd.isna(cible):
                             if abs(live - cible) > 1.0:
-                                styles[cols.index("Poids live (%)")] = "color: #C0392B; font-weight:600"
+                                styles[cols.index("Poids live (%)")] = (
+                                    ("background-color: #FDEDEC; " if capped else "")
+                                    + "color: #C0392B; font-weight:600"
+                                )
                     return styles
 
                 df_styled = df_out.style\
@@ -4795,14 +4811,29 @@ def _render_live():
             def _color_drift(row):
                 styles = [""] * len(row)
                 cols = list(row.index)
+                cible  = row.get("Cible rebal %")
+                b30_rb = row.get("BRVM30 rebal %")
+                # Titre capé par ADV : cible rebal < poids BRVM30 rebal - seuil
+                capped = (cible is not None and b30_rb is not None
+                          and not pd.isna(cible) and not pd.isna(b30_rb)
+                          and b30_rb > 0 and cible < b30_rb - 0.05
+                          and row.get("Dans ETF") == "oui")
+                if capped:
+                    for i in range(len(styles)):
+                        styles[i] = "background-color: #FDEDEC"
+                    if "Ticker" in cols:
+                        styles[cols.index("Ticker")] = "background-color: #FDEDEC; color: #C0392B; font-weight:700"
+                    if "Cible rebal %" in cols:
+                        styles[cols.index("Cible rebal %")] = "background-color: #FDEDEC; color: #C0392B; font-weight:600"
+                # Dérive live vs cible > 1%
                 if "ETF % (live)" in cols and "Cible rebal %" in cols:
-                    live  = row["ETF % (live)"]
-                    cible = row["Cible rebal %"]
+                    live = row["ETF % (live)"]
                     if live is not None and cible is not None and not pd.isna(live) and not pd.isna(cible):
-                        drift = abs(live - cible)
-                        if drift > 1.0:
-                            idx = cols.index("ETF % (live)")
-                            styles[idx] = "color: #C0392B; font-weight:600"
+                        if abs(live - cible) > 1.0:
+                            styles[cols.index("ETF % (live)")] = (
+                                ("background-color: #FDEDEC; " if capped else "")
+                                + "color: #C0392B; font-weight:600"
+                            )
                 return styles
 
             fmt_pct = lambda x: f"{x:.2f}%" if x is not None and not (isinstance(x, float) and pd.isna(x)) else "—"
