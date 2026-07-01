@@ -4312,6 +4312,13 @@ def _render_live():
         _today_ts = pd.Timestamp.now()
 
         def _next_rebal_date(from_ts):
+            # Si le mois courant est un mois de rebal ET que le dernier rebal
+            # était dans le trimestre précédent → le rebal est aujourd'hui
+            if from_ts.month in _rebal_months:
+                this_rebal = pd.Timestamp(from_ts.year, from_ts.month, 1) + pd.offsets.BDay(0)
+                last_done  = pd.Timestamp(_last_rebal_str) if _last_rebal_str and _last_rebal_str != "N/A" else None
+                if last_done is None or last_done < this_rebal:
+                    return this_rebal
             for m in range(1, 5):
                 cm = ((from_ts.month - 1 + m) % 12) + 1
                 cy = from_ts.year + ((from_ts.month - 1 + m) // 12)
