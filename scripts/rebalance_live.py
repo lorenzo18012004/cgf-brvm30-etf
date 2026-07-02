@@ -315,7 +315,7 @@ def main():
             'w_brvm30_pct': round(w_b30 * 100, 2),
             'adv_mfcfa':    round(adv, 1),
             'days_exec':    round(days, 1),
-            'otc':          tk in forced_tks,
+            'otc':          tk in forced_tks and days > max_days,
             'capped':       tk not in forced_tks and days > max_days,
         })
         turnover += abs(delta)
