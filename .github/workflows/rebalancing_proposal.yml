@@ -2,8 +2,10 @@ name: Proposition Rebalancement BRVM30
 
 on:
   schedule:
-    # 1er de chaque mois à 08h00 UTC — le script vérifie lui-même s'il y a une nouvelle composition
-    - cron: '0 8 1 * *'
+    # Chaque jour du 28 au 3 du mois suivant à 08h00 UTC
+    # Couvre la fenêtre de publication des avis BRVM30 (rebalancements trimestriels)
+    - cron: '0 8 28-31 * *'
+    - cron: '0 8 1-3 * *'
   workflow_dispatch:
     inputs:
       force:
@@ -55,10 +57,13 @@ jobs:
             python scripts/propose_rebalancing.py
           fi
 
-      - name: Sauvegarder proposition (si générée)
+      - name: Sauvegarder (si nouvelle composition ou proposition)
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "rebal: proposition automatique $(date -u +'%Y-%m-%d')"
-          file_pattern: data/rebal_pending.json
+          commit_message: "rebal: nouvelle composition BRVM30 détectée $(date -u +'%Y-%m-%d')"
+          file_pattern: |
+            data/brvm_composition_latest.json
+            data/brvm_composition_history.json
+            data/rebal_pending.json
           commit_user_name: cgf-bot
           commit_user_email: bot@cgf-bourse.ci
