@@ -401,6 +401,11 @@ def main():
     sortants  = [o for o in orders if o['ticker'] in index_exits or o['w_new_pct'] == 0]
     ajusts    = [o for o in orders if o['ticker'] not in index_entries and o['ticker'] not in index_exits and o['w_new_pct'] > 0]
 
+    # Ajouter le champ section pour le dashboard
+    for o in entrants: o['section'] = 'Entrant'
+    for o in ajusts:   o['section'] = 'Ajustement'
+    for o in sortants: o['section'] = 'Sortant'
+
     if entrants:
         print(f"\n   ── Entrants dans l'indice ({len(entrants)}) ──────────────────────────────────")
         print(HDR); print(SEP)
@@ -453,6 +458,10 @@ def main():
         print()
         print("  Pour appliquer : Dashboard → onglet REBALANCER → Étape 2")
         print("=" * 70)
+        # Bloc JSON parsé par le dashboard pour affichage coloré
+        import json as _json
+        print("### JSON_ORDERS ###")
+        print(_json.dumps(orders, ensure_ascii=False))
         return
 
     # ── Application réelle : écriture des fichiers ────────────────────────────

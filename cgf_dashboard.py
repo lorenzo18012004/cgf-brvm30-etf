@@ -1,5 +1,9 @@
 """
-CGF ETF Dashboard — BRVM30 ETF
+# faire un truc multi factorielle pour ajuster les poids quand ya les dividendes par exmeple etc 
+# si un titre monte trop dans l'indice faut etre capable de s'adapter.
+# 
+# 
+# CGF ETF Dashboard — BRVM30 ETF
 """
 import json, os, re, sys, subprocess, base64, requests
 import streamlit as st
@@ -4366,7 +4370,58 @@ def _render_live():
                 st.session_state["rebal_applied"]      = False
 
         if st.session_state.get("rebal_preview_out"):
-            st.code(st.session_state["rebal_preview_out"], language="text")
+            _raw_out = st.session_state["rebal_preview_out"]
+            _JSON_MARKER = "### JSON_ORDERS ###"
+            if _JSON_MARKER in _raw_out:
+                _text_part, _json_part = _raw_out.split(_JSON_MARKER, 1)
+            else:
+                _text_part, _json_part = _raw_out, ""
+            st.code(_text_part.strip(), language="text")
+
+            if _json_part.strip():
+                try:
+                    _orders = json.loads(_json_part.strip())
+                    _df_orders = pd.DataFrame(_orders)
+
+                    # Renommer les colonnes pour l'affichage
+                    _col_map = {
+                        'ticker': 'Ticker', 'sens': 'Sens', 'section': 'Section',
+                        'delta_pct': 'Delta %', 'montant_mfcfa': 'Montant (M)',
+                        'w_old_pct': 'Ancien %', 'w_new_pct': 'Nouveau %',
+                        'w_brvm30_pct': 'Indice %',
+                        'adv_mfcfa': 'ADV (M)', 'days_exec': 'Jours',
+                        'otc': 'OTC', 'capped': 'CAP',
+                    }
+                    _df_orders = _df_orders.rename(columns=_col_map)
+
+                    def _color_row(row):
+                        if row.get('OTC'):
+                            return ['background-color: #fff3cd'] * len(row)  # orange clair
+                        if row.get('CAP'):
+                            return ['background-color: #cce5ff'] * len(row)  # bleu clair
+                        if row.get('Section') == 'Sortant':
+                            return ['background-color: #f8d7da'] * len(row)  # rouge clair
+                        if row.get('Section') == 'Entrant':
+                            return ['background-color: #d4edda'] * len(row)  # vert clair
+                        return [''] * len(row)
+
+                    _display_cols = ['Section', 'Ticker', 'Sens', 'Delta %', 'Montant (M)',
+                                     'Ancien %', 'Nouveau %', 'Indice %', 'ADV (M)', 'Jours']
+                    _df_display = _df_orders[[c for c in _display_cols if c in _df_orders.columns]].copy()
+
+                    _styled = (
+                        _df_display.style
+                        .apply(_color_row, axis=1, subset=_df_display.columns)
+                        .format({'Delta %': '{:+.2f}', 'Montant (M)': '{:.1f}',
+                                 'Ancien %': '{:.2f}', 'Nouveau %': '{:.2f}',
+                                 'Indice %': '{:.2f}', 'ADV (M)': '{:.1f}',
+                                 'Jours': '{:.1f}'})
+                    )
+                    st.markdown("**Légende :** 🟡 OTC (bloc négocié)  🔵 CAP (limité par ADV)  🔴 Sortant  🟢 Entrant")
+                    st.dataframe(_styled, hide_index=True, use_container_width=True)
+                except Exception as _e:
+                    st.warning(f"Impossible d'afficher le tableau coloré : {_e}")
+
             if st.session_state.get("rebal_preview_err"):
                 with st.expander("Erreurs / avertissements"):
                     st.code(st.session_state["rebal_preview_err"], language="text")
