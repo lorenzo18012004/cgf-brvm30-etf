@@ -251,10 +251,14 @@ def main():
     if comp_entries:
         latest_comp = max(comp_entries, key=lambda c: c['rebal_date'])
         tickers = [t.upper() for t in latest_comp['composition']]
+        index_entries = {t.upper() for t in latest_comp.get('entries', [])}
+        index_exits   = {t.upper() for t in latest_comp.get('exits', [])}
         print(f"[1/5] Composition : {len(tickers)} titres (PDF du {latest_comp['rebal_date']})")
     else:
         # Fallback : composition du dernier rebal en portefeuille
         tickers = [item['ticker'] for item in nl.get('basket', [])]
+        index_entries = set()
+        index_exits   = set()
         print(f"[1/5] Composition : {len(tickers)} titres (basket actuel — pas de PDF récent)")
 
     # ── Poids total cap Sika ──────────────────────────────────────────────────
@@ -336,24 +340,25 @@ def main():
               f" {o['days_exec']:>5.1f}j"
               f"  {' '.join(flags)}")
 
-    entrants  = [o for o in orders if o['w_old_pct'] == 0 and o['w_new_pct'] > 0]
-    sortants  = [o for o in orders if o['w_new_pct'] == 0]
-    ajusts    = [o for o in orders if o['w_old_pct'] > 0 and o['w_new_pct'] > 0]
+    # Classer par rapport à l'indice officiel (entries/exits du PDF BRVM)
+    entrants  = [o for o in orders if o['ticker'] in index_entries and o['w_new_pct'] > 0]
+    sortants  = [o for o in orders if o['ticker'] in index_exits or o['w_new_pct'] == 0]
+    ajusts    = [o for o in orders if o['ticker'] not in index_entries and o['ticker'] not in index_exits and o['w_new_pct'] > 0]
 
     if entrants:
-        print(f"\n   ── Entrants ({len(entrants)}) ──────────────────────────────────────────────")
+        print(f"\n   ── Entrants dans l'indice ({len(entrants)}) ──────────────────────────────────")
         print(HDR); print(SEP)
         for o in sorted(entrants, key=lambda x: -x['delta_pct']):
             _print_order(o)
 
     if ajusts:
-        print(f"\n   ── Ajustements ({len(ajusts)}) ─────────────────────────────────────────────")
+        print(f"\n   ── Ajustements du panier ({len(ajusts)}) ──────────────────────────────────")
         print(HDR); print(SEP)
         for o in sorted(ajusts, key=lambda x: -abs(x['delta_pct'])):
             _print_order(o)
 
     if sortants:
-        print(f"\n   ── Sortants à liquider ({len(sortants)}) ───────────────────────────────────")
+        print(f"\n   ── Sortants de l'indice à liquider ({len(sortants)}) ───────────────────────")
         print(HDR); print(SEP)
         for o in sorted(sortants, key=lambda x: x['delta_pct']):
             _print_order(o)
