@@ -5674,6 +5674,109 @@ def _render_live():
             c5.metric("Titres en portefeuille", str(nl_mgmt.get("n_basket", "—")))
             st.caption(f"VL officielle calculée sur prix de clôture BRVM — mise à jour automatique chaque jour à 16h00 après clôture (15h30 UTC). Dernière mise à jour : {nl_mgmt.get('calc_date', '—')}. Pour la VL indicative en temps réel, voir la section iNAV.")
 
+        # ── Rendement Dividende & Total Return ───────────────────────────────
+        st.markdown("---")
+        _section("Rendement Dividende & Total Return")
+        _sika_div_tr  = load_json(os.path.join(BASE, "data", "sika_dividendes.json")) or {}
+        _divs_tr      = _sika_div_tr.get("dividendes", [])
+        _today_tr     = pd.Timestamp.now().strftime("%Y-%m-%d")
+        _launch_tr    = (load_json(os.path.join(BRVM30_DIR, "launch_state.json")) or {}).get("launch_date", "")
+
+        # Construire index basket ETF et BRVM30
+        _bask_tr  = {b["ticker"]: b for b in basket_now}
+        _b30_tr   = {b["ticker"]: b.get("w_brvm30", 0) for b in last_rb.get("basket", [])}
+
+        # Normalisation tickers Sika → basket
+        _TK_MAP_TR = {"": "NSBC", "TOTC": "TTLC", "VIVC": "SHEC"}
+
+        _etf_div_yield  = 0.0
+        _b30_div_yield  = 0.0
+        _rows_div_tr    = []
+
+        for _d in _divs_tr:
+            _dt = _d.get("date_detach") or ""
+            if not _dt or _dt > _today_tr:
+                continue
+            if _launch_tr and _dt < _launch_tr:
+                continue
+            _tk_raw = _d.get("ticker") or ""
+            _tk     = _TK_MAP_TR.get(_tk_raw, _tk_raw)
+            _rend   = float(_d.get("rendement") or 0) / 100  # Sika donne en %
+
+            _w_etf = (_bask_tr[_tk]["poids_pct"] / 100) if _tk in _bask_tr else 0.0
+            _w_b30 = _b30_tr.get(_tk, 0.0)
+
+            _contrib_etf = _w_etf * _rend * 100
+            _contrib_b30 = _w_b30 * _rend * 100
+
+            _etf_div_yield += _contrib_etf
+            _b30_div_yield += _contrib_b30
+
+            if _w_etf > 0 or _w_b30 > 0:
+                _rows_div_tr.append({
+                    "Ticker":           _tk or _tk_raw or "—",
+                    "Ex-date":          _dt,
+                    "Rend. Sika (%)":   round(_rend * 100, 2),
+                    "Poids ETF (%)":    round(_w_etf * 100, 3),
+                    "Contrib ETF (bp)": round(_contrib_etf * 100, 1),
+                    "Poids BRVM30 (%)": round(_w_b30 * 100, 3),
+                    "Contrib B30 (bp)": round(_contrib_b30 * 100, 1),
+                })
+
+        # Perf Price Return depuis lancement
+        _ls_tr       = load_json(os.path.join(BRVM30_DIR, "launch_state.json")) or {}
+        _nav_now_tr  = (load_json_fresh(nav_latest_path) or {}).get("nav_indice", 0)
+        _nav_anc_tr  = float(_ls_tr.get("nav_index_at_launch") or _nav_now_tr or 1)
+        _pr_etf      = (_nav_now_tr / _nav_anc_tr - 1) * 100 if _nav_anc_tr else 0.0
+        _pr_b30      = _pr_etf  # même base indice — PR identique par construction
+
+        _tr_etf = _pr_etf + _etf_div_yield
+        _tr_b30 = _pr_b30 + _b30_div_yield
+        _ecart_div = _etf_div_yield - _b30_div_yield
+
+        _td1, _td2, _td3, _td4, _td5 = st.columns(5)
+        _td1.metric("Rend. Div. ETF (YTD)",   f"{_etf_div_yield:.2f}%",
+                    help="Dividendes captés par l'ETF pondérés par les poids du panier")
+        _td2.metric("Rend. Div. BRVM30 (YTD)", f"{_b30_div_yield:.2f}%",
+                    help="Dividendes théoriques de l'indice pondérés par les poids BRVM30")
+        _td3.metric("Total Return ETF",        f"{_tr_etf:+.2f}%",
+                    help="Price Return ETF + Rendement Dividende ETF")
+        _td4.metric("Total Return BRVM30",     f"{_tr_b30:+.2f}%",
+                    help="Price Return BRVM30 + Rendement Dividende BRVM30")
+        _td5.metric("Écart Div. ETF vs B30",   f"{_ecart_div:+.2f}%",
+                    delta=round(_ecart_div, 2),
+                    help="Positif = ETF a capté plus de dividendes que l'indice (bonne capture)")
+
+        if _rows_div_tr:
+            _df_div_tr = pd.DataFrame(_rows_div_tr).sort_values("Contrib ETF (bp)", ascending=False)
+            _fig_div = go.Figure()
+            _fig_div.add_trace(go.Bar(
+                x=_df_div_tr["Ticker"], y=_df_div_tr["Contrib ETF (bp)"],
+                name="Contribution ETF (bp)", marker_color=COLOR,
+                hovertemplate="%{x}<br>ETF : <b>%{y:.1f} bp</b><extra></extra>",
+            ))
+            _fig_div.add_trace(go.Bar(
+                x=_df_div_tr["Ticker"], y=_df_div_tr["Contrib B30 (bp)"],
+                name="Contribution BRVM30 (bp)", marker_color=BENCH_COLOR,
+                hovertemplate="%{x}<br>BRVM30 : <b>%{y:.1f} bp</b><extra></extra>",
+            ))
+            _fig_div.update_layout(**PLOTLY_LAYOUT, height=300, barmode="group",
+                title="Contribution dividende par titre — ETF vs BRVM30 (points de base)",
+                yaxis_title="bp", legend=dict(orientation="h", y=-0.2))
+            st.plotly_chart(_fig_div, width='stretch')
+
+            with st.expander("Détail par titre"):
+                st.dataframe(_df_div_tr, use_container_width=True, hide_index=True,
+                             column_config={
+                                 "Rend. Sika (%)":   st.column_config.NumberColumn(format="%.2f"),
+                                 "Poids ETF (%)":    st.column_config.NumberColumn(format="%.3f"),
+                                 "Contrib ETF (bp)": st.column_config.NumberColumn(format="%.1f"),
+                                 "Poids BRVM30 (%)": st.column_config.NumberColumn(format="%.3f"),
+                                 "Contrib B30 (bp)": st.column_config.NumberColumn(format="%.1f"),
+                             })
+        else:
+            st.info("Aucun dividende détaché depuis le lancement de l'ETF.")
+
         # ── Comptabilité Dividend Settlement Gap ──────────────────────────────
         st.markdown("---")
         _section("Dividend Settlement Gap — Comptabilité")
