@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 17 * * 1-5'
   workflow_dispatch:
+    inputs:
+      date:
+        description: 'Date du rapport (YYYY-MM-DD, vide = aujourd''hui)'
+        required: false
+        default: ''
 
 jobs:
   daily-report:
@@ -49,7 +54,12 @@ jobs:
         run: python scripts/update_brvm30_history.py
 
       - name: Générer le rapport PDF
-        run: python scripts/generate_daily_report.py --force
+        run: |
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            python scripts/generate_daily_report.py --date "${{ github.event.inputs.date }}" --force
+          else
+            python scripts/generate_daily_report.py --force
+          fi
 
       - name: Vérifier alertes NAV
         env:
