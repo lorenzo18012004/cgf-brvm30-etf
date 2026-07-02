@@ -4457,7 +4457,8 @@ def _render_live():
                     type="primary",
                     disabled=_btn_disabled,
                 ):
-                    _apply_date = st.session_state.get("rebal_preview_date", _next_rebal_str)
+                    _apply_date = st.session_state.get("rebal_preview_date") or _next_rebal_str
+                    st.info(f"Date du rebalancement : **{_apply_date}** — relance le dry-run si incorrect.")
                     with st.spinner(f"Application du rebalancement {_apply_date}…"):
                         _script_path = os.path.join(BASE, "scripts", "rebalance_live.py")
                         _res_apply = subprocess.run(
@@ -4490,7 +4491,7 @@ def _render_live():
                                 capture_output=True, text=True,
                             )
                             _git_pull = subprocess.run(
-                                ["git", "-C", BASE, "pull", "--rebase", "origin", "main"],
+                                ["git", "-C", BASE, "pull", "--no-rebase", "--no-edit", "origin", "main"],
                                 capture_output=True, text=True,
                             )
                             _git_push = subprocess.run(
