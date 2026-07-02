@@ -4403,13 +4403,13 @@ def _render_live():
                         i = row.name
                         n = len(row)
                         if _m_otc[i]:
-                            return ['background-color: #fff3cd'] * n   # orange
+                            return ['background-color: #ffcc80'] * n   # orange
                         if _m_cap[i]:
-                            return ['background-color: #cce5ff'] * n   # bleu
+                            return ['background-color: #ce93d8'] * n   # violet
                         if _m_section[i] == 'Sortant':
-                            return ['background-color: #f8d7da'] * n   # rouge
+                            return ['background-color: #ef9a9a'] * n   # rouge
                         if _m_section[i] == 'Entrant':
-                            return ['background-color: #d4edda'] * n   # vert
+                            return ['background-color: #a5d6a7'] * n   # vert
                         return [''] * n
 
                     _styled = (
@@ -4420,7 +4420,7 @@ def _render_live():
                                  'Indice %': '{:.2f}', 'ADV (M)': '{:.1f}',
                                  'Jours': '{:.1f}'})
                     )
-                    st.markdown("**Légende :** 🟡 OTC (bloc négocié)  🔵 CAP (limité par ADV)  🔴 Sortant  🟢 Entrant")
+                    st.markdown("**Légende :** 🟠 OTC (bloc négocié)  🟣 CAP (limité par ADV)  🔴 Sortant  🟢 Entrant")
                     st.dataframe(_styled, hide_index=True, use_container_width=True)
                 except Exception as _e:
                     st.warning(f"Impossible d'afficher le tableau coloré : {_e}")
