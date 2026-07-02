@@ -306,13 +306,22 @@ def main():
         if abs(delta) < 0.0001:
             continue
         montant_mfcfa = abs(delta) * aum_mfcfa
-        sens = 'ACHETER' if delta > 0 else 'VENDRE'
+        sens  = 'ACHETER' if delta > 0 else 'VENDRE'
+        adv   = compute_adv(sh, tk, today)
+        w_b30 = w_brvm30.get(tk, 0.0)
+        days  = (montant_mfcfa / adv / PARTICIPATION_RATE) if adv > 0 else 999.0
         orders.append({
-            'ticker': tk, 'sens': sens,
-            'delta_pct': round(delta * 100, 2),
-            'montant_mfcfa': round(montant_mfcfa, 1),
-            'w_old_pct': round(w_old * 100, 2),
-            'w_new_pct': round(w_new * 100, 2),
+            'ticker':       tk,
+            'sens':         sens,
+            'delta_pct':    round(delta * 100, 2),
+            'montant_mfcfa':round(montant_mfcfa, 1),
+            'w_old_pct':    round(w_old * 100, 2),
+            'w_new_pct':    round(w_new * 100, 2),
+            'w_brvm30_pct': round(w_b30 * 100, 2),
+            'adv_mfcfa':    round(adv, 1),
+            'days_exec':    round(days, 1),
+            'otc':          tk in forced_tks,
+            'capped':       tk in new_basket_w and tk not in forced_tks and w_new < w_b30 - 1e-4,
         })
         turnover += abs(delta)
 
@@ -322,19 +331,27 @@ def main():
         abs(new_basket_w.get(tk, 0) - old_basket.get(tk, 0)) *
         spread_one_way(compute_adv(sh, tk, today))
         for tk in all_tickers
-    )  # spread one-way sur chaque trade (achat ET vente paient chacun, pas de /2)
+    )
     cash_mfcfa = aum_mfcfa * CASH_BUFFER
     print(f"   Poche de liquidité : {CASH_BUFFER*100:.0f}% = {cash_mfcfa:.0f} MFCFA en cash")
     print(f"   AUM investi (panier) : {(1-CASH_BUFFER)*100:.0f}% = {aum_mfcfa*(1-CASH_BUFFER):.0f} MFCFA")
     print(f"   Turnover one-way : {turnover*100:.1f}%")
     print(f"   Coût de transaction (spread variable) : {cost_pct*100:.3f}% de l'AUM")
     print()
-    print(f"   {'Ticker':<8} {'Sens':<8} {'Delta':>8} {'Montant':>12} {'Ancien':>8} {'Nouveau':>8}")
-    print(f"   {'-'*60}")
+    print(f"   {'Ticker':<8} {'Sens':<8} {'Delta':>7} {'Montant':>11} {'Ancien':>7} {'Nouveau':>7} {'Indice':>7} {'ADV':>7} {'Jours':>6}  Flags")
+    print(f"   {'-'*87}")
     for o in sorted(orders, key=lambda x: -abs(x['delta_pct'])):
-        print(f"   {o['ticker']:<8} {o['sens']:<8} {o['delta_pct']:>+7.2f}%"
-              f" {o['montant_mfcfa']:>10.1f} MFCFA"
-              f" {o['w_old_pct']:>7.2f}% → {o['w_new_pct']:.2f}%")
+        flags = []
+        if o['otc']:   flags.append('OTC')
+        if o['capped']:flags.append('CAP')
+        print(f"   {o['ticker']:<8} {o['sens']:<8} {o['delta_pct']:>+6.2f}%"
+              f" {o['montant_mfcfa']:>9.1f} M"
+              f" {o['w_old_pct']:>6.2f}%"
+              f" {o['w_new_pct']:>6.2f}%"
+              f" {o['w_brvm30_pct']:>6.2f}%"
+              f" {o['adv_mfcfa']:>6.1f} M"
+              f" {o['days_exec']:>5.1f}j"
+              f"  {' '.join(flags)}")
 
     # ── Calcul NAV après coûts ────────────────────────────────────────────────
     nav_before = float(nl.get('nav_indice', 0))
@@ -343,17 +360,32 @@ def main():
     # ── Résumé dry-run ────────────────────────────────────────────────────────
     if dry_run:
         print()
-        print("=" * 60)
+        print("=" * 70)
         print("  [DRY-RUN] AUCUN FICHIER MODIFIÉ")
-        print(f"  Panier projeté   : {len(new_basket_w)} titres")
+        print(f"  Panier projeté   : {len(new_basket_w)} titres  |  {len(exclu_info)} exclus")
         print(f"  Turnover one-way : {turnover*100:.1f}%")
         print(f"  Coût transaction : {cost_pct*100:.3f}%")
         print(f"  NAV projetée     : {nav_before:.4f} → {nav_after:.4f}")
+
+        # Titres plafonnés (w_etf < w_brvm30)
+        capped_list = [(tk, w_brvm30[tk]*100, new_basket_w[tk]*100)
+                       for tk in new_basket_w if tk not in forced_tks
+                       and new_basket_w[tk] < w_brvm30.get(tk, 0) - 1e-4]
+        if capped_list:
+            print(f"\n  Titres plafonnés par ADV ({len(capped_list)}) :")
+            for tk, w_idx, w_etf in sorted(capped_list, key=lambda x: -(x[1]-x[2])):
+                print(f"    {tk:<8} indice {w_idx:.2f}% → ETF {w_etf:.2f}%  (écart {w_idx-w_etf:+.2f}%)")
+
+        if exclu_info:
+            print(f"\n  Exclus ({len(exclu_info)}) :")
+            for tk, raison in exclu_info.items():
+                print(f"    {tk:<8} {w_brvm30.get(tk,0)*100:.2f}% — {raison}")
+
+        sorted_b30 = sorted(w_brvm30, key=lambda x: -w_brvm30[x])
+        print(f"\n  Top {FORCE_TOP_N} OTC (poids exact) : {', '.join(sorted_b30[:FORCE_TOP_N])}")
         print()
-        print("  Pour appliquer le rebalancement :")
-        print("  → GitHub Actions > 'Appliquer rebalancement trimestriel' > Run workflow")
-        print("  → ou : python scripts/rebalance_live.py --apply [--force]")
-        print("=" * 60)
+        print("  Pour appliquer : Dashboard → onglet REBALANCER → Étape 2")
+        print("=" * 70)
         return
 
     # ── Application réelle : écriture des fichiers ────────────────────────────
