@@ -2,89 +2,89 @@
   "stress_tests": [
     {
       "name": "Mensuel dérive 1% (référence)",
-      "te": 0.020101,
-      "td": -0.032668,
-      "turnover": 0.089795
+      "te": 0.014468,
+      "td": -0.058071,
+      "turnover": 0.048623
     },
     {
       "name": "Trimestriel classique",
-      "te": 0.019462,
-      "td": -0.029615,
-      "turnover": 0.115436
+      "te": 0.012473,
+      "td": -0.044947,
+      "turnover": 0.061972
     },
     {
       "name": "Mensuel dérive 0% (trade tout)",
-      "te": 0.019842,
-      "td": -0.032867,
-      "turnover": 0.164553
+      "te": 0.013464,
+      "td": -0.048365,
+      "turnover": 0.112813
     },
     {
       "name": "Mensuel dérive 2%",
-      "te": 0.021223,
-      "td": -0.018365,
-      "turnover": 0.052583
+      "te": 0.014848,
+      "td": -0.043023,
+      "turnover": 0.02365
     },
     {
       "name": "Trimestriel +frais ×2",
-      "te": 0.019462,
-      "td": -0.049071,
-      "turnover": 0.115436
+      "te": 0.012473,
+      "td": -0.064096,
+      "turnover": 0.061972
     },
     {
       "name": "Trimestriel 0-frais",
-      "te": 0.019462,
-      "td": -0.009881,
-      "turnover": 0.115436
+      "te": 0.012473,
+      "td": -0.025525,
+      "turnover": 0.061972
     }
   ],
   "ewma_sensitivity": [
     {
       "threshold": 0.01,
-      "te": 0.019335,
-      "td": -0.029186,
-      "turnover": 0.11806,
+      "te": 0.008818,
+      "td": -0.055885,
+      "turnover": 0.082801,
       "n_large_avg": 21
     },
     {
       "threshold": 0.02,
-      "te": 0.019815,
-      "td": -0.047148,
-      "turnover": 0.122422,
+      "te": 0.011159,
+      "td": -0.062379,
+      "turnover": 0.082744,
       "n_large_avg": 11
     },
     {
       "threshold": 0.03,
-      "te": 0.018629,
-      "td": -0.036827,
-      "turnover": 0.12639,
+      "te": 0.012128,
+      "td": -0.052431,
+      "turnover": 0.080631,
       "n_large_avg": 7
     },
     {
       "threshold": 0.05,
-      "te": 0.019904,
-      "td": -0.04676,
-      "turnover": 0.125655,
+      "te": 0.010324,
+      "td": -0.038211,
+      "turnover": 0.079206,
       "n_large_avg": 4
     },
     {
       "threshold": 0.08,
-      "te": 0.019904,
-      "td": -0.04676,
-      "turnover": 0.125834,
+      "te": 0.010324,
+      "td": -0.038211,
+      "turnover": 0.079206,
       "n_large_avg": 2
     },
     {
       "threshold": 0.1,
-      "te": 0.019904,
-      "td": -0.04676,
-      "turnover": 0.125834,
+      "te": 0.010324,
+      "td": -0.038211,
+      "turnover": 0.079206,
       "n_large_avg": 1
     },
     {
       "threshold": 0.15,
-      "te": 0.019904,
-      "td": -0.04676,
-      "turnover": 0.125834,
+      "te": 0.010324,
+      "td": -0.038211,
+      "turnover": 0.079206,
       "n_large_avg": 1
     }
   ],

@@ -119,9 +119,26 @@ all_dates = sorted({d for tk in sh for d in sh[tk]
 # MODULE DE SÉLECTION DU PANIER
 # ══════════════════════════════════════════════════════════════════════════════
 
-def compute_adv(ticker, as_of_date, window_days = 63):
+import calendar as _calendar
+
+def _prev_quarter_range(as_of_date_str):
+    from datetime import date as _date
+    d = _date.fromisoformat(as_of_date_str)
+    q = (d.month - 1) // 3
+    if q == 0:
+        start = _date(d.year - 1, 10, 1)
+        end   = _date(d.year - 1, 12, 31)
+    else:
+        sm    = (q - 1) * 3 + 1
+        em    = q * 3
+        start = _date(d.year, sm, 1)
+        end   = _date(d.year, em, _calendar.monthrange(d.year, em)[1])
+    return start.isoformat(), end.isoformat()
+
+def compute_adv(ticker, as_of_date, window_days=None):
+    q_start, q_end = _prev_quarter_range(as_of_date)
     hist  = sh.get(ticker, {})
-    dates = sorted(d for d in hist if d < as_of_date)[-window_days:]
+    dates = [d for d in hist if q_start <= d <= q_end]
     vals  = [(hist[d].get('volume', 0) or 0) * (hist[d].get('close', 0) or 0) / 1e6
              for d in dates]
     return float(sum(vals) / len(dates)) if dates else 0.0
@@ -141,79 +158,90 @@ def build_basket(rebal_date, w_brvm30,
                  max_small: int = MAX_EXEC_SMALL,
                  max_large: int = MAX_EXEC_LARGE,
                  large_thr: float = LARGE_THRESHOLD,
-                 force_top_n: int = FORCE_TOP_N):
+                 force_top_n: int = FORCE_TOP_N,
+                 old_basket: dict = None):
     """
     Retourne {ticker: poids_final} normalisé à 1.
 
-    Stratégie hybride :
+    Stratégie hybride (identique à rebalance_live.py) :
       - Top N titres (par poids BRVM30) : tenus à leur poids BRVM30 exact via OTC.
-        Aucune contrainte ADV — la position est construite progressivement en gré-à-gré.
-      - Titres restants : ADV-cap + redistribution classique (62j/32j).
-        Le budget de poids disponible = 1 - somme(forced).
+      - Titres restants : cap sur le DELTA depuis old_basket + redistribution
+        itérative vers les non-capés non-top5 uniquement.
+    ADV = moyenne sur le trimestre calendaire précédant rebal_date.
     """
+    if old_basket is None:
+        old_basket = {}
+
     total_brvm30 = sum(w_brvm30.values()) or 1.0
-    # Normaliser les poids BRVM30 (au cas où ils ne somment pas à 1)
     w_norm = {tk: v / total_brvm30 for tk, v in w_brvm30.items()}
 
-    # ── Top N forcés (OTC) ───────────────────────────────────────────────────
-    sorted_tks = sorted(w_norm, key=lambda x: -w_norm[x])
-    forced_tks = set(sorted_tks[:force_top_n])
-    rest_tks   = [tk for tk in sorted_tks if tk not in forced_tks]
-
-    forced_w = {tk: w_norm[tk] for tk in forced_tks}
-    forced_total = sum(forced_w.values())
-    rest_budget  = 1.0 - forced_total   # poids disponible pour les autres
-
-    # ── Restants : ADV-cap + redistribution ─────────────────────────────────
-    adv     = {tk: compute_adv(tk, rebal_date) for tk in rest_tks}
-    eligible = [tk for tk in rest_tks if adv[tk] >= MIN_ADV_MFCFA]
+    adv_map  = {tk: compute_adv(tk, rebal_date) for tk in w_norm}
+    exclu    = {tk for tk in w_norm if adv_map.get(tk, 0) < MIN_ADV_MFCFA}
+    eligible = [tk for tk in w_norm if tk not in exclu]
 
     if not eligible:
-        return {tk: round(v, 6) for tk, v in forced_w.items()}
+        return {}
 
-    # Poids cibles pour les restants, normalisés au sein du groupe puis
-    # mis à l'échelle du budget disponible
-    total_rest = sum(w_norm[tk] for tk in eligible) or 1.0
-    weights = {tk: w_norm[tk] / total_rest * rest_budget for tk in eligible}
+    total_elig = sum(w_norm[tk] for tk in eligible) or 1.0
+    w_target   = {tk: w_norm[tk] / total_elig for tk in eligible}
 
-    # Plafond ADV (15% de l'ADV quotidien × max_days) pour les restants
-    max_w = {}
-    for tk in eligible:
-        days = max_large if w_norm[tk] >= large_thr else max_small
-        max_w[tk] = min(PARTICIPATION_RATE * adv[tk] * days / aum_mfcfa, rest_budget)
+    sorted_tks = sorted(eligible, key=lambda x: -w_target[x])
+    otc_set    = set(sorted_tks[:force_top_n])
 
-    # Itération plafonner + redistribuer
-    for _ in range(50):
-        capped   = {tk for tk in eligible if weights[tk] > max_w[tk]}
-        uncapped = [tk for tk in eligible if tk not in capped]
-        if not capped:
+    weights = {tk: w_target[tk] for tk in eligible}
+
+    # Redistribution itérative delta-based : excédent → non-capés non-top5
+    for _ in range(30):
+        capped_w = {}
+        uncapped = []
+        for tk in eligible:
+            if tk in otc_set:
+                continue
+            w_cur     = old_basket.get(tk, 0.0)
+            delta     = weights[tk] - w_cur
+            max_d     = max_large if w_norm[tk] >= large_thr else max_small
+            max_delta = PARTICIPATION_RATE * adv_map.get(tk, 0) * max_d / aum_mfcfa
+            if abs(delta) > max_delta + 1e-6:
+                capped_w[tk] = max(0.0, w_cur + (max_delta if delta > 0 else -max_delta))
+            else:
+                uncapped.append(tk)
+        if not capped_w:
             break
-        excess = sum(weights[tk] - max_w[tk] for tk in capped)
-        for tk in capped:
-            weights[tk] = max_w[tk]
-        uncapped_total = sum(weights[tk] for tk in uncapped)
-        if uncapped_total <= 0 or not uncapped:
-            break
+        total_top5   = sum(w_target[tk] for tk in otc_set if tk in weights)
+        total_capped = sum(capped_w[tk] for tk in capped_w)
+        avail        = 1.0 - total_top5 - total_capped
+        for tk in capped_w:
+            weights[tk] = capped_w[tk]
+        uncapped_tgt = sum(w_target[tk] for tk in uncapped) or 1.0
         for tk in uncapped:
-            weights[tk] += excess * weights[tk] / uncapped_total
+            weights[tk] = max(0.0, avail * w_target[tk] / uncapped_tgt)
+        for tk in otc_set:
+            if tk in weights:
+                weights[tk] = w_target[tk]
 
-    # Exclure poids < 0.1%
+    # Exclure poids < MIN_BASKET_WEIGHT
     for _ in range(10):
-        tiny = [tk for tk in eligible if 0 < weights[tk] < MIN_BASKET_WEIGHT]
+        tiny = [tk for tk in eligible if 0 < weights.get(tk, 0) < MIN_BASKET_WEIGHT and tk not in otc_set]
         if not tiny:
             break
         for tk in tiny:
             eligible.remove(tk)
         if not eligible:
             break
-        total_keep = sum(weights[tk] for tk in eligible)
+        total_keep = sum(weights[tk] for tk in eligible) or 1.0
         for tk in eligible:
-            weights[tk] = weights[tk] / total_keep * rest_budget if total_keep > 0 else rest_budget / len(eligible)
+            weights[tk] = weights[tk] / total_keep
 
-    # ── Assemblage final ─────────────────────────────────────────────────────
-    final = {**forced_w, **{tk: weights[tk] for tk in eligible if weights.get(tk, 0) > 0}}
-    total = sum(final.values())
-    return {tk: round(v / total, 6) for tk, v in final.items()} if total > 0 else {}
+    # Normalisation finale : top-5 exactement à leur poids cible
+    final = {tk: round(weights[tk], 6) for tk in eligible if weights.get(tk, 0) > 0}
+    top5_total = sum(final[tk] for tk in otc_set if tk in final)
+    rest_total = sum(final[tk] for tk in final if tk not in otc_set)
+    if rest_total > 0:
+        scale = (1.0 - top5_total) / rest_total
+        final = {tk: (round(v, 6) if tk in otc_set else round(v * scale, 6))
+                 for tk, v in final.items()}
+
+    return final
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -676,13 +704,16 @@ def stress_with_selection(name, rebal_freq_months, fee=MGMT_FEE_ANN,
             last_ts = ts
 
     wh_new = {}
+    old_bsk_stress = {}
     for rb in rb_new:
         past_dates = [d for d in brvm30_weights_hist if d <= rb]
         closest = max(past_dates) if past_dates else min(brvm30_weights_hist.keys())
         w_b30 = brvm30_weights_hist.get(closest, {})
         past_rd = [d for d in rebal_dates if d <= rb]
         closest_rd = max(past_rd) if past_rd else rebal_dates[0]
-        bw = build_basket(rb, w_b30, aum, max_small, max_large)
+        bw = build_basket(rb, w_b30, aum, max_small, max_large, old_basket=old_bsk_stress)
+        if bw:
+            old_bsk_stress = dict(bw)
         wh_new[rb] = bw if bw else _get_weights(w_history, closest_rd)
 
     ng, nn, _, total_to = build_nav_tr(all_dates, sh, rb_new, wh_new, fee,
@@ -712,13 +743,17 @@ print("   Stress tests OK:", [s['name'] for s in stress_tests])
 ewma_sensitivity = []
 for threshold in [0.01, 0.02, 0.03, 0.05, 0.08, 0.10, 0.15]:
     wh_sim = {}
+    old_bsk_thr = {}
     for rb in rebal_dates:
         _past = [d for d in brvm30_weights_hist if d <= rb]
         closest = max(_past) if _past else min(brvm30_weights_hist.keys())
         w_b30 = brvm30_weights_hist.get(closest, {})
-        wh_sim[rb] = build_basket(rb, w_b30, AUM_MFCFA,
-                                  max_small=MAX_EXEC_SMALL, max_large=MAX_EXEC_LARGE,
-                                  large_thr=threshold)
+        bsk_thr = build_basket(rb, w_b30, AUM_MFCFA,
+                               max_small=MAX_EXEC_SMALL, max_large=MAX_EXEC_LARGE,
+                               large_thr=threshold, old_basket=old_bsk_thr)
+        if bsk_thr:
+            old_bsk_thr = dict(bsk_thr)
+        wh_sim[rb] = bsk_thr
 
     ng, nn, _, _ = build_nav_tr(all_dates, sh, rebal_dates, wh_sim,
                              monthly_rebal=True, drift_threshold=0.01)
@@ -789,18 +824,21 @@ for aum in AUM_PALIERS:
     sc_label = f'{aum // 1000} Md FCFA' + (' (actuel)' if aum == AUM_MFCFA else '')
     print(f"   Scalabilité {sc_label}…", flush=True)
 
-    # Recalcul du panier à chaque rebalancement avec cet AUM
+    # Recalcul du panier à chaque rebalancement avec cet AUM (suivi séquentiel old_basket)
     wh_sc = {}
-    rebal_detail_sc = []   # détail par trimestre
+    rebal_detail_sc = []
+    old_bsk_sc = {}
 
     for rb in rebal_dates:
         past = [d for d in brvm30_weights_hist if d <= rb]
         closest = max(past) if past else min(brvm30_weights_hist.keys())
         w_b30 = brvm30_weights_hist.get(closest, {})
 
-        # build_basket avec ADV-cap 62j/32j au nouvel AUM
-        bsk = build_basket(rb, w_b30, aum, MAX_EXEC_SMALL, MAX_EXEC_LARGE)
-        if not bsk:
+        bsk = build_basket(rb, w_b30, aum, MAX_EXEC_SMALL, MAX_EXEC_LARGE,
+                           old_basket=old_bsk_sc)
+        if bsk:
+            old_bsk_sc = dict(bsk)
+        else:
             past_rd = [d for d in rebal_dates if d <= rb]
             closest_rd = max(past_rd) if past_rd else rebal_dates[0]
             bsk = _get_weights(w_history, closest_rd)
