@@ -4381,37 +4381,40 @@ def _render_live():
             if _json_part.strip():
                 try:
                     _orders = json.loads(_json_part.strip())
-                    _df_orders = pd.DataFrame(_orders)
+                    _df_full = pd.DataFrame(_orders)
 
-                    # Renommer les colonnes pour l'affichage
+                    # Masques couleur depuis le df complet (OTC/CAP/section)
+                    _m_otc     = _df_full.get('otc',     pd.Series([False]*len(_df_full))).fillna(False).astype(bool).values
+                    _m_cap     = _df_full.get('capped',  pd.Series([False]*len(_df_full))).fillna(False).astype(bool).values
+                    _m_section = _df_full.get('section', pd.Series(['']*len(_df_full))).fillna('').values
+
+                    # Colonnes affichées (sans flags booléens)
                     _col_map = {
-                        'ticker': 'Ticker', 'sens': 'Sens', 'section': 'Section',
+                        'section': 'Section', 'ticker': 'Ticker', 'sens': 'Sens',
                         'delta_pct': 'Delta %', 'montant_mfcfa': 'Montant (M)',
                         'w_old_pct': 'Ancien %', 'w_new_pct': 'Nouveau %',
                         'w_brvm30_pct': 'Indice %',
                         'adv_mfcfa': 'ADV (M)', 'days_exec': 'Jours',
-                        'otc': 'OTC', 'capped': 'CAP',
                     }
-                    _df_orders = _df_orders.rename(columns=_col_map)
+                    _display_cols = [k for k in _col_map if k in _df_full.columns]
+                    _df_display = _df_full[_display_cols].rename(columns=_col_map).reset_index(drop=True)
 
                     def _color_row(row):
-                        if row.get('OTC'):
-                            return ['background-color: #fff3cd'] * len(row)  # orange clair
-                        if row.get('CAP'):
-                            return ['background-color: #cce5ff'] * len(row)  # bleu clair
-                        if row.get('Section') == 'Sortant':
-                            return ['background-color: #f8d7da'] * len(row)  # rouge clair
-                        if row.get('Section') == 'Entrant':
-                            return ['background-color: #d4edda'] * len(row)  # vert clair
-                        return [''] * len(row)
-
-                    _display_cols = ['Section', 'Ticker', 'Sens', 'Delta %', 'Montant (M)',
-                                     'Ancien %', 'Nouveau %', 'Indice %', 'ADV (M)', 'Jours']
-                    _df_display = _df_orders[[c for c in _display_cols if c in _df_orders.columns]].copy()
+                        i = row.name
+                        n = len(row)
+                        if _m_otc[i]:
+                            return ['background-color: #fff3cd'] * n   # orange
+                        if _m_cap[i]:
+                            return ['background-color: #cce5ff'] * n   # bleu
+                        if _m_section[i] == 'Sortant':
+                            return ['background-color: #f8d7da'] * n   # rouge
+                        if _m_section[i] == 'Entrant':
+                            return ['background-color: #d4edda'] * n   # vert
+                        return [''] * n
 
                     _styled = (
                         _df_display.style
-                        .apply(_color_row, axis=1, subset=_df_display.columns)
+                        .apply(_color_row, axis=1)
                         .format({'Delta %': '{:+.2f}', 'Montant (M)': '{:.1f}',
                                  'Ancien %': '{:.2f}', 'Nouveau %': '{:.2f}',
                                  'Indice %': '{:.2f}', 'ADV (M)': '{:.1f}',
