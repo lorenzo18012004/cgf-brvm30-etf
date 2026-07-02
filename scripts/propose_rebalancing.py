@@ -90,35 +90,27 @@ class RebalancingProposer(BaseScript):
 
     def _build_adv_capped_weights(self, w_brvm30, rebal_date, aum_mfcfa, sika):
         """
-        Top FORCE_TOP_N titres forcés (OTC).
-        Restants : ADV-cap participation 15% × 62j (grands) / 32j (petits).
+        ADV-cap uniforme sur tous les titres (pas de forcing top-N).
         Exclusion uniquement si ADV < MIN_ADV_MFCFA ou poids résiduel < MIN_WEIGHT.
         """
         total_brvm30 = sum(w_brvm30.values()) or 1.0
         w_norm = {tk: v / total_brvm30 for tk, v in w_brvm30.items()}
         adv    = {tk: self._compute_adv(sika, tk, rebal_date) for tk in w_norm}
 
-        sorted_tks = sorted(w_norm, key=lambda x: -w_norm[x])
-        forced_tks = set(sorted_tks[:FORCE_TOP_N])
-        rest_tks   = [tk for tk in sorted_tks if tk not in forced_tks]
-
-        forced_w     = {tk: w_norm[tk] for tk in forced_tks}
-        forced_total = sum(forced_w.values())
-        rest_budget  = 1.0 - forced_total
-
-        eligible = [tk for tk in rest_tks if adv[tk] >= MIN_ADV_MFCFA]
-        exclu    = {tk: f"ADV {adv[tk]:.1f} MFCFA < {MIN_ADV_MFCFA}" for tk in rest_tks if adv[tk] < MIN_ADV_MFCFA}
+        eligible   = [tk for tk in w_norm if adv[tk] >= MIN_ADV_MFCFA]
+        exclu_info = {tk: f"ADV {adv[tk]:.1f} MFCFA < {MIN_ADV_MFCFA}"
+                      for tk in w_norm if adv[tk] < MIN_ADV_MFCFA}
 
         if not eligible:
-            return {tk: round(v, 6) for tk, v in forced_w.items()}, exclu, forced_tks
+            return {}, exclu_info, set()
 
-        total_rest = sum(w_norm[tk] for tk in eligible) or 1.0
-        weights    = {tk: w_norm[tk] / total_rest * rest_budget for tk in eligible}
+        total_elig = sum(w_norm[tk] for tk in eligible) or 1.0
+        weights    = {tk: w_norm[tk] / total_elig for tk in eligible}
 
         max_w = {}
         for tk in eligible:
-            days    = MAX_EXEC_LARGE if w_norm[tk] >= LARGE_THRESHOLD else MAX_EXEC_SMALL
-            max_w[tk] = min(PARTICIPATION_RATE * adv[tk] * days / aum_mfcfa, rest_budget)
+            days      = MAX_EXEC_LARGE if w_norm[tk] >= LARGE_THRESHOLD else MAX_EXEC_SMALL
+            max_w[tk] = PARTICIPATION_RATE * adv[tk] * days / aum_mfcfa
 
         for _ in range(50):
             capped   = {tk for tk in eligible if weights[tk] > max_w[tk]}
@@ -139,20 +131,20 @@ class RebalancingProposer(BaseScript):
             if not tiny:
                 break
             for tk in tiny:
-                exclu[tk] = f"Poids < {MIN_WEIGHT*100:.1f}% après redistribution"
+                exclu_info[tk] = f"Poids < {MIN_WEIGHT*100:.1f}% après redistribution"
                 eligible.remove(tk)
             if not eligible:
                 break
             total_keep = sum(weights[tk] for tk in eligible)
             for tk in eligible:
-                weights[tk] = weights[tk] / total_keep * rest_budget if total_keep > 0 else rest_budget / len(eligible)
+                weights[tk] = weights[tk] / total_keep if total_keep > 0 else 1 / len(eligible)
 
-        final = {**forced_w, **{tk: weights[tk] for tk in eligible if weights.get(tk, 0) > 0}}
+        final = {tk: round(weights[tk], 6) for tk in eligible if weights.get(tk, 0) > 0}
         total = sum(final.values())
         if total > 0:
             final = {tk: round(v / total, 6) for tk, v in final.items()}
 
-        return final, exclu, forced_tks
+        return final, exclu_info, set()
 
     # ── Turnover ──────────────────────────────────────────────────────────── #
 

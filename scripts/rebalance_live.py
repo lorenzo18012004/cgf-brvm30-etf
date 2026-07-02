@@ -138,81 +138,63 @@ def get_total_cap_weights(tickers, rebal_date, sh, soc):
         return {tk: 1 / len(tickers) for tk in tickers}
     return {tk: market_cap[tk] / total for tk in tickers}
 
-# ── Stratégie hybride : top N forcés OTC + ADV-cap sur les restants ──────────
-def build_adv_capped_weights(w_brvm30, rebal_date, aum_mfcfa, sh):
+# ── Stratégie : poids indice cible, OTC déterminé par delta d'ordre ──────────
+def build_adv_capped_weights(w_brvm30, rebal_date, aum_mfcfa, sh, old_basket=None):
     """
-    Top FORCE_TOP_N titres : tenus à leur poids BRVM30 exact (OTC, sans contrainte ADV).
-    Restants : ADV-cap 20% × max_days + redistribution classique.
-    Retourne (final_weights, exclu_info, forced_set).
+    Poids cible = poids BRVM30 pour tous les titres éligibles.
+    Cap ADV appliqué uniquement sur le DELTA de l'ordre (pas sur la position absolue).
+    - Si delta exécutable sur screen (≤ max_days) → screen, pas d'OTC
+    - Si delta dépasse la capacité screen → OTC requis, on tient quand même le poids indice
+    - Si nouveau entrant ET poids cible > capacité screen ET pas OTC souhaitable → cap
+    Exclusion uniquement si ADV < MIN_ADV_MFCFA ou poids < MIN_WEIGHT.
+    Retourne (final_weights, exclu_info, set_otc_tickers).
     """
+    if old_basket is None:
+        old_basket = {}
+
     total_brvm30 = sum(w_brvm30.values()) or 1.0
     w_norm = {tk: v / total_brvm30 for tk, v in w_brvm30.items()}
     adv    = {tk: compute_adv(sh, tk, rebal_date) for tk in w_norm}
 
-    # Top N forcés (OTC)
-    sorted_tks  = sorted(w_norm, key=lambda x: -w_norm[x])
-    forced_tks  = set(sorted_tks[:FORCE_TOP_N])
-    rest_tks    = [tk for tk in sorted_tks if tk not in forced_tks]
-
-    forced_w     = {tk: w_norm[tk] for tk in forced_tks}
-    forced_total = sum(forced_w.values())
-    rest_budget  = 1.0 - forced_total
-
-    # Restants : filtrage ADV
-    eligible = [tk for tk in rest_tks if adv[tk] >= MIN_ADV_MFCFA]
-    exclu    = [tk for tk in rest_tks if adv[tk] < MIN_ADV_MFCFA]
+    exclu_info = {tk: f'ADV {adv[tk]:.1f} MFCFA < {MIN_ADV_MFCFA}'
+                  for tk in w_norm if adv[tk] < MIN_ADV_MFCFA}
+    eligible = [tk for tk in w_norm if adv[tk] >= MIN_ADV_MFCFA]
 
     if not eligible:
-        return {tk: round(v, 6) for tk, v in forced_w.items()}, {tk: 'ADV insuffisant' for tk in exclu}, forced_tks
+        return {}, exclu_info, set()
 
-    total_rest = sum(w_norm[tk] for tk in eligible) or 1.0
-    weights = {tk: w_norm[tk] / total_rest * rest_budget for tk in eligible}
+    # Normalise les poids cibles sur les titres éligibles
+    total_elig = sum(w_norm[tk] for tk in eligible) or 1.0
+    weights    = {tk: w_norm[tk] / total_elig for tk in eligible}
 
-    max_w = {}
+    # Capacité screen par titre (basée sur le DELTA depuis la position actuelle)
+    otc_set = set()
     for tk in eligible:
-        days = MAX_EXEC_LARGE if w_norm[tk] >= LARGE_THRESHOLD else MAX_EXEC_SMALL
-        max_w[tk] = min(PARTICIPATION_RATE * adv[tk] * days / aum_mfcfa, rest_budget)
+        w_cur   = old_basket.get(tk, 0.0)
+        delta   = abs(weights[tk] - w_cur)
+        max_d   = MAX_EXEC_LARGE if w_norm[tk] >= LARGE_THRESHOLD else MAX_EXEC_SMALL
+        cap_delta = PARTICIPATION_RATE * adv[tk] * max_d / aum_mfcfa
+        if delta > cap_delta + 1e-6:
+            otc_set.add(tk)
 
-    for _ in range(50):
-        capped   = {tk for tk in eligible if weights[tk] > max_w[tk]}
-        uncapped = [tk for tk in eligible if tk not in capped]
-        if not capped:
-            break
-        excess = sum(weights[tk] - max_w[tk] for tk in capped)
-        for tk in capped:
-            weights[tk] = max_w[tk]
-        uncapped_total = sum(weights[tk] for tk in uncapped)
-        if uncapped_total <= 0 or not uncapped:
-            break
-        for tk in uncapped:
-            weights[tk] += excess * weights[tk] / uncapped_total
-
-    for _ in range(10):
-        tiny = [tk for tk in eligible if 0 < weights[tk] < MIN_WEIGHT]
+    # Exclus poids trop faibles
+    for _ in range(5):
+        tiny = [tk for tk in eligible if 0 < weights.get(tk, 0) < MIN_WEIGHT]
         if not tiny:
             break
         for tk in tiny:
-            exclu.append(tk)
+            exclu_info[tk] = f'Poids < {MIN_WEIGHT*100:.1f}%'
             eligible.remove(tk)
-        if not eligible:
-            break
-        total_keep = sum(weights[tk] for tk in eligible)
-        for tk in eligible:
-            weights[tk] = weights[tk] / total_keep * rest_budget if total_keep > 0 else rest_budget / len(eligible)
+            otc_set.discard(tk)
+        total_keep = sum(weights[tk] for tk in eligible) or 1.0
+        weights = {tk: weights[tk] / total_keep for tk in eligible}
 
-    final = {**forced_w, **{tk: weights[tk] for tk in eligible if weights.get(tk, 0) > 0}}
+    final = {tk: round(weights[tk], 6) for tk in eligible if weights.get(tk, 0) > 0}
     total = sum(final.values())
     if total > 0:
         final = {tk: round(v / total, 6) for tk, v in final.items()}
 
-    exclu_info = {}
-    for tk in exclu:
-        if adv.get(tk, 0) < MIN_ADV_MFCFA:
-            exclu_info[tk] = f'ADV {adv.get(tk,0):.1f} MFCFA < {MIN_ADV_MFCFA}'
-        else:
-            exclu_info[tk] = f'Poids < {MIN_WEIGHT*100:.1f}%'
-
-    return final, exclu_info, forced_tks
+    return final, exclu_info, otc_set
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -280,12 +262,11 @@ def main():
     w_brvm30 = get_total_cap_weights(tickers, today, sh, soc)
 
     # ── Stratégie hybride OTC + ADV-cap ──────────────────────────────────────
-    print(f"[3/5] Top {FORCE_TOP_N} OTC + ADV-cap 20%×62j/32j sur les restants…")
-    new_basket_w, exclu_info, forced_tks = build_adv_capped_weights(w_brvm30, today, aum_mfcfa, sh)
+    print(f"[3/5] Poids cibles indice + détection OTC par delta d'ordre…")
+    old_basket_w = {item['ticker']: item['poids_pct'] / 100 for item in nl.get('basket', [])}
+    new_basket_w, exclu_info, forced_tks = build_adv_capped_weights(w_brvm30, today, aum_mfcfa, sh, old_basket_w)
 
-    sorted_by_w = sorted(w_brvm30, key=lambda x: -w_brvm30.get(x, 0))
-    print(f"   Top {FORCE_TOP_N} OTC : {', '.join(sorted_by_w[:FORCE_TOP_N])}")
-    print(f"   Panier final : {len(new_basket_w)} titres | {len(exclu_info)} exclus")
+    print(f"   Panier final : {len(new_basket_w)} titres | {len(exclu_info)} exclus | {len(forced_tks)} OTC requis")
     for tk, raison in sorted(exclu_info.items()):
         print(f"   EXCLU {tk} : {raison}")
 
@@ -307,9 +288,10 @@ def main():
             continue
         montant_mfcfa = abs(delta) * aum_mfcfa
         sens  = 'ACHETER' if delta > 0 else 'VENDRE'
-        adv   = compute_adv(sh, tk, today)
-        w_b30 = w_brvm30.get(tk, 0.0)
-        days  = (montant_mfcfa / adv / PARTICIPATION_RATE) if adv > 0 else 999.0
+        adv      = compute_adv(sh, tk, today)
+        w_b30    = w_brvm30.get(tk, 0.0)
+        days     = (montant_mfcfa / adv / PARTICIPATION_RATE) if adv > 0 else 999.0
+        max_days = MAX_EXEC_LARGE if w_b30 >= LARGE_THRESHOLD else MAX_EXEC_SMALL
         orders.append({
             'ticker':       tk,
             'sens':         sens,
@@ -320,8 +302,8 @@ def main():
             'w_brvm30_pct': round(w_b30 * 100, 2),
             'adv_mfcfa':    round(adv, 1),
             'days_exec':    round(days, 1),
-            'otc':          tk in forced_tks,
-            'capped':       tk in new_basket_w and tk not in forced_tks and w_new < w_b30 - 1e-4,
+            'otc':          days > max_days,
+            'capped':       tk in new_basket_w and w_new < w_b30 - 1e-4,
         })
         turnover += abs(delta)
 
@@ -381,8 +363,9 @@ def main():
             for tk, raison in exclu_info.items():
                 print(f"    {tk:<8} {w_brvm30.get(tk,0)*100:.2f}% — {raison}")
 
-        sorted_b30 = sorted(w_brvm30, key=lambda x: -w_brvm30[x])
-        print(f"\n  Top {FORCE_TOP_N} OTC (poids exact) : {', '.join(sorted_b30[:FORCE_TOP_N])}")
+        otc_orders = [o['ticker'] for o in orders if o['otc']]
+        if otc_orders:
+            print(f"\n  Ordres nécessitant OTC ({len(otc_orders)}) : {', '.join(otc_orders)}")
         print()
         print("  Pour appliquer : Dashboard → onglet REBALANCER → Étape 2")
         print("=" * 70)
