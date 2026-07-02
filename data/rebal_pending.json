@@ -1,5 +1,5 @@
 {
-  "status": "pending",
+  "status": "applied",
   "proposed_at": "2026-07-02 09:34 UTC",
   "proposed_rebal_date": "2026-07-01",
   "last_rebal_date": "2026-04-01",
@@ -414,5 +414,6 @@
       "ticker": "NEIC",
       "w_etf": 0.001492
     }
-  ]
+  ],
+  "applied_at": "2026-07-02 12:13 UTC"
 }
