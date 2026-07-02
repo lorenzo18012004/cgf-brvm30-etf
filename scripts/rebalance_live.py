@@ -320,12 +320,13 @@ def main():
     print(f"   Turnover one-way : {turnover*100:.1f}%")
     print(f"   Coût de transaction (spread variable) : {cost_pct*100:.3f}% de l'AUM")
     print()
-    print(f"   {'Ticker':<8} {'Sens':<8} {'Delta':>7} {'Montant':>11} {'Ancien':>7} {'Nouveau':>7} {'Indice':>7} {'ADV':>7} {'Jours':>6}  Flags")
-    print(f"   {'-'*87}")
-    for o in sorted(orders, key=lambda x: -abs(x['delta_pct'])):
+    HDR = f"   {'Ticker':<8} {'Sens':<8} {'Delta':>7} {'Montant':>11} {'Ancien':>7} {'Nouveau':>7} {'Indice':>7} {'ADV':>7} {'Jours':>6}  Flags"
+    SEP = f"   {'-'*87}"
+
+    def _print_order(o):
         flags = []
-        if o['otc']:   flags.append('OTC')
-        if o['capped']:flags.append('CAP')
+        if o['otc']:    flags.append('OTC')
+        if o['capped']: flags.append('CAP')
         print(f"   {o['ticker']:<8} {o['sens']:<8} {o['delta_pct']:>+6.2f}%"
               f" {o['montant_mfcfa']:>9.1f} M"
               f" {o['w_old_pct']:>6.2f}%"
@@ -334,6 +335,28 @@ def main():
               f" {o['adv_mfcfa']:>6.1f} M"
               f" {o['days_exec']:>5.1f}j"
               f"  {' '.join(flags)}")
+
+    entrants  = [o for o in orders if o['w_old_pct'] == 0 and o['w_new_pct'] > 0]
+    sortants  = [o for o in orders if o['w_new_pct'] == 0]
+    ajusts    = [o for o in orders if o['w_old_pct'] > 0 and o['w_new_pct'] > 0]
+
+    if entrants:
+        print(f"\n   ── Entrants ({len(entrants)}) ──────────────────────────────────────────────")
+        print(HDR); print(SEP)
+        for o in sorted(entrants, key=lambda x: -x['delta_pct']):
+            _print_order(o)
+
+    if ajusts:
+        print(f"\n   ── Ajustements ({len(ajusts)}) ─────────────────────────────────────────────")
+        print(HDR); print(SEP)
+        for o in sorted(ajusts, key=lambda x: -abs(x['delta_pct'])):
+            _print_order(o)
+
+    if sortants:
+        print(f"\n   ── Sortants à liquider ({len(sortants)}) ───────────────────────────────────")
+        print(HDR); print(SEP)
+        for o in sorted(sortants, key=lambda x: x['delta_pct']):
+            _print_order(o)
 
     # ── Calcul NAV après coûts ────────────────────────────────────────────────
     nav_before = float(nl.get('nav_indice', 0))
