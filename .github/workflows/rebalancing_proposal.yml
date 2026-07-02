@@ -31,8 +31,18 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements/requirements_cloud.txt
 
-      - name: Installer dépendances
+      - name: Installer dépendances système (OCR)
+        run: sudo apt-get install -y tesseract-ocr tesseract-ocr-fra --quiet
+
+      - name: Installer dépendances Python
         run: pip install -r requirements/requirements_cloud.txt
+
+      - name: Vérifier nouveau PDF composition BRVM30
+        id: fetch_pdf
+        run: |
+          python scripts/fetch_brvm_composition_pdf.py
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
 
       - name: Vérifier nouvelle composition BRVM30
         env:

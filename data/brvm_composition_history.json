@@ -793,5 +793,55 @@
       "SLBC",
       "SOGC"
     ]
+  },
+  {
+    "rebal_date": "2026-07-01",
+    "scrape_ts": "2026-07-02 09:23",
+    "pdf_slug": "20260701_-_avis_ndeg191_brvmdg_-_composition_de_lindice_brvm_30.pdf",
+    "pdf_url": "https://www.brvm.org/sites/default/files/20260701_-_avis_ndeg191_brvmdg_-_composition_de_lindice_brvm_30.pdf",
+    "article_url": "https://www.brvm.org/fr/avis-composition-de-lindice-brvm-30",
+    "n_tickers": 30,
+    "composition": [
+      "BICB",
+      "BOAB",
+      "BOABF",
+      "BOAC",
+      "BOAM",
+      "BOAN",
+      "BOAS",
+      "CBIBF",
+      "CFAC",
+      "CIEC",
+      "ECOC",
+      "ETIT",
+      "NEIC",
+      "NSBC",
+      "ORAC",
+      "ORGT",
+      "SAFC",
+      "SCRC",
+      "SDSC",
+      "SEMC",
+      "SGBC",
+      "SIBC",
+      "SIVC",
+      "SNTS",
+      "SOGC",
+      "SPHC",
+      "STAC",
+      "STBC",
+      "TTLC",
+      "UNXC"
+    ],
+    "entries": [
+      "NSBC",
+      "SAFC",
+      "SOGC"
+    ],
+    "exits": [
+      "FTSC",
+      "ONTBF",
+      "SHEC"
+    ]
   }
 ]
