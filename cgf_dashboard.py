@@ -4376,7 +4376,8 @@ def _render_live():
                 _text_part, _json_part = _raw_out.split(_JSON_MARKER, 1)
             else:
                 _text_part, _json_part = _raw_out, ""
-            st.code(_text_part.strip(), language="text")
+            with st.expander("Détails du calcul (texte brut)", expanded=False):
+                st.code(_text_part.strip(), language="text")
 
             if _json_part.strip():
                 try:
