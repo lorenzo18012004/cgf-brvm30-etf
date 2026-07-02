@@ -32,7 +32,8 @@ Sécurité :
   Pour appliquer, déclencher manuellement le workflow "Appliquer rebalancement"
   depuis GitHub Actions → onglet Actions → "Appliquer rebalancement trimestriel".
 """
-import sys, os, json, argparse
+import sys, os, json, argparse, calendar
+from datetime import date as date_cls
 import pandas as pd
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -53,7 +54,6 @@ LARGE_THRESHOLD  = 0.03
 PARTICIPATION_RATE = 0.15  # max 15% de l'ADV quotidien (screen + OTC petits blocs)
 MIN_ADV_MFCFA    = 0.5
 MIN_WEIGHT       = 0.001
-STALE_WINDOW     = 63
 FORCE_TOP_N      = 5       # top 5 titres BRVM30 tenus à leur poids exact (OTC)
 CASH_BUFFER      = 0.01   # poche de liquidité : 1% du NAV en cash
 
@@ -104,16 +104,32 @@ def last_price(sh, ticker, as_of_date):
             return float(close)
     return None
 
-def compute_adv(sh, ticker, as_of_date, window=STALE_WINDOW):
+def _prev_quarter_range(as_of_date):
+    """Retourne (start, end) du trimestre calendaire précédent (format YYYY-MM-DD)."""
+    d = date_cls.fromisoformat(as_of_date)
+    q = (d.month - 1) // 3   # trimestre courant : 0=Q1, 1=Q2, 2=Q3, 3=Q4
+    if q == 0:
+        start = date_cls(d.year - 1, 10, 1)
+        end   = date_cls(d.year - 1, 12, 31)
+    else:
+        sm = (q - 1) * 3 + 1
+        em = q * 3
+        start = date_cls(d.year, sm, 1)
+        end   = date_cls(d.year, em, calendar.monthrange(d.year, em)[1])
+    return start.isoformat(), end.isoformat()
+
+def compute_adv(sh, ticker, as_of_date):
+    q_start, q_end = _prev_quarter_range(as_of_date)
     hist  = sh.get(ticker, {})
-    dates = sorted(d for d in hist if d < as_of_date)[-window:]
+    dates = [d for d in hist if q_start <= d <= q_end]
     vals  = [(hist[d].get('volume') or 0) * (hist[d].get('close') or 0) / 1e6
              for d in dates]
     return float(sum(vals) / len(dates)) if dates else 0.0
 
-def compute_stale(sh, ticker, as_of_date, window=STALE_WINDOW):
+def compute_stale(sh, ticker, as_of_date):
+    q_start, q_end = _prev_quarter_range(as_of_date)
     hist  = sh.get(ticker, {})
-    dates = sorted(d for d in hist if d < as_of_date)[-window:]
+    dates = [d for d in hist if q_start <= d <= q_end]
     if not dates:
         return 1.0
     return sum(1 for d in dates if (hist[d].get('volume') or 0) == 0) / len(dates)
