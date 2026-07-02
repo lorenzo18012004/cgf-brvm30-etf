@@ -513,13 +513,20 @@ def main():
         'cost_pct': round(cost_pct * 100, 4),
         'basket': [
             {
-                'ticker':      tk,
-                'w_etf':       round(w, 6),
-                'w_brvm30':    round(w_brvm30.get(tk, 0), 6),
-                'adv_mfcfa':   round(compute_adv(sh, tk, today), 1),
-                'stale_ratio': round(compute_stale(sh, tk, today), 3),
-                'force':       tk in forced_tks,
-                'force_otc':   tk in forced_tks,
+                'ticker':       tk,
+                'w_etf':        round(w, 6),
+                'w_brvm30':     round(w_brvm30.get(tk, 0), 6),
+                'adv_mfcfa':    round(compute_adv(sh, tk, today), 1),
+                'stale_ratio':  round(compute_stale(sh, tk, today), 3),
+                'force':        tk in forced_tks,
+                'force_otc':    tk in forced_tks,
+                'trade_mfcfa':  round(
+                    next((o['montant_mfcfa'] * (1 if o['sens'] == 'ACHETER' else -1)
+                          for o in orders if o['ticker'] == tk), 0.0), 1),
+                'days_exec':    round(
+                    next((o['days_exec'] for o in orders if o['ticker'] == tk), 0.0), 1),
+                'delta':        round(
+                    next((o['delta_pct'] / 100 for o in orders if o['ticker'] == tk), 0.0), 6),
             }
             for tk, w in new_basket_w.items()
         ],
