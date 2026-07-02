@@ -550,6 +550,16 @@ def main():
     json.dump(rd, open(RD_PATH, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     print(f"   rebal_detail.json  : entrée {today} ajoutée")
 
+    # Marquer rebal_pending.json comme appliqué
+    from datetime import datetime as _dt2, timezone as _tz
+    PENDING_PATH = os.path.join(DATA, 'rebal_pending.json')
+    if os.path.exists(PENDING_PATH):
+        pending = _json.load(open(PENDING_PATH, encoding='utf-8'))
+        pending['status']     = 'applied'
+        pending['applied_at'] = _dt2.now(_tz.utc).strftime('%Y-%m-%d %H:%M UTC')
+        _json.dump(pending, open(PENDING_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+        print(f"   rebal_pending.json : marqué 'applied'")
+
     print()
     print("=== REBALANCEMENT APPLIQUÉ ===")
     print(f"   Panier : {len(new_basket)} titres")

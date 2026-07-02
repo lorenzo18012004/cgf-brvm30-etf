@@ -4335,6 +4335,18 @@ def _render_live():
         _next_rebal_str = _next_rebal_ts.strftime("%Y-%m-%d") if _next_rebal_ts else "N/A"
         _days_left      = int((_next_rebal_ts - _today_ts).days) if _next_rebal_ts else 999
 
+        # Lire rebal_pending.json pour pré-remplir la date si un rebal est en attente
+        _pending_rebal_date = None
+        _pending_path = os.path.join(BASE, "data", "rebal_pending.json")
+        if os.path.exists(_pending_path):
+            try:
+                _pending_data = json.load(open(_pending_path, encoding="utf-8"))
+                if _pending_data.get("status") == "pending":
+                    _pending_rebal_date = _pending_data.get("proposed_rebal_date")
+            except Exception:
+                pass
+        _default_rebal_date = _pending_rebal_date or _next_rebal_str
+
         st.markdown("<br>", unsafe_allow_html=True)
         _section("Prochain rebalancement trimestriel")
 
@@ -4351,9 +4363,9 @@ def _render_live():
 
         _prev_date_input = st.text_input(
             "Date du rebalancement",
-            value=_next_rebal_str,
+            value=_default_rebal_date,
             key="rebal_date_input",
-            help="Format YYYY-MM-DD. Par défaut : prochain jour ouvré de trimestre.",
+            help="Format YYYY-MM-DD. Par défaut : date du rebal en attente ou prochain jour ouvré de trimestre.",
         )
 
         if st.button("Calculer le nouveau panier (dry-run)", key="btn_rebal_preview"):
@@ -4457,7 +4469,7 @@ def _render_live():
                     type="primary",
                     disabled=_btn_disabled,
                 ):
-                    _apply_date = st.session_state.get("rebal_preview_date") or _next_rebal_str
+                    _apply_date = st.session_state.get("rebal_preview_date") or _pending_rebal_date or _next_rebal_str
                     st.info(f"Date du rebalancement : **{_apply_date}** — relance le dry-run si incorrect.")
                     with st.spinner(f"Application du rebalancement {_apply_date}…"):
                         _script_path = os.path.join(BASE, "scripts", "rebalance_live.py")
