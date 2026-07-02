@@ -363,7 +363,7 @@ def main():
             'adv_mfcfa':    round(adv, 1),
             'days_exec':    round(days, 1),
             'otc':          tk in forced_tks and days > max_days,
-            'capped':       tk not in forced_tks and days > max_days,
+            'capped':       tk not in forced_tks and w_new < w_b30 - 1e-4,
         })
         turnover += abs(delta)
 
