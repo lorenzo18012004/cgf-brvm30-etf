@@ -138,16 +138,14 @@ def get_total_cap_weights(tickers, rebal_date, sh, soc):
         return {tk: 1 / len(tickers) for tk in tickers}
     return {tk: market_cap[tk] / total for tk in tickers}
 
-# ── Stratégie : poids indice cible, OTC déterminé par delta d'ordre ──────────
+# ── Stratégie : top-5 OTC (plein poids indice) + CAP ADV pour les autres ──────
 def build_adv_capped_weights(w_brvm30, rebal_date, aum_mfcfa, sh, old_basket=None):
     """
-    Poids cible = poids BRVM30 pour tous les titres éligibles.
-    Cap ADV appliqué uniquement sur le DELTA de l'ordre (pas sur la position absolue).
-    - Si delta exécutable sur screen (≤ max_days) → screen, pas d'OTC
-    - Si delta dépasse la capacité screen → OTC requis, on tient quand même le poids indice
-    - Si nouveau entrant ET poids cible > capacité screen ET pas OTC souhaitable → cap
-    Exclusion uniquement si ADV < MIN_ADV_MFCFA ou poids < MIN_WEIGHT.
-    Retourne (final_weights, exclu_info, set_otc_tickers).
+    Top FORCE_TOP_N par poids indice → OTC (tient le plein poids indice, bloc négocié).
+    Autres titres → si le delta dépasse la capacité screen (15% ADV × 62j/32j) → CAP
+                    (poids réduit à ce qu'on peut acheter/vendre sur screen).
+    Exclusion uniquement si ADV < MIN_ADV_MFCFA ou poids résiduel < MIN_WEIGHT.
+    Retourne (final_weights, exclu_info, otc_set).
     """
     if old_basket is None:
         old_basket = {}
@@ -163,21 +161,30 @@ def build_adv_capped_weights(w_brvm30, rebal_date, aum_mfcfa, sh, old_basket=Non
     if not eligible:
         return {}, exclu_info, set()
 
-    # Normalise les poids cibles sur les titres éligibles
     total_elig = sum(w_norm[tk] for tk in eligible) or 1.0
-    weights    = {tk: w_norm[tk] / total_elig for tk in eligible}
+    w_target   = {tk: w_norm[tk] / total_elig for tk in eligible}
 
-    # Capacité screen par titre (basée sur le DELTA depuis la position actuelle)
-    otc_set = set()
+    # Top FORCE_TOP_N par poids indice → OTC (bloc négocié, plein poids indice)
+    sorted_by_w = sorted(eligible, key=lambda tk: -w_target[tk])
+    otc_set = set(sorted_by_w[:FORCE_TOP_N])
+
+    # Calcul des poids réalisables (capés pour les non-OTC)
+    weights = {}
     for tk in eligible:
-        w_cur   = old_basket.get(tk, 0.0)
-        delta   = abs(weights[tk] - w_cur)
-        max_d   = MAX_EXEC_LARGE if w_norm[tk] >= LARGE_THRESHOLD else MAX_EXEC_SMALL
-        cap_delta = PARTICIPATION_RATE * adv[tk] * max_d / aum_mfcfa
-        if delta > cap_delta + 1e-6:
-            otc_set.add(tk)
+        w_cur = old_basket.get(tk, 0.0)
+        w_tgt = w_target[tk]
+        if tk in otc_set:
+            weights[tk] = w_tgt                        # OTC : plein poids indice
+        else:
+            delta     = w_tgt - w_cur
+            max_d     = MAX_EXEC_LARGE if w_norm[tk] >= LARGE_THRESHOLD else MAX_EXEC_SMALL
+            max_delta = PARTICIPATION_RATE * adv[tk] * max_d / aum_mfcfa
+            if abs(delta) > max_delta + 1e-6:
+                weights[tk] = max(0.0, w_cur + (max_delta if delta > 0 else -max_delta))
+            else:
+                weights[tk] = w_tgt                    # Screen suffit
 
-    # Exclus poids trop faibles
+    # Exclure les poids résiduels trop faibles
     for _ in range(5):
         tiny = [tk for tk in eligible if 0 < weights.get(tk, 0) < MIN_WEIGHT]
         if not tiny:
@@ -186,6 +193,8 @@ def build_adv_capped_weights(w_brvm30, rebal_date, aum_mfcfa, sh, old_basket=Non
             exclu_info[tk] = f'Poids < {MIN_WEIGHT*100:.1f}%'
             eligible.remove(tk)
             otc_set.discard(tk)
+        if not eligible:
+            break
         total_keep = sum(weights[tk] for tk in eligible) or 1.0
         weights = {tk: weights[tk] / total_keep for tk in eligible}
 
@@ -306,8 +315,8 @@ def main():
             'w_brvm30_pct': round(w_b30 * 100, 2),
             'adv_mfcfa':    round(adv, 1),
             'days_exec':    round(days, 1),
-            'otc':          days > max_days,
-            'capped':       tk in new_basket_w and w_new < w_b30 - 1e-4,
+            'otc':          tk in forced_tks,
+            'capped':       tk not in forced_tks and days > max_days,
         })
         turnover += abs(delta)
 
