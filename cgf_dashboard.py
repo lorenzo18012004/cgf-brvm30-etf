@@ -5371,6 +5371,84 @@ def _render_live():
             ("Taux RF UEMOA",        f"{_trf_a*100:.1f}%"),
         )
 
+        # ── Comptabilité Dividend Settlement Gap ─────────────────────────────
+        _ACCT_PATH_A = os.path.join(BRVM30_DIR, "dividend_accounting.json")
+        _acct_a      = load_json(_ACCT_PATH_A) or {}
+        _events_acct = _acct_a.get("evenements", [])
+        _recv_fcfa   = _acct_a.get("dividend_receivable_fcfa", 0) or 0
+        _payable_fcfa= _acct_a.get("distribution_payable_fcfa", 0) or 0
+        _poche_fcfa  = _acct_a.get("poche_distribution_fcfa", 0) or 0
+
+        if _events_acct or _recv_fcfa or _poche_fcfa:
+            with st.expander("Comptabilité Dividend Settlement Gap", expanded=True):
+                _ca1, _ca2, _ca3 = st.columns(3)
+                _ca1.metric("Dividend Receivable (actif)",
+                            f"{_recv_fcfa:,.0f} FCFA",
+                            help="Créance sur dividendes détachés, cash pas encore reçu")
+                _ca2.metric("Distribution Payable (passif)",
+                            f"{_payable_fcfa:,.0f} FCFA",
+                            help="Dette envers les porteurs — montant à distribuer")
+                _ca3.metric("Poche Distribution (cantonnée)",
+                            f"{_poche_fcfa:,.0f} FCFA",
+                            help="Cash reçu, routé vers la poche — ne transite pas par la NAV")
+
+                if _events_acct:
+                    _rows_acct = []
+                    for _ev_a in _events_acct:
+                        _status_col = {
+                            "accrued":     "#c9861a",
+                            "received":    "#1565c0",
+                            "distributed": "#2d7a4f",
+                        }.get(_ev_a.get("status", ""), "#9e9e9e")
+                        _rows_acct.append({
+                            "Ticker":          _ev_a.get("ticker", "—"),
+                            "Ex-date":         _ev_a.get("ex_date", "—"),
+                            "Montant/action":  _ev_a.get("montant_par_action_fcfa", 0),
+                            "Nb titres (ETF)": int(_ev_a.get("nb_titres_etf", 0) or 0),
+                            "Total FCFA":      int(_ev_a.get("montant_total_fcfa", 0) or 0),
+                            "Par part FCFA":   round(_ev_a.get("montant_par_part_fcfa", 0) or 0, 4),
+                            "Paiement":        _ev_a.get("payment_date") or "En attente",
+                            "Statut":          _ev_a.get("status", "—").upper(),
+                        })
+                    st.dataframe(
+                        pd.DataFrame(_rows_acct),
+                        use_container_width=True, hide_index=True,
+                        column_config={
+                            "Montant/action": st.column_config.NumberColumn(format="%.2f"),
+                            "Total FCFA":     st.column_config.NumberColumn(format="%d"),
+                            "Par part FCFA":  st.column_config.NumberColumn(format="%.4f"),
+                        }
+                    )
+
+                # Actions manuelles : enregistrer paiement reçu
+                _accrued_evs = [e for e in _events_acct if e.get("status") == "accrued"]
+                _received_evs= [e for e in _events_acct if e.get("status") == "received"]
+                if _accrued_evs:
+                    st.caption("Enregistrer la réception du cash (quand la BRVM verse le dividende) :")
+                    for _ev_btn in _accrued_evs:
+                        _btn_lbl = (f"Marquer reçu — {_ev_btn['ticker']} "
+                                    f"({int(_ev_btn.get('montant_total_fcfa',0) or 0):,} FCFA)")
+                        if st.button(_btn_lbl, key=f"div_recv_{_ev_btn['id']}"):
+                            import subprocess as _sp2
+                            _sp2.run([
+                                sys.executable,
+                                os.path.join(BRVM30_DIR, "scripts", "check_corporate_actions.py"),
+                                "--record-payment",
+                                _ev_btn["ticker"], _ev_btn["ex_date"],
+                            ], capture_output=True)
+                            st.rerun()
+                if _received_evs:
+                    _total_poche = sum(e.get("montant_total_fcfa", 0) or 0 for e in _received_evs)
+                    if st.button(f"Distribuer aux porteurs — {_total_poche:,.0f} FCFA",
+                                 key="div_distribuer", type="primary"):
+                        import subprocess as _sp3
+                        _sp3.run([
+                            sys.executable,
+                            os.path.join(BRVM30_DIR, "scripts", "check_corporate_actions.py"),
+                            "--distribute",
+                        ], capture_output=True)
+                        st.rerun()
+
         _tab_ex, _tab_cal, _tab_hist_d = st.tabs([
             f"Exercice {_annee_a} — vue ETF",
             "Calendrier BRVM complet",
