@@ -498,9 +498,11 @@ def main():
     json.dump(dd, open(DD_PATH, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     print(f"   dashboard_data.json: w_history[{today}] ajouté")
 
+    from datetime import datetime as _dt
     new_rebal_entry = {
-        'date':     today,
-        'skipped':  False,
+        'date':       today,
+        'date_label': _dt.strptime(today, '%Y-%m-%d').strftime('%d %b. %Y'),
+        'skipped':    False,
         'basket_n': len(new_basket),
         'excl_n':   len(exclu_info),
         'coverage': round(sum(w_brvm30.get(tk, 0) for tk in new_basket_w), 4),
