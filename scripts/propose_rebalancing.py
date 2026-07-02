@@ -4,7 +4,13 @@ propose_rebalancing.py — Détection automatique de nouveau rebalancement BRVM3
 Appelé mensuellement par GitHub Actions.
 Compare brvm_composition_latest.json avec le dernier rebal dans rebal_detail.json.
 Si une nouvelle composition existe → génère rebal_pending.json + envoie un email.
-Rien n'est appliqué : la validation est manuelle (workflow apply_rebalancing).
+
+Stratégie identique à rebalance_live.py :
+  - Poids cible : capitalisation totale Sika (nb_titres × prix)
+  - Top FORCE_TOP_N forcés (OTC, sans contrainte ADV)
+  - Restants : ADV-cap (participation 15% × 62j/32j) + redistribution
+  - Exclusion uniquement si ADV < MIN_ADV_MFCFA ou poids < 0.1% après redistribution
+  - Pas d'exclusion float fixe
 
 Usage :
     python propose_rebalancing.py           # vérification normale
@@ -12,25 +18,19 @@ Usage :
 """
 
 import os, sys, json, smtplib, argparse
-import numpy as np
 from datetime import datetime, timezone
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 from base import BaseScript
 
-# ── Paramètres de sélection (identiques au backtest) ─────────────────────────
-FORCE_WEIGHT        = 0.03     # ≥ 3% poids indice → forcé quoi qu'il arrive
-STALE_THRESH        = 0.70     # ≥ 70% jours sans cotation → exclu (sauf forcé)
-STALE_WINDOW        = 63       # fenêtre 3 mois (jours ouvrés)
-MAX_EXEC_NEW_DAYS   = 100      # nouveau entrant : max 100j d'exécution
-MAX_EXEC_EXIST_DAYS = 32       # titre existant  : max 32j
-CONSEC_REBALS_EXIT  = 2        # 2 rebals consécutifs > seuil → sortie
-MIN_BASKET_WEIGHT   = 0.001    # < 0.1% après redistribution → exclu
-
-# Liste manuelle des titres exclus pour float < 7 Md FCFA
-# À mettre à jour si de nouveaux titres à petit flottant entrent dans le BRVM30
-FLOAT_EXCLUDE = {"SEMC", "SIVC", "NEIC"}
+# ── Paramètres (identiques à rebalance_live.py) ──────────────────────────────
+MAX_EXEC_LARGE   = 62
+MAX_EXEC_SMALL   = 32
+LARGE_THRESHOLD  = 0.03
+PARTICIPATION_RATE = 0.15
+MIN_ADV_MFCFA    = 0.5
+MIN_WEIGHT       = 0.001
+STALE_WINDOW     = 63
+FORCE_TOP_N      = 5
 
 
 class RebalancingProposer(BaseScript):
@@ -39,188 +39,136 @@ class RebalancingProposer(BaseScript):
         super().__init__()
         self.recipient = "l.philippe@cgfgestion.com"
 
-    # ------------------------------------------------------------------ #
+    # ── Helpers Sika ──────────────────────────────────────────────────────── #
 
-    def _load_current_basket(self):
-        rd = self.load_json("rebal_detail.json", {"rebalancings": []})
-        rebals = [r for r in rd.get("rebalancings", [])
-                  if not r.get("skipped") and r.get("basket")]
-        if not rebals:
-            return None, [], {}
-        last = rebals[-1]
-        # Récupère le compteur excess_days du dernier rebal
-        excess = last.get("excess_days_cnt", {})
-        return last["date"], last["basket"], excess
+    def _last_price(self, sika, ticker, as_of_date):
+        hist = sika.get(ticker, {})
+        past = sorted(d for d in hist if d <= as_of_date)
+        if past:
+            p = hist[past[-1]]
+            close = p.get("close") if isinstance(p, dict) else p
+            if close and float(close) > 0:
+                return float(close)
+        return None
 
-    def _compute_adv(self, ticker, as_of_date, sika):
+    def _compute_adv(self, sika, ticker, as_of_date):
         hist  = sika.get(ticker, {})
         dates = sorted(d for d in hist if d < as_of_date)[-STALE_WINDOW:]
-        # Dénominateur = tous les jours de la fenêtre (y compris jours sans volume)
         vals  = [(hist[d].get("volume") or 0) * (hist[d].get("close") or 0) / 1e6
                  for d in dates]
         return float(sum(vals) / len(dates)) if dates else 0.0
 
-    def _compute_stale(self, ticker, as_of_date, sika):
+    def _compute_stale(self, sika, ticker, as_of_date):
         hist  = sika.get(ticker, {})
         dates = sorted(d for d in hist if d < as_of_date)[-STALE_WINDOW:]
         if not dates:
             return 1.0
         return sum(1 for d in dates if (hist[d].get("volume") or 0) == 0) / len(dates)
 
-    def _estimate_weights(self, tickers, sika):
-        """Estimation des poids BRVM30 depuis les prix (proxy market cap)."""
-        prices = {}
-        for tk in tickers:
-            hist = sika.get(tk, {})
-            if hist:
-                latest = max(hist.keys())
-                p = hist[latest].get("close") or hist[latest].get("close_adj")
-                if p:
-                    prices[tk] = float(p)
-        n = len(tickers)
-        total = sum(prices.get(tk, 0) for tk in tickers if prices.get(tk))
-        weights = {}
-        for tk in tickers:
-            if tk in prices and total > 0:
-                weights[tk] = round(prices[tk] / total, 6)
-            else:
-                weights[tk] = round(1 / n, 6)
-        return weights
+    # ── Poids capitalisation totale Sika ──────────────────────────────────── #
 
-    def _apply_selection_rules(
-        self,
-        tickers: list,
-        w_brvm30: dict,
-        as_of_date: str,
-        prev_basket: set,
-        excess_days_cnt: dict,
-        sika: dict,
-        aum_mfcfa: float,
-    ):
+    def _get_total_cap_weights(self, tickers, rebal_date, sika, soc):
+        market_cap = {}
+        missing    = []
+        for tk in tickers:
+            nb   = soc.get(tk, {}).get("nb_titres")
+            prix = self._last_price(sika, tk, rebal_date)
+            if nb and prix:
+                market_cap[tk] = nb * prix
+            else:
+                missing.append(tk)
+        if missing and market_cap:
+            avg = sum(market_cap.values()) / len(market_cap)
+            for tk in missing:
+                market_cap[tk] = avg
+        total = sum(market_cap.values())
+        if total <= 0:
+            return {tk: 1 / len(tickers) for tk in tickers}
+        return {tk: market_cap[tk] / total for tk in tickers}
+
+    # ── Stratégie ADV-cap (= rebalance_live.py) ───────────────────────────── #
+
+    def _build_adv_capped_weights(self, w_brvm30, rebal_date, aum_mfcfa, sika):
         """
-        Applique les 5 règles de sélection.
-        Retourne (basket_weights, excluded_list, new_excess_days_cnt).
-        basket_weights : {ticker: w_etf}
-        excluded_list  : [{"ticker", "w_brvm30", "raison", "adv_mfcfa", "stale_ratio",
-                           "trade_mfcfa", "days_exec"}]
+        Top FORCE_TOP_N titres forcés (OTC).
+        Restants : ADV-cap participation 15% × 62j (grands) / 32j (petits).
+        Exclusion uniquement si ADV < MIN_ADV_MFCFA ou poids résiduel < MIN_WEIGHT.
         """
-        forced, included, excluded = [], [], []
-        new_excess = dict(excess_days_cnt)
+        total_brvm30 = sum(w_brvm30.values()) or 1.0
+        w_norm = {tk: v / total_brvm30 for tk, v in w_brvm30.items()}
+        adv    = {tk: self._compute_adv(sika, tk, rebal_date) for tk in w_norm}
 
-        for tk in tickers:
-            w_b30   = w_brvm30.get(tk, 1 / max(len(tickers), 1))
-            adv     = self._compute_adv(tk, as_of_date, sika)
-            stale   = self._compute_stale(tk, as_of_date, sika)
-            trade   = w_b30 * aum_mfcfa
-            exec_d  = trade / adv if adv > 0 else 999.0
-            is_new  = tk not in prev_basket
+        sorted_tks = sorted(w_norm, key=lambda x: -w_norm[x])
+        forced_tks = set(sorted_tks[:FORCE_TOP_N])
+        rest_tks   = [tk for tk in sorted_tks if tk not in forced_tks]
 
-            # Float
-            if tk in FLOAT_EXCLUDE:
-                excluded.append({
-                    "ticker": tk, "w_brvm30": round(w_b30, 6),
-                    "raison": "Float < 7 Md FCFA",
-                    "adv_mfcfa": round(adv, 1), "stale_ratio": round(stale, 3),
-                    "trade_mfcfa": round(trade, 1), "days_exec": round(exec_d, 1),
-                })
-                new_excess.pop(tk, None)
-                continue
+        forced_w     = {tk: w_norm[tk] for tk in forced_tks}
+        forced_total = sum(forced_w.values())
+        rest_budget  = 1.0 - forced_total
 
-            # Force ≥ 3%
-            if w_b30 >= FORCE_WEIGHT:
-                forced.append((tk, w_b30, adv, stale, trade, exec_d))
-                new_excess.pop(tk, None)
-                continue
+        eligible = [tk for tk in rest_tks if adv[tk] >= MIN_ADV_MFCFA]
+        exclu    = {tk: f"ADV {adv[tk]:.1f} MFCFA < {MIN_ADV_MFCFA}" for tk in rest_tks if adv[tk] < MIN_ADV_MFCFA}
 
-            # Stale ≥ 70%
-            if stale >= STALE_THRESH:
-                excluded.append({
-                    "ticker": tk, "w_brvm30": round(w_b30, 6),
-                    "raison": f"Stale {stale*100:.0f}% (3 mois)",
-                    "adv_mfcfa": round(adv, 1), "stale_ratio": round(stale, 3),
-                    "trade_mfcfa": round(trade, 1), "days_exec": round(exec_d, 1),
-                })
-                new_excess.pop(tk, None)
-                continue
+        if not eligible:
+            return {tk: round(v, 6) for tk, v in forced_w.items()}, exclu, forced_tks
 
-            # ADV insuffisant
-            max_days = MAX_EXEC_NEW_DAYS if is_new else MAX_EXEC_EXIST_DAYS
-            if exec_d > max_days:
-                if is_new:
-                    excluded.append({
-                        "ticker": tk, "w_brvm30": round(w_b30, 6),
-                        "raison": f"ADV insuffisant nouveau entrant : {exec_d:.0f}j > {max_days}j",
-                        "adv_mfcfa": round(adv, 1), "stale_ratio": round(stale, 3),
-                        "trade_mfcfa": round(trade, 1), "days_exec": round(exec_d, 1),
-                    })
-                    new_excess.pop(tk, None)
-                else:
-                    new_excess[tk] = new_excess.get(tk, 0) + 1
-                    if new_excess[tk] >= CONSEC_REBALS_EXIT:
-                        excluded.append({
-                            "ticker": tk, "w_brvm30": round(w_b30, 6),
-                            "raison": f"ADV insuffisant {CONSEC_REBALS_EXIT} rebals consécutifs : {exec_d:.0f}j > {max_days}j",
-                            "adv_mfcfa": round(adv, 1), "stale_ratio": round(stale, 3),
-                            "trade_mfcfa": round(trade, 1), "days_exec": round(exec_d, 1),
-                        })
-                        new_excess.pop(tk, None)
-                    else:
-                        included.append((tk, w_b30, adv, stale, trade, exec_d))
-            else:
-                new_excess.pop(tk, None)
-                included.append((tk, w_b30, adv, stale, trade, exec_d))
+        total_rest = sum(w_norm[tk] for tk in eligible) or 1.0
+        weights    = {tk: w_norm[tk] / total_rest * rest_budget for tk in eligible}
 
-        # Assembler panier brut
-        basket_raw = [(tk, w, adv, stale, trade, exec_d)
-                      for tk, w, adv, stale, trade, exec_d in forced + included]
+        max_w = {}
+        for tk in eligible:
+            days    = MAX_EXEC_LARGE if w_norm[tk] >= LARGE_THRESHOLD else MAX_EXEC_SMALL
+            max_w[tk] = min(PARTICIPATION_RATE * adv[tk] * days / aum_mfcfa, rest_budget)
 
-        # Règle 5 : poids minimum 0.1%
-        total_w = sum(w for _, w, *_ in basket_raw)
-        final = []
-        for tk, w_b30, adv, stale, trade, exec_d in basket_raw:
-            w_norm = w_b30 / total_w if total_w > 0 else 1 / max(len(basket_raw), 1)
-            if w_norm < MIN_BASKET_WEIGHT and w_b30 < FORCE_WEIGHT:
-                excluded.append({
-                    "ticker": tk, "w_brvm30": round(w_b30, 6),
-                    "raison": f"Poids < {MIN_BASKET_WEIGHT*100:.1f}% après redistribution",
-                    "adv_mfcfa": round(adv, 1), "stale_ratio": round(stale, 3),
-                    "trade_mfcfa": round(trade, 1), "days_exec": round(exec_d, 1),
-                })
-            else:
-                final.append((tk, w_b30, adv, stale, trade, exec_d))
+        for _ in range(50):
+            capped   = {tk for tk in eligible if weights[tk] > max_w[tk]}
+            uncapped = [tk for tk in eligible if tk not in capped]
+            if not capped:
+                break
+            excess = sum(weights[tk] - max_w[tk] for tk in capped)
+            for tk in capped:
+                weights[tk] = max_w[tk]
+            uncapped_total = sum(weights[tk] for tk in uncapped)
+            if uncapped_total <= 0 or not uncapped:
+                break
+            for tk in uncapped:
+                weights[tk] += excess * weights[tk] / uncapped_total
 
-        total_f = sum(w for _, w, *_ in final)
-        basket_weights = {}
-        basket_detail  = []
-        for tk, w_b30, adv, stale, trade, exec_d in final:
-            w_etf = round(w_b30 / total_f, 6) if total_f > 0 else round(1 / len(final), 6)
-            basket_weights[tk] = w_etf
-            basket_detail.append({
-                "ticker":     tk,
-                "w_etf":      w_etf,
-                "w_brvm30":   round(w_b30, 6),
-                "force":      w_b30 >= FORCE_WEIGHT,
-                "adv_mfcfa":  round(adv, 1),
-                "stale_ratio": round(stale, 3),
-                "trade_mfcfa": round(w_etf * aum_mfcfa, 1),
-                "days_exec":  round((w_etf * aum_mfcfa) / adv if adv > 0 else 999, 1),
-            })
+        for _ in range(10):
+            tiny = [tk for tk in eligible if 0 < weights.get(tk, 0) < MIN_WEIGHT]
+            if not tiny:
+                break
+            for tk in tiny:
+                exclu[tk] = f"Poids < {MIN_WEIGHT*100:.1f}% après redistribution"
+                eligible.remove(tk)
+            if not eligible:
+                break
+            total_keep = sum(weights[tk] for tk in eligible)
+            for tk in eligible:
+                weights[tk] = weights[tk] / total_keep * rest_budget if total_keep > 0 else rest_budget / len(eligible)
 
-        return basket_weights, basket_detail, excluded, new_excess
+        final = {**forced_w, **{tk: weights[tk] for tk in eligible if weights.get(tk, 0) > 0}}
+        total = sum(final.values())
+        if total > 0:
+            final = {tk: round(v / total, 6) for tk, v in final.items()}
+
+        return final, exclu, forced_tks
+
+    # ── Turnover ──────────────────────────────────────────────────────────── #
 
     def _compute_turnover(self, old_basket, new_weights):
         old_w = {b["ticker"]: b.get("w_etf", 0.0) for b in old_basket}
         all_tickers = set(old_w) | set(new_weights)
-        tv = sum(abs(new_weights.get(tk, 0.0) - old_w.get(tk, 0.0))
-                 for tk in all_tickers)
+        tv = sum(abs(new_weights.get(tk, 0.0) - old_w.get(tk, 0.0)) for tk in all_tickers)
         return round(tv / 2 * 100, 1)
+
+    # ── Email ─────────────────────────────────────────────────────────────── #
 
     def _send_email(self, proposal):
         gmail_user = os.environ.get("GMAIL_USER")
         gmail_pass = os.environ.get("GMAIL_APP_PASSWORD")
         if not gmail_user:
-            secrets = self.load_json_path(
-                os.path.join(self.root_dir, "secrets.json")) or {}
+            secrets = self.load_json_path(os.path.join(self.root_dir, "secrets.json")) or {}
             gmail_user = secrets.get("smtp_user")
             gmail_pass = secrets.get("smtp_pass")
         if not gmail_user:
@@ -228,15 +176,19 @@ class RebalancingProposer(BaseScript):
             return
 
         entries  = proposal.get("entries", [])
-        exits    = proposal.get("exits",   [])
+        exits    = proposal.get("exits", [])
+        capped   = proposal.get("capped_tickers", [])
         excluded = proposal.get("excluded", [])
         rd       = proposal.get("proposed_rebal_date", "?")
         turnover = proposal.get("turnover_pct", "?")
         n_basket = len(proposal.get("new_basket", []))
 
         excl_lines = "\n".join(
-            f"    {e['ticker']:8s} ({e['w_brvm30']*100:.2f}%) — {e['raison']}"
-            for e in excluded
+            f"    {tk:8s} — {raison}" for tk, raison in excluded.items()
+        ) or "    aucun"
+
+        cap_lines = "\n".join(
+            f"    {tk}" for tk in capped
         ) or "    aucun"
 
         body = (
@@ -245,18 +197,20 @@ class RebalancingProposer(BaseScript):
             f"CHANGEMENTS DE COMPOSITION :\n"
             f"  → Entrants ({len(entries)}) : {', '.join(entries) or 'aucun'}\n"
             f"  → Sortants ({len(exits)})   : {', '.join(exits) or 'aucun'}\n\n"
-            f"RÈGLES DE SÉLECTION APPLIQUÉES :\n"
+            f"STRATÉGIE ADV-CAP :\n"
             f"  → Panier ETF : {n_basket} titres\n"
-            f"  → Exclusions ({len(excluded)}) :\n{excl_lines}\n\n"
+            f"  → Top {FORCE_TOP_N} tenus à leur poids exact (OTC)\n"
+            f"  → Titres plafonnés par ADV ({len(capped)}) :\n{cap_lines}\n"
+            f"  → Exclus uniquement si ADV < {MIN_ADV_MFCFA} MFCFA ou poids résiduel < {MIN_WEIGHT*100:.1f}% ({len(excluded)}) :\n{excl_lines}\n\n"
             f"Turnover estimé : {turnover}%\n\n"
             f"PROCHAINE ÉTAPE :\n"
-            f"GitHub → Actions → 'Appliquer Rebalancement' → Run workflow\n"
-            f"pour valider et appliquer ce rebalancement.\n\n"
-            f"Rien ne sera modifié sans votre confirmation explicite.\n\n"
-            f"Cordialement,\n"
-            f"CGF Bourse — Système automatique"
+            f"GitHub → Actions → 'Appliquer Rebalancement' → Run workflow\n\n"
+            f"Cordialement,\nCGF Bourse — Système automatique"
         )
 
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
         msg = MIMEMultipart()
         msg["From"]    = gmail_user
         msg["To"]      = self.recipient
@@ -266,13 +220,19 @@ class RebalancingProposer(BaseScript):
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(gmail_user, gmail_pass)
             server.sendmail(gmail_user, self.recipient, msg.as_string())
-        print(f"[OK] Email de proposition envoyé à {self.recipient}")
+        print(f"[OK] Email envoyé à {self.recipient}")
 
-    # ------------------------------------------------------------------ #
+    # ── Point d'entrée ────────────────────────────────────────────────────── #
 
-    def run(self, force = False):
-        last_rebal_date, current_basket, excess_days_cnt = self._load_current_basket()
+    def run(self, force=False):
+        # Dernier rebal appliqué
+        rd_data    = self.load_json("rebal_detail.json", {"rebalancings": []})
+        rebals     = [r for r in rd_data.get("rebalancings", []) if not r.get("skipped") and r.get("basket")]
+        last       = rebals[-1] if rebals else {}
+        last_date  = last.get("date", "")
+        old_basket = last.get("basket", [])
 
+        # Nouvelle composition
         new_comp       = self.load_json("brvm_composition_latest.json", {})
         new_rebal_date = new_comp.get("rebal_date")
 
@@ -280,9 +240,8 @@ class RebalancingProposer(BaseScript):
             print("[INFO] Pas de composition BRVM30 disponible — rien à faire.")
             return
 
-        if not force and last_rebal_date and new_rebal_date <= last_rebal_date:
-            print(f"[INFO] Composition {new_rebal_date} déjà appliquée "
-                  f"(dernier rebal : {last_rebal_date}). Rien à faire.")
+        if not force and last_date and new_rebal_date <= last_date:
+            print(f"[INFO] Composition {new_rebal_date} déjà appliquée (dernier rebal : {last_date}).")
             return
 
         pending = self.load_json("rebal_pending.json", {})
@@ -295,57 +254,72 @@ class RebalancingProposer(BaseScript):
         print(f"[INFO] Nouvelle composition BRVM30 détectée ({new_rebal_date}).")
 
         sika        = self.load_json("sika_history.json", {})
+        soc         = self.load_json("sika_societe.json", {})
         new_tickers = new_comp.get("composition", [])
         entries     = new_comp.get("entries", [])
-        exits       = new_comp.get("exits",   [])
-        prev_basket = {b["ticker"] for b in current_basket}
+        exits       = new_comp.get("exits", [])
 
-        # Lire l'AUM actuel depuis nav_latest
-        nav_latest  = self.load_json("nav_latest.json", {})
-        aum_mfcfa   = nav_latest.get("aum_mfcfa") or 5000.0
+        nav_latest = self.load_json("nav_latest.json", {})
+        aum_mfcfa  = float(nav_latest.get("aum_mfcfa") or 5000.0)
 
-        # Estimer les poids BRVM30 depuis les prix
-        w_brvm30 = self._estimate_weights(new_tickers, sika)
+        # Poids capitalisation totale Sika
+        w_brvm30 = self._get_total_cap_weights(new_tickers, new_rebal_date, sika, soc)
 
-        # Appliquer les règles de sélection
-        basket_weights, basket_detail, excluded, new_excess = self._apply_selection_rules(
-            tickers=new_tickers,
-            w_brvm30=w_brvm30,
-            as_of_date=new_rebal_date,
-            prev_basket=prev_basket,
-            excess_days_cnt=excess_days_cnt,
-            sika=sika,
-            aum_mfcfa=aum_mfcfa,
+        # ADV-cap (même stratégie que rebalance_live.py)
+        basket_weights, exclu_info, forced_tks = self._build_adv_capped_weights(
+            w_brvm30, new_rebal_date, aum_mfcfa, sika
         )
 
-        turnover = self._compute_turnover(current_basket, basket_weights)
+        # Titres effectivement plafonnés (dans le panier mais w_etf < w_brvm30)
+        capped_tickers = sorted(
+            tk for tk in basket_weights
+            if tk not in forced_tks and basket_weights[tk] < w_brvm30.get(tk, 0) - 1e-6
+        )
+
+        turnover = self._compute_turnover(old_basket, basket_weights)
+
+        basket_detail = [
+            {
+                "ticker":      tk,
+                "w_etf":       round(w, 6),
+                "w_brvm30":    round(w_brvm30.get(tk, 0), 6),
+                "force_otc":   tk in forced_tks,
+                "capped":      tk in capped_tickers,
+                "adv_mfcfa":   round(self._compute_adv(sika, tk, new_rebal_date), 1),
+                "stale_ratio": round(self._compute_stale(sika, tk, new_rebal_date), 3),
+            }
+            for tk, w in sorted(basket_weights.items(), key=lambda x: -x[1])
+        ]
 
         proposal = {
             "status":              "pending",
             "proposed_at":         datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
             "proposed_rebal_date": new_rebal_date,
-            "last_rebal_date":     last_rebal_date,
+            "last_rebal_date":     last_date,
             "entries":             entries,
             "exits":               exits,
             "turnover_pct":        turnover,
             "aum_mfcfa":           aum_mfcfa,
             "new_basket":          basket_detail,
-            "excluded":            excluded,
-            "excess_days_cnt":     new_excess,
-            "current_basket": [
-                {"ticker": b["ticker"], "w_etf": b.get("w_etf", 0.0)}
-                for b in current_basket
-            ],
+            "capped_tickers":      capped_tickers,
+            "excluded":            exclu_info,
+            "current_basket":      [{"ticker": b["ticker"], "w_etf": b.get("w_etf", 0.0)} for b in old_basket],
         }
 
         self.save_json("rebal_pending.json", proposal)
+
+        sorted_by_brvm = sorted(w_brvm30, key=lambda x: -w_brvm30[x])
         print(f"[OK] Proposition sauvegardée dans rebal_pending.json")
         print(f"  Entrants : {entries}")
         print(f"  Sortants : {exits}")
+        print(f"  Top {FORCE_TOP_N} OTC : {', '.join(sorted_by_brvm[:FORCE_TOP_N])}")
         print(f"  Panier ETF : {len(basket_detail)} titres")
-        print(f"  Exclus ({len(excluded)}) :")
-        for e in excluded:
-            print(f"    {e['ticker']:8s} ({e['w_brvm30']*100:.2f}%) — {e['raison']}")
+        if capped_tickers:
+            print(f"  Plafonnés ADV ({len(capped_tickers)}) : {', '.join(capped_tickers)}")
+        if exclu_info:
+            print(f"  Exclus ({len(exclu_info)}) :")
+            for tk, raison in exclu_info.items():
+                print(f"    {tk:8s} ({w_brvm30.get(tk,0)*100:.2f}%) — {raison}")
         print(f"  Turnover estimé : {turnover}%")
 
         try:
@@ -355,8 +329,7 @@ class RebalancingProposer(BaseScript):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Proposition de rebalancement BRVM30")
-    parser.add_argument("--force", action="store_true",
-                        help="Forcer même si déjà proposé")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--force", action="store_true", help="Forcer même si déjà proposé")
     args = parser.parse_args()
     RebalancingProposer().run(force=args.force)

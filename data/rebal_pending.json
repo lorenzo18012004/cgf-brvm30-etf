@@ -1,6 +1,6 @@
 {
   "status": "pending",
-  "proposed_at": "2026-07-02 09:23 UTC",
+  "proposed_at": "2026-07-02 09:34 UTC",
   "proposed_rebal_date": "2026-07-01",
   "last_rebal_date": "2026-04-01",
   "entries": [
@@ -13,309 +13,286 @@
     "ONTBF",
     "SHEC"
   ],
-  "turnover_pct": 38.0,
+  "turnover_pct": 9.8,
   "aum_mfcfa": 5202.2,
   "new_basket": [
     {
-      "ticker": "BOAB",
-      "w_etf": 0.033401,
-      "w_brvm30": 0.032641,
-      "force": true,
-      "adv_mfcfa": 48.8,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 173.8,
-      "days_exec": 3.6
-    },
-    {
-      "ticker": "BOAC",
-      "w_etf": 0.03477,
-      "w_brvm30": 0.033979,
-      "force": true,
-      "adv_mfcfa": 124.7,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 180.9,
-      "days_exec": 1.5
-    },
-    {
-      "ticker": "CBIBF",
-      "w_etf": 0.088823,
-      "w_brvm30": 0.086801,
-      "force": true,
-      "adv_mfcfa": 28.2,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 462.1,
-      "days_exec": 16.4
-    },
-    {
-      "ticker": "ECOC",
-      "w_etf": 0.060141,
-      "w_brvm30": 0.058772,
-      "force": true,
-      "adv_mfcfa": 35.2,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 312.9,
-      "days_exec": 8.9
-    },
-    {
-      "ticker": "NSBC",
-      "w_etf": 0.074,
-      "w_brvm30": 0.072316,
-      "force": true,
-      "adv_mfcfa": 34.6,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 385.0,
-      "days_exec": 11.1
+      "ticker": "SNTS",
+      "w_etf": 0.20136,
+      "w_brvm30": 0.20136,
+      "force_otc": true,
+      "capped": false,
+      "adv_mfcfa": 250.3,
+      "stale_ratio": 0.0
     },
     {
       "ticker": "ORAC",
-      "w_etf": 0.061806,
-      "w_brvm30": 0.060399,
-      "force": true,
+      "w_etf": 0.172905,
+      "w_brvm30": 0.172905,
+      "force_otc": true,
+      "capped": false,
       "adv_mfcfa": 25.4,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 321.5,
-      "days_exec": 12.6
+      "stale_ratio": 0.0
     },
     {
       "ticker": "SGBC",
-      "w_etf": 0.144337,
-      "w_brvm30": 0.141052,
-      "force": true,
+      "w_etf": 0.083385,
+      "w_brvm30": 0.083385,
+      "force_otc": true,
+      "capped": false,
       "adv_mfcfa": 194.7,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 750.9,
-      "days_exec": 3.9
+      "stale_ratio": 0.0
     },
     {
       "ticker": "SIBC",
-      "w_etf": 0.033364,
-      "w_brvm30": 0.032605,
-      "force": true,
+      "w_etf": 0.061954,
+      "w_brvm30": 0.061954,
+      "force_otc": true,
+      "capped": false,
       "adv_mfcfa": 64.9,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 173.6,
-      "days_exec": 2.7
+      "stale_ratio": 0.0
     },
     {
-      "ticker": "SNTS",
-      "w_etf": 0.108438,
-      "w_brvm30": 0.10597,
-      "force": true,
-      "adv_mfcfa": 250.3,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 564.1,
-      "days_exec": 2.3
+      "ticker": "ECOC",
+      "w_etf": 0.061478,
+      "w_brvm30": 0.061478,
+      "force_otc": true,
+      "capped": false,
+      "adv_mfcfa": 35.2,
+      "stale_ratio": 0.0
     },
     {
-      "ticker": "SOGC",
-      "w_etf": 0.031069,
-      "w_brvm30": 0.030362,
-      "force": true,
-      "adv_mfcfa": 38.0,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 161.6,
-      "days_exec": 4.3
-    },
-    {
-      "ticker": "STBC",
-      "w_etf": 0.090489,
-      "w_brvm30": 0.088429,
-      "force": true,
-      "adv_mfcfa": 74.6,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 470.7,
-      "days_exec": 6.3
-    },
-    {
-      "ticker": "BICB",
-      "w_etf": 0.021761,
-      "w_brvm30": 0.021266,
-      "force": false,
-      "adv_mfcfa": 53.9,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 113.2,
-      "days_exec": 2.1
-    },
-    {
-      "ticker": "BOABF",
-      "w_etf": 0.021836,
-      "w_brvm30": 0.021339,
-      "force": false,
-      "adv_mfcfa": 31.8,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 113.6,
-      "days_exec": 3.6
-    },
-    {
-      "ticker": "BOAM",
-      "w_etf": 0.018394,
-      "w_brvm30": 0.017975,
-      "force": false,
-      "adv_mfcfa": 28.1,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 95.7,
-      "days_exec": 3.4
-    },
-    {
-      "ticker": "BOAN",
-      "w_etf": 0.015507,
-      "w_brvm30": 0.015154,
-      "force": false,
-      "adv_mfcfa": 38.5,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 80.7,
-      "days_exec": 2.1
-    },
-    {
-      "ticker": "BOAS",
-      "w_etf": 0.027535,
-      "w_brvm30": 0.026908,
-      "force": false,
-      "adv_mfcfa": 61.5,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 143.2,
-      "days_exec": 2.3
-    },
-    {
-      "ticker": "CFAC",
-      "w_etf": 0.006533,
-      "w_brvm30": 0.006384,
-      "force": false,
-      "adv_mfcfa": 5.4,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 34.0,
-      "days_exec": 6.3
-    },
-    {
-      "ticker": "CIEC",
-      "w_etf": 0.019615,
-      "w_brvm30": 0.019169,
-      "force": false,
-      "adv_mfcfa": 29.5,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 102.0,
-      "days_exec": 3.5
-    },
-    {
-      "ticker": "ORGT",
-      "w_etf": 0.010178,
-      "w_brvm30": 0.009946,
-      "force": false,
-      "adv_mfcfa": 17.7,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 52.9,
-      "days_exec": 3.0
-    },
-    {
-      "ticker": "SAFC",
-      "w_etf": 0.017025,
-      "w_brvm30": 0.016637,
-      "force": false,
-      "adv_mfcfa": 36.6,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 88.6,
-      "days_exec": 2.4
-    },
-    {
-      "ticker": "SCRC",
-      "w_etf": 0.012565,
-      "w_brvm30": 0.012279,
-      "force": false,
-      "adv_mfcfa": 39.2,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 65.4,
-      "days_exec": 1.7
-    },
-    {
-      "ticker": "SDSC",
-      "w_etf": 0.008882,
-      "w_brvm30": 0.00868,
-      "force": false,
-      "adv_mfcfa": 34.0,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 46.2,
-      "days_exec": 1.4
-    },
-    {
-      "ticker": "SPHC",
-      "w_etf": 0.02959,
-      "w_brvm30": 0.028916,
-      "force": false,
-      "adv_mfcfa": 48.5,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 153.9,
-      "days_exec": 3.2
-    },
-    {
-      "ticker": "STAC",
-      "w_etf": 0.012769,
-      "w_brvm30": 0.012478,
-      "force": false,
-      "adv_mfcfa": 21.5,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 66.4,
-      "days_exec": 3.1
-    },
-    {
-      "ticker": "TTLC",
-      "w_etf": 0.010918,
-      "w_brvm30": 0.010669,
-      "force": false,
-      "adv_mfcfa": 19.8,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 56.8,
-      "days_exec": 2.9
-    },
-    {
-      "ticker": "UNXC",
-      "w_etf": 0.006254,
-      "w_brvm30": 0.006112,
-      "force": false,
-      "adv_mfcfa": 17.5,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 32.5,
-      "days_exec": 1.9
-    }
-  ],
-  "excluded": [
-    {
-      "ticker": "NEIC",
-      "w_brvm30": 0.008228,
-      "raison": "Float < 7 Md FCFA",
-      "adv_mfcfa": 12.6,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 42.8,
-      "days_exec": 3.4
-    },
-    {
-      "ticker": "SEMC",
-      "w_brvm30": 0.005497,
-      "raison": "Float < 7 Md FCFA",
-      "adv_mfcfa": 8.5,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 28.6,
-      "days_exec": 3.4
-    },
-    {
-      "ticker": "SIVC",
-      "w_brvm30": 0.008879,
-      "raison": "Float < 7 Md FCFA",
-      "adv_mfcfa": 13.7,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 46.2,
-      "days_exec": 3.4
+      "ticker": "CBIBF",
+      "w_etf": 0.050378,
+      "w_brvm30": 0.05278,
+      "force_otc": false,
+      "capped": true,
+      "adv_mfcfa": 28.2,
+      "stale_ratio": 0.0
     },
     {
       "ticker": "ETIT",
-      "w_brvm30": 0.000156,
-      "raison": "Poids < 0.1% après redistribution",
+      "w_etf": 0.048268,
+      "w_brvm30": 0.053441,
+      "force_otc": false,
+      "capped": true,
       "adv_mfcfa": 27.0,
-      "stale_ratio": 0.0,
-      "trade_mfcfa": 0.8,
-      "days_exec": 0.0
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "NSBC",
+      "w_etf": 0.036866,
+      "w_brvm30": 0.033989,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 34.6,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "STBC",
+      "w_etf": 0.032724,
+      "w_brvm30": 0.03017,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 74.6,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "BOAC",
+      "w_etf": 0.028013,
+      "w_brvm30": 0.025826,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 124.7,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "BOAB",
+      "w_etf": 0.027287,
+      "w_brvm30": 0.025157,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 48.8,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "BICB",
+      "w_etf": 0.025316,
+      "w_brvm30": 0.02334,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 53.9,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "CIEC",
+      "w_etf": 0.022124,
+      "w_brvm30": 0.020397,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 29.5,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "BOAS",
+      "w_etf": 0.019965,
+      "w_brvm30": 0.018407,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 61.5,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "BOABF",
+      "w_etf": 0.019351,
+      "w_brvm30": 0.017841,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 31.8,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "SPHC",
+      "w_etf": 0.015232,
+      "w_brvm30": 0.014043,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 48.5,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "ORGT",
+      "w_etf": 0.014229,
+      "w_brvm30": 0.013119,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 17.7,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "TTLC",
+      "w_etf": 0.013845,
+      "w_brvm30": 0.012765,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 19.8,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "SOGC",
+      "w_etf": 0.013518,
+      "w_brvm30": 0.012463,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 38.0,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "BOAM",
+      "w_etf": 0.010169,
+      "w_brvm30": 0.009376,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 28.1,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "SDSC",
+      "w_etf": 0.009739,
+      "w_brvm30": 0.008978,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 34.0,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "BOAN",
+      "w_etf": 0.006496,
+      "w_brvm30": 0.005989,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 38.5,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "CFAC",
+      "w_etf": 0.004964,
+      "w_brvm30": 0.022,
+      "force_otc": false,
+      "capped": true,
+      "adv_mfcfa": 5.4,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "SCRC",
+      "w_etf": 0.00496,
+      "w_brvm30": 0.004573,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 39.2,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "STAC",
+      "w_etf": 0.003456,
+      "w_brvm30": 0.003187,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 21.5,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "SEMC",
+      "w_etf": 0.002854,
+      "w_brvm30": 0.002631,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 8.5,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "SAFC",
+      "w_etf": 0.002784,
+      "w_brvm30": 0.002567,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 36.6,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "UNXC",
+      "w_etf": 0.002614,
+      "w_brvm30": 0.00241,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 17.5,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "NEIC",
+      "w_etf": 0.002165,
+      "w_brvm30": 0.001996,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 12.6,
+      "stale_ratio": 0.0
+    },
+    {
+      "ticker": "SIVC",
+      "w_etf": 0.001598,
+      "w_brvm30": 0.001474,
+      "force_otc": false,
+      "capped": false,
+      "adv_mfcfa": 13.7,
+      "stale_ratio": 0.0
     }
   ],
-  "excess_days_cnt": {},
+  "capped_tickers": [
+    "CBIBF",
+    "CFAC",
+    "ETIT"
+  ],
+  "excluded": {},
   "current_basket": [
     {
       "ticker": "SIBC",
