@@ -4,7 +4,7 @@ Reconstruction backtest Price Return + distributions semestrielles + tests de va
 Méthodologie :
   - Panier : ADV-cap + redistribution (62j grands titres / 32j petits titres)
   - Participation max : 15% de l'ADV quotidien (screen trading)
-    → max_w = 0.20 × ADV × max_days / AUM
+    → max_w = 0.15 × ADV × max_days / AUM
   - Spread variable selon ADV : 25 bps (très liquide) → 175 bps (illiquide)
   - Dividendes : reçus ~juillet de chaque année (BRVM paie Y+1 pour exercice Y),
     capitalisés au taux sans risque 3%/an, distribués le 30 juin et 31 décembre
@@ -176,7 +176,7 @@ def build_basket(rebal_date, w_brvm30,
     total_rest = sum(w_norm[tk] for tk in eligible) or 1.0
     weights = {tk: w_norm[tk] / total_rest * rest_budget for tk in eligible}
 
-    # Plafond ADV (20% de l'ADV quotidien × max_days) pour les restants
+    # Plafond ADV (15% de l'ADV quotidien × max_days) pour les restants
     max_w = {}
     for tk in eligible:
         days = max_large if w_norm[tk] >= large_thr else max_small
