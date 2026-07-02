@@ -180,44 +180,75 @@ def build_adv_capped_weights(w_brvm30, rebal_date, aum_mfcfa, sh, old_basket=Non
     total_elig = sum(w_norm[tk] for tk in eligible) or 1.0
     w_target   = {tk: w_norm[tk] / total_elig for tk in eligible}
 
-    # Top FORCE_TOP_N par poids indice → OTC (bloc négocié, plein poids indice)
+    # Top FORCE_TOP_N par poids indice → OTC (bloc négocié, poids indice exact)
     sorted_by_w = sorted(eligible, key=lambda tk: -w_target[tk])
     otc_set = set(sorted_by_w[:FORCE_TOP_N])
 
-    # Calcul des poids réalisables (capés pour les non-OTC)
-    weights = {}
-    for tk in eligible:
-        w_cur = old_basket.get(tk, 0.0)
-        w_tgt = w_target[tk]
-        if tk in otc_set:
-            weights[tk] = w_tgt                        # OTC : plein poids indice
-        else:
-            delta     = w_tgt - w_cur
+    # Poids initiaux = poids indice pour tous
+    weights = {tk: w_target[tk] for tk in eligible}
+
+    # Redistribution itérative : excédent des capés → non-capés non-top5 uniquement
+    for _ in range(30):
+        capped_w  = {}
+        uncapped  = []
+        for tk in eligible:
+            if tk in otc_set:
+                continue
+            w_cur     = old_basket.get(tk, 0.0)
+            delta     = weights[tk] - w_cur
             max_d     = MAX_EXEC_LARGE if w_norm[tk] >= LARGE_THRESHOLD else MAX_EXEC_SMALL
             max_delta = PARTICIPATION_RATE * adv[tk] * max_d / aum_mfcfa
             if abs(delta) > max_delta + 1e-6:
-                weights[tk] = max(0.0, w_cur + (max_delta if delta > 0 else -max_delta))
+                capped_w[tk] = max(0.0, w_cur + (max_delta if delta > 0 else -max_delta))
             else:
-                weights[tk] = w_tgt                    # Screen suffit
+                uncapped.append(tk)
 
-    # Exclure les poids résiduels trop faibles
+        if not capped_w:
+            break  # Plus aucun cap → convergé
+
+        # Fixer les capés, redistribuer le reste aux non-capés proportionnellement
+        total_top5    = sum(w_target[tk] for tk in otc_set if tk in weights)
+        total_capped  = sum(capped_w[tk]  for tk in capped_w)
+        avail         = 1.0 - total_top5 - total_capped
+
+        for tk in capped_w:
+            weights[tk] = capped_w[tk]
+
+        uncapped_tgt = sum(w_target[tk] for tk in uncapped) or 1.0
+        for tk in uncapped:
+            weights[tk] = max(0.0, avail * w_target[tk] / uncapped_tgt)
+
+        # Top-5 restent exactement à leur poids indice
+        for tk in otc_set:
+            if tk in weights:
+                weights[tk] = w_target[tk]
+
+    # Exclure les poids résiduels trop faibles (non-top5 uniquement)
     for _ in range(5):
-        tiny = [tk for tk in eligible if 0 < weights.get(tk, 0) < MIN_WEIGHT]
+        tiny = [tk for tk in eligible if tk not in otc_set
+                and 0 < weights.get(tk, 0) < MIN_WEIGHT]
         if not tiny:
             break
         for tk in tiny:
             exclu_info[tk] = f'Poids < {MIN_WEIGHT*100:.1f}%'
             eligible.remove(tk)
-            otc_set.discard(tk)
         if not eligible:
             break
+        # Recalcul après exclusion
         total_keep = sum(weights[tk] for tk in eligible) or 1.0
         weights = {tk: weights[tk] / total_keep for tk in eligible}
+        for tk in otc_set:
+            if tk in weights:
+                weights[tk] = w_target[tk]
 
     final = {tk: round(weights[tk], 6) for tk in eligible if weights.get(tk, 0) > 0}
-    total = sum(final.values())
-    if total > 0:
-        final = {tk: round(v / total, 6) for tk, v in final.items()}
+    # Normalisation finale : top-5 exacts, le reste ajusté
+    top5_total = sum(final[tk] for tk in otc_set if tk in final)
+    rest_total = sum(final[tk] for tk in final if tk not in otc_set)
+    if rest_total > 0:
+        scale = (1.0 - top5_total) / rest_total
+        final = {tk: (round(v, 6) if tk in otc_set else round(v * scale, 6))
+                 for tk, v in final.items()}
 
     return final, exclu_info, otc_set
 
