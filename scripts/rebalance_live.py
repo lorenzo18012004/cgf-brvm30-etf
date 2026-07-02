@@ -507,6 +507,8 @@ def main():
         'excl_w':   round(sum(w_brvm30.get(tk, 0) for tk in exclu_info), 4),
         'turnover': round(turnover, 4),
         'cost_tx':  round(cost_pct, 6),
+        'cost_bps': round(cost_pct * 10000, 2),
+        'cost_pct': round(cost_pct * 100, 4),
         'basket': [
             {
                 'ticker':      tk,
