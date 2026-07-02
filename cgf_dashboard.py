@@ -4722,7 +4722,8 @@ def _render_live():
         if basket_now:
             _section("Composition du panier")
             df_bask = pd.DataFrame(basket_now)
-            _sec_map = {b["ticker"]: b.get("secteur", "Autre") for b in last_rb.get("basket", [])}
+            _sec_file = load_json(os.path.join(BASE, "data", "sector_map.json")) or {}
+            _sec_map  = _sec_file.get("sectors", {})
             df_bask["secteur"] = df_bask["ticker"].map(lambda t: _sec_map.get(t, "Autre"))
             sec_grp = df_bask.groupby("secteur")["poids_pct"].sum().sort_values(ascending=False).reset_index()
             sec_grp.columns = ["Secteur", "Poids (%)"]
@@ -4759,10 +4760,11 @@ def _render_live():
                     name="Cible rebal", marker=dict(symbol="line-ns", size=10, color="#c0392b", line=dict(width=2, color="#c0392b")),
                     hovertemplate="%{y}<br>Cible : <b>%{x:.2f}%</b><extra></extra>",
                 ))
-                fig_bw.update_layout(**PLOTLY_LAYOUT, height=340,
+                _bar_h = max(380, len(df_bs) * 22)
+                fig_bw.update_layout(**PLOTLY_LAYOUT, height=_bar_h,
                     title="Poids par titre — live vs cible rebalancement",
                     xaxis_title="%", showlegend=True,
-                    legend=dict(orientation="h", y=-0.15))
+                    legend=dict(orientation="h", y=-0.08))
                 st.plotly_chart(fig_bw, width='stretch')
             top5  = df_bask.nlargest(5,  "poids_pct")["poids_pct"].sum()
             top10 = df_bask.nlargest(10, "poids_pct")["poids_pct"].sum()
