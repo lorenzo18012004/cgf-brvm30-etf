@@ -5404,8 +5404,12 @@ def _render_live():
                     _st, _sc = "Avant lancement ETF", "#9e9e9e"
                 elif _dt <= _today_a:
                     _recv = any(e.get("ticker") == _tk for e in _events_etf)
-                    _st  = "Recu" if _recv else "Détaché — hors panier"
-                    _sc  = "#2d7a4f" if _recv else "#9e9e9e"
+                    if _recv:
+                        _st, _sc = "Recu", "#2d7a4f"
+                    elif _in_b:
+                        _st, _sc = "Détaché — en attente paiement", "#c9861a"
+                    else:
+                        _st, _sc = "Détaché — hors panier", "#9e9e9e"
                 else:
                     _jj = (pd.Timestamp(_dt) - pd.Timestamp(_today_a)).days
                     _st, _sc = f"Dans {_jj}j", "#c9861a"
@@ -5422,16 +5426,18 @@ def _render_live():
                 })
             if rows_ex:
                 _df_ex = pd.DataFrame(rows_ex)
-                _n_bask_ex = sum(1 for r in rows_ex if r["Panier ETF"] == "OUI")
-                _n_recu_ex = sum(1 for r in rows_ex if r["Statut"] == "Recu")
-                _n_fut_ex  = sum(1 for r in rows_ex if r["Statut"].startswith("Dans "))
-                _n_prec_ex = sum(1 for r in rows_ex if r["Statut"] == "Date à préciser")
+                _n_bask_ex  = sum(1 for r in rows_ex if r["Panier ETF"] == "OUI")
+                _n_recu_ex  = sum(1 for r in rows_ex if r["Statut"] == "Recu")
+                _n_attex    = sum(1 for r in rows_ex if r["Statut"] == "Détaché — en attente paiement")
+                _n_fut_ex   = sum(1 for r in rows_ex if r["Statut"].startswith("Dans "))
+                _n_prec_ex  = sum(1 for r in rows_ex if r["Statut"] == "Date à préciser")
                 col_e1, col_e2, col_e3, col_e4 = st.columns(4)
                 col_e1.metric("Dans le panier", _n_bask_ex)
                 col_e2.metric("Reçus par l'ETF", _n_recu_ex,
-                              help="Détachés après le lancement, cash placé au taux RF jusqu'au 30 septembre")
-                col_e3.metric("À venir", _n_fut_ex, help="Dates connues, pas encore détachés")
-                col_e4.metric("Date à préciser", _n_prec_ex)
+                              help="Cash effectivement reçu sur la poche distribution (date de paiement atteinte)")
+                col_e3.metric("En attente paiement", _n_attex,
+                              help="Titre du panier détaché (ex-date passée) — cash attendu à la date de paiement BRVM")
+                col_e4.metric("À venir", _n_fut_ex, help="Dates connues, pas encore détachés")
                 st.dataframe(_df_ex, use_container_width=True, hide_index=True,
                              column_config={
                                  "Montant (FCFA)":  st.column_config.NumberColumn(format="%.2f"),
