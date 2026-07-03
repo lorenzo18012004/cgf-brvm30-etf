@@ -1,153 +1,146 @@
 {
   "annee": 2026,
-  "scraped_at": "2026-06-26T18:22:44",
+  "scraped_at": "2026-07-03T18:07:38",
   "dividendes": [
-    {
-      "nom_sika": "PALMCI",
-      "ticker": "PALC",
-      "date_detach": "2026-06-26",
-      "montant": 501.6,
-      "rendement": 5.7
-    },
     {
       "nom_sika": "ETI TG",
       "ticker": "ETIT",
       "date_detach": "2026-06-29",
-      "montant": 0.93,
-      "rendement": 2.51
+      "montant": 0.92,
+      "rendement": 1.95
     },
     {
       "nom_sika": "BICICI",
       "ticker": "BICC",
       "date_detach": "2026-07-03",
       "montant": 1315.0,
-      "rendement": 4.53
+      "rendement": 4.48
     },
     {
       "nom_sika": "BANQUE INTERNATIONALE POUR LE COMMERCE DU BENIN",
       "ticker": null,
       "date_detach": "2026-07-13",
       "montant": 254.6,
-      "rendement": 4.43
+      "rendement": 4.06
     },
     {
       "nom_sika": "TOTAL SENEGAL",
       "ticker": "TOSG",
       "date_detach": "2026-07-16",
       "montant": 176.65,
-      "rendement": 5.05
+      "rendement": 4.37
     },
     {
       "nom_sika": "SOCIETE IVOIRIENNE DE BANQUE CI",
       "ticker": "SIBC",
       "date_detach": "2026-07-30",
       "montant": 425.0,
-      "rendement": 4.78
+      "rendement": 4.8
+    },
+    {
+      "nom_sika": "SERVAIR ABIDJAN CI",
+      "ticker": "SAFC",
+      "date_detach": "2026-09-29",
+      "montant": 124.0,
+      "rendement": 3.88
     },
     {
       "nom_sika": "SITAB",
       "ticker": "SDSC",
       "date_detach": null,
       "montant": 1707.2,
-      "rendement": 7.12
+      "rendement": 7.01
     },
     {
       "nom_sika": "CFAO CI",
       "ticker": null,
       "date_detach": null,
       "montant": 55.44,
-      "rendement": 3.12
+      "rendement": 3.14
     },
     {
       "nom_sika": "SOLIBRA CI",
       "ticker": "SLBC",
       "date_detach": null,
       "montant": 1871.76,
-      "rendement": 4.88
+      "rendement": 4.77
     },
     {
       "nom_sika": "NSIA BANQUE",
       "ticker": null,
       "date_detach": null,
       "montant": 675.98,
-      "rendement": 3.42
+      "rendement": 3.38
     },
     {
       "nom_sika": "VIVO ENERGY CI",
       "ticker": "VIVC",
       "date_detach": null,
       "montant": 85.07,
-      "rendement": 4.04
+      "rendement": 3.88
     },
     {
       "nom_sika": "CIE CI",
       "ticker": "CIEC",
       "date_detach": null,
       "montant": 205.92,
-      "rendement": 3.96
+      "rendement": 3.89
     },
     {
       "nom_sika": "SMB CI",
       "ticker": "SMBC",
       "date_detach": null,
       "montant": 704.0,
-      "rendement": 4.29
+      "rendement": 3.97
     },
     {
       "nom_sika": "LOTERIE NATIONALE DU BENIN",
       "ticker": "LNBB",
       "date_detach": null,
       "montant": 164.0,
-      "rendement": 4.0
+      "rendement": 3.77
     },
     {
       "nom_sika": "TRACTAFRIC MOTORS CI",
       "ticker": "TTLC",
       "date_detach": null,
       "montant": 183.92,
-      "rendement": 4.0
+      "rendement": 4.09
     },
     {
       "nom_sika": "NESTLE CI",
       "ticker": "NLCI",
       "date_detach": null,
       "montant": 369.6,
-      "rendement": 2.5
-    },
-    {
-      "nom_sika": "SERVAIR ABIDJAN CI",
-      "ticker": "SAFC",
-      "date_detach": null,
-      "montant": 120.97,
-      "rendement": 3.69
+      "rendement": 2.24
     },
     {
       "nom_sika": "SODECI",
       "ticker": "SDSC",
       "date_detach": null,
       "montant": 462.0,
-      "rendement": 3.88
+      "rendement": 3.84
     },
     {
       "nom_sika": "NEI CEDA CI",
       "ticker": "NEIC",
       "date_detach": null,
       "montant": 140.39,
-      "rendement": 5.85
+      "rendement": 6.18
     },
     {
       "nom_sika": "SGBCI",
       "ticker": "SGBC",
       "date_detach": null,
       "montant": 2293.28,
-      "rendement": 5.88
+      "rendement": 6.2
     },
     {
       "nom_sika": "TOTAL CI",
       "ticker": "TOTC",
       "date_detach": null,
       "montant": 139.77,
-      "rendement": 4.9
+      "rendement": 4.78
     },
     {
       "nom_sika": "SAPH CI",
