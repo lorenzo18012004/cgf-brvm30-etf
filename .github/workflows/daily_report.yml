@@ -2,13 +2,15 @@ name: Rapport Journalier 16h
 
 on:
   schedule:
-    - cron: '0 17 * * 1-5'
+    - cron: '0 17 * * 1-5'   # backup — peu fiable, remplacé par cron-job.org
   workflow_dispatch:
     inputs:
       date:
         description: 'Date du rapport (YYYY-MM-DD, vide = aujourd''hui)'
         required: false
         default: ''
+  repository_dispatch:
+    types: [trigger-daily-report]   # appelé par cron-job.org ou Task Scheduler
 
 jobs:
   daily-report:
@@ -34,6 +36,12 @@ jobs:
 
       - name: Mettre à jour les prix de clôture (Sika)
         run: python scripts/scrape_sika_history.py
+
+      - name: Vérifier actions corporatives + provisions DSG
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python scripts/check_corporate_actions.py || true
 
       - name: Prévisualisation rebalancement (dry-run, aucun fichier modifié)
         run: python scripts/rebalance_live.py --dry-run
@@ -85,6 +93,7 @@ jobs:
             data/brvm30_index_history.json \
             data/dashboard_data.json \
             data/rebal_detail.json \
+            data/dividend_accounting.json \
             "data/pdfs/journalier/"
           if git diff --cached --quiet; then
             echo "[SKIP] Aucune modification à commiter."

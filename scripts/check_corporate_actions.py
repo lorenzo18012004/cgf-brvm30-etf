@@ -242,6 +242,66 @@ class CorporateActionsChecker(BaseScript):
 
         print(f"[WARN] Événement {ev_id} introuvable ou déjà traité.")
 
+    def _auto_record_payments(self, today_str):
+        """
+        Vérifie chaque jour si un dividende provisionné doit être encaissé.
+        Se déclenche quand date_paiement == today dans sika_dividendes.json.
+        """
+        DIV_PATH  = os.path.join(self.data_dir, "sika_dividendes.json")
+        ACCT_PATH = os.path.join(self.data_dir, "dividend_accounting.json")
+
+        if not os.path.exists(DIV_PATH) or not os.path.exists(ACCT_PATH):
+            return []
+
+        sika_div = json.load(open(DIV_PATH, encoding="utf-8"))
+        acct     = json.load(open(ACCT_PATH, encoding="utf-8"))
+
+        # Événements dont date_paiement = aujourd'hui et statut = accrued
+        accrued_ids = {
+            ev["id"]: ev
+            for ev in acct.get("evenements", [])
+            if ev.get("status") == "accrued"
+        }
+
+        recorded = []
+        for d in sika_div.get("dividendes", []):
+            if d.get("date_paiement") != today_str:
+                continue
+            ticker   = d.get("ticker")
+            ex_date  = d.get("date_detach")
+            if not ticker or not ex_date:
+                continue
+            ev_id = f"{ticker}_{ex_date}"
+            if ev_id not in accrued_ids:
+                continue
+
+            # Enregistrer le paiement
+            ev      = accrued_ids[ev_id]
+            montant = ev["montant_total_fcfa"]
+            ev["payment_date"] = today_str
+            ev["status"]       = "received"
+            ev["journal"].append({
+                "date":         today_str,
+                "type":         "PAYMENT",
+                "debit":        "Tresorerie_Depositaire_Poche_Distribution",
+                "credit":       "Dividend_Receivable",
+                "montant_fcfa": montant,
+                "note":         f"Encaissement automatique {ticker} — Poche Distribution",
+            })
+            acct["dividend_receivable_fcfa"] = round(
+                acct.get("dividend_receivable_fcfa", 0) - montant, 0)
+            acct["poche_distribution_fcfa"]  = round(
+                acct.get("poche_distribution_fcfa", 0) + montant, 0)
+            recorded.append(ticker)
+            print(f"  [DIV] AUTO-PAYMENT {ticker} : {montant:,.0f} FCFA → Poche Distribution")
+
+        if recorded:
+            acct["updated_at"] = datetime.now(timezone.utc).isoformat()
+            json.dump(acct, open(ACCT_PATH, "w", encoding="utf-8"),
+                      ensure_ascii=False, indent=2)
+
+        return recorded
+
     def record_distribution(self, distribution_date=None):
         """
         À la date de distribution : solde Distribution_Payable et vide la Poche.
@@ -285,8 +345,10 @@ class CorporateActionsChecker(BaseScript):
         nav_latest = self.load_json_path(self.NAV_LATEST) or {}
         etf_weights = self._get_etf_weights(nav_latest)
 
-        # Provisionnement comptable dividendes à l'ex-date
+        # Provisionnement comptable dividendes à l'ex-date (DSG)
         provisioned = self._provision_dividends(today_str, nav_latest)
+        # Encaissement automatique si date_paiement = aujourd'hui
+        self._auto_record_payments(today_str)
 
         live_prices = self._scrape_live_prices()
         anomalies = []
