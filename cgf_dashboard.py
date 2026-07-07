@@ -1433,6 +1433,137 @@ Distribution : dernier jour de bourse de **juin et decembre**.
         fig_ar.update_layout(**PLOTLY_LAYOUT, height=260, hovermode="x unified", yaxis_title="Écart (%)", showlegend=False)
         st.plotly_chart(fig_ar, width='stretch')
 
+        # ── Impact des dividendes — PR vs TR ─────────────────────────────────
+        _section("Impact des dividendes — Price Return vs Total Return")
+
+        _dv_hist  = load_json(os.path.join(BRVM30_DIR, "dividend_history.json")) or {}
+        _dv_map   = _dv_hist.get("history", {})
+        _sh_dv    = load_json(os.path.join(BRVM30_DIR, "sika_history.json")) or {}
+        _rd_dv    = load_json(os.path.join(BRVM30_DIR, "rebal_detail.json")) or {}
+
+        # Tickers différents entre dividend_history et sika_history
+        _DV_TK     = {"TOTC": "TTLC", "VIVC": "SHEC", "TOSG": None, "NLCI": None}
+        _DV_TK_REV = {v: k for k, v in _DV_TK.items() if v}  # TTLC→TOTC, SHEC→VIVC
+
+        # Poids BRVM30 par date de rebalancement (basket + excluded)
+        _b30_wh = {}
+        for _rv in _rd_dv.get("rebalancings", []):
+            _dtr = _rv.get("date")
+            if not _dtr: continue
+            _ww = {}
+            for _it in _rv.get("basket", []) + _rv.get("excluded", []):
+                _tk, _wb = _it.get("ticker"), _it.get("w_brvm30", 0)
+                if _tk and _wb: _ww[_tk] = _wb
+            if _ww: _b30_wh[_dtr] = _ww
+        _b30_srt = sorted(_b30_wh.keys())
+        _wh_srt  = sorted((dd.get("w_history") or {}).keys())
+
+        def _w_at(wh, srt, ds):
+            past = [d for d in srt if d <= ds]
+            return wh[past[-1]] if past else {}
+
+        def _px_at(tk, ds):
+            sh_tk = _sh_dv.get(tk, {})
+            cands = [d for d in sh_tk if d <= ds and sh_tk[d].get("close")]
+            return sh_tk[max(cands)]["close"] if cands else None
+
+        _DV_YRS  = ["2022", "2023", "2024", "2025"]
+        _EX_DTS  = {yr: f"{int(yr)+1}-07-01" for yr in _DV_YRS}
+        _AUM_DV  = 5_000   # M FCFA
+
+        # Calcul rendement dividende par exercice
+        _yields_dv   = {}
+        _div_rows_dv = []
+        for _yr in _DV_YRS:
+            _exd = _EX_DTS[_yr]
+            if pd.Timestamp(_exd) > nav_e_full.index[-1]:
+                break
+
+            _b30_w = _w_at(_b30_wh, _b30_srt, _exd)
+            _etf_w = _w_at(dd.get("w_history") or {}, _wh_srt, _exd)
+            _tot_b = sum(_b30_w.values()) or 1.0
+            _br_y = _et_y = _cash = 0.0
+
+            for _tkb, _wb in _b30_w.items():
+                _tks  = _DV_TK.get(_tkb, _tkb)
+                if not _tks: continue
+                _div  = (_dv_map.get(_tkb) or _dv_map.get(_tks) or {}).get(_yr)
+                if not _div: continue
+                _px   = _px_at(_tks, _exd)
+                if not _px: continue
+                _br_y += (_wb / _tot_b) * (_div / _px)
+
+            for _tke, _we in _etf_w.items():
+                _tkd  = _DV_TK_REV.get(_tke, _tke)
+                _div  = (_dv_map.get(_tke) or _dv_map.get(_tkd) or {}).get(_yr)
+                if not _div: continue
+                _px   = _px_at(_tke, _exd)
+                if not _px: continue
+                _dyi  = _div / _px
+                _et_y += _we * _dyi
+                _cash += _we * _AUM_DV * _dyi
+
+            _yields_dv[_yr] = {"brvm30": _br_y, "etf": _et_y, "cash": _cash}
+            _div_rows_dv.append({
+                "Exercice":          _yr,
+                "Ex-date (conv.)":   _exd,
+                "Rend. div. BRVM30": f"{_br_y*100:.2f}%",
+                "Rend. div. ETF":    f"{_et_y*100:.2f}%",
+                "Gap (pp)":          f"{(_et_y - _br_y)*100:+.2f}",
+                "Cash ETF (M FCFA)": f"{_cash:.1f}",
+            })
+
+        # Séries TR : appliquer un multiplicateur cumulatif à chaque ex-date
+        _b30_f = pd.Series(1.0, index=nav_b_full.index, dtype=float)
+        _etf_f = pd.Series(1.0, index=nav_e_full.index, dtype=float)
+        for _yr, _yd in _yields_dv.items():
+            _ex_ts = pd.Timestamp(_EX_DTS[_yr])
+            if _ex_ts <= nav_b_full.index[-1]:
+                _b30_f.loc[_ex_ts:] *= (1 + _yd["brvm30"])
+            if _ex_ts <= nav_e_full.index[-1]:
+                _etf_f.loc[_ex_ts:] *= (1 + _yd["etf"])
+
+        _nav_b_tr = (nav_b_full * _b30_f).loc[start_dt:end_dt]
+        _nav_e_tr = (nav_e_full * _etf_f).loc[start_dt:end_dt]
+
+        # Graphe 4 courbes
+        _fig_tr = go.Figure()
+        _fig_tr.add_trace(go.Scatter(x=nav_b.index, y=nav_b.values,
+            name="BRVM30 PR", line=dict(color=BENCH_COLOR, width=1.5, dash="dot")))
+        _fig_tr.add_trace(go.Scatter(x=_nav_b_tr.index, y=_nav_b_tr.values,
+            name="BRVM30 TR", line=dict(color=BENCH_COLOR, width=2.5)))
+        _fig_tr.add_trace(go.Scatter(x=nav_e.index, y=nav_e.values,
+            name="ETF PR (net frais)", line=dict(color=COLOR, width=1.5, dash="dot")))
+        _fig_tr.add_trace(go.Scatter(x=_nav_e_tr.index, y=_nav_e_tr.values,
+            name="ETF TR (net frais)", line=dict(color=COLOR, width=2.5)))
+        _fig_tr.update_layout(**PLOTLY_LAYOUT, height=420,
+            title="Price Return vs Total Return (dividendes réinvestis, base 100)",
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=-0.28, xanchor="center", x=0.5))
+        st.plotly_chart(_fig_tr, width='stretch')
+
+        # KPIs
+        if _yields_dv:
+            _tot_br = sum(v["brvm30"] for v in _yields_dv.values())
+            _tot_et = sum(v["etf"]    for v in _yields_dv.values())
+            _tot_ca = sum(v["cash"]   for v in _yields_dv.values())
+            _n_yr_d = len(_yields_dv)
+            _gap_pp = (_tot_et - _tot_br) * 100
+            _ck1, _ck2, _ck3, _ck4 = st.columns(4)
+            _ck1.metric("Rend. div. BRVM30 (cumulé)", f"{_tot_br*100:.2f}%",
+                        help="Somme des rendements dividendes de l'indice sur toute la période")
+            _ck2.metric("Rend. div. ETF (cumulé)",    f"{_tot_et*100:.2f}%",
+                        delta=f"{_gap_pp:+.2f} pp vs indice",
+                        delta_color="normal" if _gap_pp >= 0 else "inverse",
+                        help="Dividendes collectés par l'ETF / NAV à chaque ex-date")
+            _ck3.metric("Cash collecté ETF (cumulé)", f"{_tot_ca:.0f} M FCFA")
+            _ck4.metric("Rend. div. ETF moyen / an",  f"{_tot_et/_n_yr_d*100:.2f}%")
+
+        # Table annuelle
+        if _div_rows_dv:
+            st.caption("Convention : dividendes de l'exercice N détachés au 1er juillet N+1 (BRVM)")
+            st.dataframe(pd.DataFrame(_div_rows_dv), use_container_width=True, hide_index=True)
+
     # ── Tracking Error ────────────────────────────────────────────────────────
     elif _bsec == "te":
         start_dt, end_dt = _date_filter("bt_te")
