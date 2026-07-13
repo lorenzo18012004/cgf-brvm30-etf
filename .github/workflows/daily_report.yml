@@ -13,7 +13,25 @@ on:
     types: [trigger-daily-report]   # appelé par cron-job.org ou Task Scheduler
 
 jobs:
+  check-weekday:
+    runs-on: ubuntu-latest
+    outputs:
+      is_workday: ${{ steps.check.outputs.is_workday }}
+    steps:
+      - id: check
+        run: |
+          dow=$(date -u +%u)
+          if [ "$dow" -lt 6 ]; then
+            echo "is_workday=true" >> $GITHUB_OUTPUT
+            echo "[OK] Jour ouvré ($dow)"
+          else
+            echo "is_workday=false" >> $GITHUB_OUTPUT
+            echo "[SKIP] Week-end ($dow) — aucun rapport."
+          fi
+
   daily-report:
+    needs: check-weekday
+    if: needs.check-weekday.outputs.is_workday == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
