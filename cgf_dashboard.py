@@ -3727,8 +3727,25 @@ def _render_live():
                 if not sika_data:
                     st.info("ℹ Sika Finance indisponible — variations journalières non affichées.")
 
-                _w_brvm30_live = {b["ticker"]: round(b.get("w_brvm30", 0) * 100, 4)
-                                  for b in _last_rb_live.get("basket", [])}
+                # Poids flottants courants de l'indice BRVM30 (recalculés avec prix du jour)
+                # Formule : w_i(t) = w_i(rebal) × (P_i(t)/P_i(rebal)) / Σ(w_j(rebal) × P_j(t)/P_j(rebal))
+                _rebal_date_live = _last_rb_live.get("date", "")
+                _sh_live = load_json(os.path.join(BRVM30_DIR, "sika_history.json")) or {}
+                _price_now = {r["ticker"]: r["dernier_prix"] for _, r in df_basket.iterrows()}
+                _interim_idx, _sum_idx = {}, 0.0
+                for _b in _last_rb_live.get("basket", []):
+                    _tk, _w0 = _b["ticker"], _b.get("w_brvm30", 0)
+                    _p0   = (_sh_live.get(_tk, {}).get(_rebal_date_live) or {}).get("close")
+                    _pnow = _price_now.get(_tk)
+                    if _w0 and _p0 and _pnow:
+                        _r = _w0 * _pnow / _p0
+                        _interim_idx[_tk] = _r
+                        _sum_idx += _r
+                if _sum_idx > 0:
+                    _w_brvm30_live = {tk: round(r / _sum_idx * 100, 4) for tk, r in _interim_idx.items()}
+                else:
+                    _w_brvm30_live = {b["ticker"]: round(b.get("w_brvm30", 0) * 100, 4)
+                                      for b in _last_rb_live.get("basket", [])}
                 rows = []
                 for _, r in df_basket.iterrows():
                     last  = r["dernier_prix"]   # clôture veille dans nav_latest
