@@ -33,12 +33,12 @@ class IntradayScraperCloud(BaseScript):
             return None
 
         try:
-            from scrape_sika import _fetch_html, scrape_prices, scrape_brvm30_index, SIKA_URL
-            html        = _fetch_html(SIKA_URL)
-            live_prices = scrape_prices(html)
-            brvm30_val  = scrape_brvm30_index(html)
+            from data_provider import get_provider
+            _dp         = get_provider()
+            live_prices = _dp.get_live_prices()
+            brvm30_val  = _dp.get_brvm30_index()
         except Exception as e:
-            print(f"[ERREUR] Scraping sika : {e}")
+            print(f"[ERREUR] Récupération données marché : {e}")
             return None
 
         try:
