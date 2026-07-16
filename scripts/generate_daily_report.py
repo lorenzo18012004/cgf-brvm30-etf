@@ -127,28 +127,28 @@ class ReportGenerator(BaseScript):
         if not os.path.exists(p): return None
         import json; return json.load(open(p, encoding='utf-8'))
 
-    def _scrape_sika(self):
+    def _get_live_prices(self, nl):
+        """
+        Cours du jour via le provider actif (data_provider.py).
+        Retourne {ticker: {'dernier': float, 'variation': float|None}}.
+        La variation est calculée depuis dernier_prix dans nav_latest.json.
+        """
+        import sys
+        sys.path.insert(0, self.scripts_dir)
         try:
-            import requests
-            from bs4 import BeautifulSoup
-            r = requests.get('https://sikafinance.com/marches/aaz',
-                headers={'User-Agent':'Mozilla/5.0'}, verify=False, timeout=15)
-            soup = BeautifulSoup(r.text, 'html.parser')
-            out = {}
-            for a in soup.find_all('a', href=re.compile(r'/marches/cotation_[A-Z]', re.I)):
-                m = re.search(r'cotation_([A-Z0-9]+)', a['href'], re.I)
-                if not m: continue
-                tk = m.group(1).upper()
-                if any(x in tk for x in ('BRVM','SIKA','COMPO')): continue
-                row = a.find_parent('tr')
-                if not row: continue
-                cells = row.find_all(['td','th'])
-                def _p(c): return c.get_text(strip=True).replace('\xa0','').replace(' ','').replace(',','.').replace('%','')
-                if len(cells) >= 8:
-                    try: out[tk] = {'dernier': float(_p(cells[6])), 'variation': float(_p(cells[7]))}
-                    except: pass
-            return out
-        except: return {}
+            from data_provider import get_provider
+            series = get_provider().get_live_prices()
+            live = {tk: float(p) for tk, p in series.items()}
+        except Exception:
+            live = {}
+
+        p0_map = {item["ticker"]: item.get("dernier_prix") for item in nl.get("basket", [])}
+        out = {}
+        for tk, p1 in live.items():
+            p0 = p0_map.get(tk)
+            variation = round((p1 / p0 - 1) * 100, 2) if p0 and p0 > 0 else None
+            out[tk] = {"dernier": p1, "variation": variation}
+        return out
 
     # ── styles ──────────────────────────────────────────────────────
     def S(self):
@@ -611,7 +611,7 @@ class ReportGenerator(BaseScript):
                 days_r = (nr - pd.Timestamp(report_date).normalize()).days
             except: pass
 
-        print("Scraping Sika..."); sika = self._scrape_sika()
+        print("Cours du jour..."); sika = self._get_live_prices(nl)
         # Basket avec poids recalculés aux prix du jour (pas les arrondis de nav_latest)
         basket = self._basket_for_date(nl.get('basket', []), last)
 
