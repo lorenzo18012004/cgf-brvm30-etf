@@ -67,7 +67,7 @@ class NavCalculator(BaseScript):
             raise ValueError("nav_latest.json ne contient pas nav_indice/calc_date")
         return pd.Series({pd.Timestamp(nav_date): float(nav_val)}, name='nav_indice')
 
-    def _load_last_basket(self):
+    def _load_last_baskeatt(self):
         """Renvoie (date_rebal, {ticker: w_etf}) du dernier rebalancement effectif."""
         d = self.load_json_path(self.REBAL_FILE, default={})
         rebals = [r for r in d['rebalancings'] if not r.get('skipped', False) and r.get('basket')]

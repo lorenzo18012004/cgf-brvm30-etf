@@ -5,12 +5,11 @@ Appelé mensuellement par GitHub Actions.
 Compare brvm_composition_latest.json avec le dernier rebal dans rebal_detail.json.
 Si une nouvelle composition existe → génère rebal_pending.json + envoie un email.
 
-Stratégie identique à rebalance_live.py :
-  - Poids cible : capitalisation totale Sika (nb_titres × prix)
-  - Top FORCE_TOP_N forcés (OTC, sans contrainte ADV)
-  - Restants : ADV-cap (participation 15% × 62j/32j) + redistribution
-  - Exclusion uniquement si ADV < MIN_ADV_MFCFA ou poids < 0.1% après redistribution
-  - Pas d'exclusion float fixe
+Utilise exactement le même moteur que rebalance_live.py (fonctions importées) :
+  - Poids cible       : capitalisation totale Sika (nb_titres × prix)
+  - Top FORCE_TOP_N   : OTC (poids exact indice, pas de contrainte ADV)
+  - Autres            : ADV-cap sur le DELTA depuis la position courante
+  - Exclusion         : si ADV < MIN_ADV_MFCFA ou poids résiduel < MIN_WEIGHT
 
 Usage :
     python propose_rebalancing.py           # vérification normale
@@ -20,17 +19,18 @@ Usage :
 import os, sys, json, smtplib, argparse
 from datetime import datetime, timezone
 
-from base import BaseScript
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# ── Paramètres (identiques à rebalance_live.py) ──────────────────────────────
-MAX_EXEC_LARGE   = 62
-MAX_EXEC_SMALL   = 32
-LARGE_THRESHOLD  = 0.03
-PARTICIPATION_RATE = 0.15
-MIN_ADV_MFCFA    = 0.5
-MIN_WEIGHT       = 0.001
-STALE_WINDOW     = 63
-FORCE_TOP_N      = 5
+from base import BaseScript
+from rebalance_live import (
+    build_adv_capped_weights,
+    compute_adv,
+    compute_stale,
+    get_total_cap_weights,
+    FORCE_TOP_N,
+    MIN_ADV_MFCFA,
+    MIN_WEIGHT,
+)
 
 
 class RebalancingProposer(BaseScript):
@@ -39,114 +39,7 @@ class RebalancingProposer(BaseScript):
         super().__init__()
         self.recipient = "l.philippe@cgfgestion.com"
 
-    # ── Helpers Sika ──────────────────────────────────────────────────────── #
-
-    def _last_price(self, sika, ticker, as_of_date):
-        hist = sika.get(ticker, {})
-        past = sorted(d for d in hist if d <= as_of_date)
-        if past:
-            p = hist[past[-1]]
-            close = p.get("close") if isinstance(p, dict) else p
-            if close and float(close) > 0:
-                return float(close)
-        return None
-
-    def _compute_adv(self, sika, ticker, as_of_date):
-        hist  = sika.get(ticker, {})
-        dates = sorted(d for d in hist if d < as_of_date)[-STALE_WINDOW:]
-        vals  = [(hist[d].get("volume") or 0) * (hist[d].get("close") or 0) / 1e6
-                 for d in dates]
-        return float(sum(vals) / len(dates)) if dates else 0.0
-
-    def _compute_stale(self, sika, ticker, as_of_date):
-        hist  = sika.get(ticker, {})
-        dates = sorted(d for d in hist if d < as_of_date)[-STALE_WINDOW:]
-        if not dates:
-            return 1.0
-        return sum(1 for d in dates if (hist[d].get("volume") or 0) == 0) / len(dates)
-
-    # ── Poids capitalisation totale Sika ──────────────────────────────────── #
-
-    def _get_total_cap_weights(self, tickers, rebal_date, sika, soc):
-        market_cap = {}
-        missing    = []
-        for tk in tickers:
-            nb   = soc.get(tk, {}).get("nb_titres")
-            prix = self._last_price(sika, tk, rebal_date)
-            if nb and prix:
-                market_cap[tk] = nb * prix
-            else:
-                missing.append(tk)
-        if missing and market_cap:
-            avg = sum(market_cap.values()) / len(market_cap)
-            for tk in missing:
-                market_cap[tk] = avg
-        total = sum(market_cap.values())
-        if total <= 0:
-            return {tk: 1 / len(tickers) for tk in tickers}
-        return {tk: market_cap[tk] / total for tk in tickers}
-
-    # ── Stratégie ADV-cap (= rebalance_live.py) ───────────────────────────── #
-
-    def _build_adv_capped_weights(self, w_brvm30, rebal_date, aum_mfcfa, sika):
-        """
-        ADV-cap uniforme sur tous les titres (pas de forcing top-N).
-        Exclusion uniquement si ADV < MIN_ADV_MFCFA ou poids résiduel < MIN_WEIGHT.
-        """
-        total_brvm30 = sum(w_brvm30.values()) or 1.0
-        w_norm = {tk: v / total_brvm30 for tk, v in w_brvm30.items()}
-        adv    = {tk: self._compute_adv(sika, tk, rebal_date) for tk in w_norm}
-
-        eligible   = [tk for tk in w_norm if adv[tk] >= MIN_ADV_MFCFA]
-        exclu_info = {tk: f"ADV {adv[tk]:.1f} MFCFA < {MIN_ADV_MFCFA}"
-                      for tk in w_norm if adv[tk] < MIN_ADV_MFCFA}
-
-        if not eligible:
-            return {}, exclu_info, set()
-
-        total_elig = sum(w_norm[tk] for tk in eligible) or 1.0
-        weights    = {tk: w_norm[tk] / total_elig for tk in eligible}
-
-        max_w = {}
-        for tk in eligible:
-            days      = MAX_EXEC_LARGE if w_norm[tk] >= LARGE_THRESHOLD else MAX_EXEC_SMALL
-            max_w[tk] = PARTICIPATION_RATE * adv[tk] * days / aum_mfcfa
-
-        for _ in range(50):
-            capped   = {tk for tk in eligible if weights[tk] > max_w[tk]}
-            uncapped = [tk for tk in eligible if tk not in capped]
-            if not capped:
-                break
-            excess = sum(weights[tk] - max_w[tk] for tk in capped)
-            for tk in capped:
-                weights[tk] = max_w[tk]
-            uncapped_total = sum(weights[tk] for tk in uncapped)
-            if uncapped_total <= 0 or not uncapped:
-                break
-            for tk in uncapped:
-                weights[tk] += excess * weights[tk] / uncapped_total
-
-        for _ in range(10):
-            tiny = [tk for tk in eligible if 0 < weights.get(tk, 0) < MIN_WEIGHT]
-            if not tiny:
-                break
-            for tk in tiny:
-                exclu_info[tk] = f"Poids < {MIN_WEIGHT*100:.1f}% après redistribution"
-                eligible.remove(tk)
-            if not eligible:
-                break
-            total_keep = sum(weights[tk] for tk in eligible)
-            for tk in eligible:
-                weights[tk] = weights[tk] / total_keep if total_keep > 0 else 1 / len(eligible)
-
-        final = {tk: round(weights[tk], 6) for tk in eligible if weights.get(tk, 0) > 0}
-        total = sum(final.values())
-        if total > 0:
-            final = {tk: round(v / total, 6) for tk, v in final.items()}
-
-        return final, exclu_info, set()
-
-    # ── Turnover ──────────────────────────────────────────────────────────── #
+    # ── Turnover ──────────────────────────────────────────────────────────────── #
 
     def _compute_turnover(self, old_basket, new_weights):
         old_w = {b["ticker"]: b.get("w_etf", 0.0) for b in old_basket}
@@ -154,7 +47,7 @@ class RebalancingProposer(BaseScript):
         tv = sum(abs(new_weights.get(tk, 0.0) - old_w.get(tk, 0.0)) for tk in all_tickers)
         return round(tv / 2 * 100, 1)
 
-    # ── Email ─────────────────────────────────────────────────────────────── #
+    # ── Email ─────────────────────────────────────────────────────────────────── #
 
     def _send_email(self, proposal):
         gmail_user = os.environ.get("GMAIL_USER")
@@ -170,7 +63,7 @@ class RebalancingProposer(BaseScript):
         entries  = proposal.get("entries", [])
         exits    = proposal.get("exits", [])
         capped   = proposal.get("capped_tickers", [])
-        excluded = proposal.get("excluded", [])
+        excluded = proposal.get("excluded", {})
         rd       = proposal.get("proposed_rebal_date", "?")
         turnover = proposal.get("turnover_pct", "?")
         n_basket = len(proposal.get("new_basket", []))
@@ -191,16 +84,15 @@ class RebalancingProposer(BaseScript):
             f"  → Sortants ({len(exits)})   : {', '.join(exits) or 'aucun'}\n\n"
             f"STRATÉGIE ADV-CAP :\n"
             f"  → Panier ETF : {n_basket} titres\n"
-            f"  → Top {FORCE_TOP_N} tenus à leur poids exact (OTC)\n"
-            f"  → Titres plafonnés par ADV ({len(capped)}) :\n{cap_lines}\n"
-            f"  → Exclus uniquement si ADV < {MIN_ADV_MFCFA} MFCFA ou poids résiduel < {MIN_WEIGHT*100:.1f}% ({len(excluded)}) :\n{excl_lines}\n\n"
+            f"  → Top {FORCE_TOP_N} OTC (poids exact indice, pas de contrainte ADV)\n"
+            f"  → Titres plafonnés sur le delta d'ordre ({len(capped)}) :\n{cap_lines}\n"
+            f"  → Exclus (ADV < {MIN_ADV_MFCFA} MFCFA ou poids < {MIN_WEIGHT*100:.1f}%) ({len(excluded)}) :\n{excl_lines}\n\n"
             f"Turnover estimé : {turnover}%\n\n"
             f"PROCHAINE ÉTAPE :\n"
             f"GitHub → Actions → 'Appliquer Rebalancement' → Run workflow\n\n"
             f"Cordialement,\nCGF Bourse — Système automatique"
         )
 
-        import smtplib
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
         msg = MIMEMultipart()
@@ -214,7 +106,7 @@ class RebalancingProposer(BaseScript):
             server.sendmail(gmail_user, self.recipient, msg.as_string())
         print(f"[OK] Email envoyé à {self.recipient}")
 
-    # ── Point d'entrée ────────────────────────────────────────────────────── #
+    # ── Point d'entrée ────────────────────────────────────────────────────────── #
 
     def run(self, force=False):
         # Dernier rebal appliqué
@@ -223,6 +115,9 @@ class RebalancingProposer(BaseScript):
         last       = rebals[-1] if rebals else {}
         last_date  = last.get("date", "")
         old_basket = last.get("basket", [])
+
+        # Position courante (en décimal) transmise au moteur ADV-cap
+        old_basket_w = {b["ticker"]: b.get("w_etf", 0.0) for b in old_basket}
 
         # Nouvelle composition
         new_comp       = self.load_json("brvm_composition_latest.json", {})
@@ -254,15 +149,15 @@ class RebalancingProposer(BaseScript):
         nav_latest = self.load_json("nav_latest.json", {})
         aum_mfcfa  = float(nav_latest.get("aum_mfcfa") or 5000.0)
 
-        # Poids capitalisation totale Sika
-        w_brvm30 = self._get_total_cap_weights(new_tickers, new_rebal_date, sika, soc)
+        # Poids capitalisation totale Sika (même fonction que rebalance_live.py)
+        w_brvm30 = get_total_cap_weights(new_tickers, new_rebal_date, sika, soc)
 
-        # ADV-cap (même stratégie que rebalance_live.py)
-        basket_weights, exclu_info, forced_tks = self._build_adv_capped_weights(
-            w_brvm30, new_rebal_date, aum_mfcfa, sika
+        # ADV-cap avec position courante — même moteur que rebalance_live.py
+        basket_weights, exclu_info, forced_tks = build_adv_capped_weights(
+            w_brvm30, new_rebal_date, aum_mfcfa, sika, old_basket=old_basket_w
         )
 
-        # Titres effectivement plafonnés (dans le panier mais w_etf < w_brvm30)
+        # Titres plafonnés : dans le panier mais w_etf < w_brvm30
         capped_tickers = sorted(
             tk for tk in basket_weights
             if tk not in forced_tks and basket_weights[tk] < w_brvm30.get(tk, 0) - 1e-6
@@ -277,8 +172,8 @@ class RebalancingProposer(BaseScript):
                 "w_brvm30":    round(w_brvm30.get(tk, 0), 6),
                 "force_otc":   tk in forced_tks,
                 "capped":      tk in capped_tickers,
-                "adv_mfcfa":   round(self._compute_adv(sika, tk, new_rebal_date), 1),
-                "stale_ratio": round(self._compute_stale(sika, tk, new_rebal_date), 3),
+                "adv_mfcfa":   round(compute_adv(sika, tk, new_rebal_date), 1),
+                "stale_ratio": round(compute_stale(sika, tk, new_rebal_date), 3),
             }
             for tk, w in sorted(basket_weights.items(), key=lambda x: -x[1])
         ]

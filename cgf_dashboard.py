@@ -4382,14 +4382,42 @@ def _render_live():
                                 df_b["w_etf"]       = (df_b["w_etf"] * 100).round(4)
                                 df_b["w_brvm30"]    = (df_b.get("w_brvm30", df_b["w_etf"]) * 100).round(4)
                                 df_b["delta"]       = (df_b["delta"] * 100).round(4) if "delta" in df_b.columns else 0.0
-                                if "trade_mfcfa" not in df_b.columns: df_b["trade_mfcfa"] = 0.0
-                                if "days_exec"   not in df_b.columns: df_b["days_exec"]   = 0.0
+                                # Fallback : reconstruire trade_mfcfa / days_exec depuis orders si absents du basket
+                                _orders_lookup = {
+                                    o["ticker"]: {
+                                        "trade_mfcfa": round(o.get("montant_mfcfa", 0) * (1 if o.get("sens") == "ACHETER" else -1), 1),
+                                        "days_exec":   round(o.get("days_exec", 0), 1),
+                                    }
+                                    for o in rebal.get("orders", [])
+                                }
+                                if "trade_mfcfa" not in df_b.columns or df_b["trade_mfcfa"].abs().sum() == 0:
+                                    df_b["trade_mfcfa"] = df_b["ticker"].map(lambda t: _orders_lookup.get(t, {}).get("trade_mfcfa", 0.0))
+                                if "days_exec" not in df_b.columns or df_b["days_exec"].abs().sum() == 0:
+                                    df_b["days_exec"]   = df_b["ticker"].map(lambda t: _orders_lookup.get(t, {}).get("days_exec", 0.0))
                                 if "force"       not in df_b.columns: df_b["force"]       = False
                                 if "force_otc"   not in df_b.columns: df_b["force_otc"]   = False
                                 df_b["trade_mfcfa"] = df_b["trade_mfcfa"].round(1)
                                 df_b["force"]       = df_b.apply(
                                     lambda r: "OTC" if (r.get("force_otc") or r.get("force")) else "", axis=1
                                 )
+                                # Ajouter les exits (w_new=0) présents dans orders mais pas dans basket
+                                _basket_tickers = set(df_b["ticker"].tolist())
+                                _exit_rows = [
+                                    {
+                                        "ticker":      o["ticker"],
+                                        "w_etf":       0.0,
+                                        "w_brvm30":    0.0,
+                                        "delta":       round(o.get("delta_pct", 0), 4),
+                                        "trade_mfcfa": round(o.get("montant_mfcfa", 0) * -1, 1),
+                                        "days_exec":   round(o.get("days_exec", 0), 1),
+                                        "force":       "",
+                                        "force_otc":   False,
+                                    }
+                                    for o in rebal.get("orders", [])
+                                    if o.get("w_new_pct", -1) == 0 and o["ticker"] not in _basket_tickers
+                                ]
+                                if _exit_rows:
+                                    df_b = pd.concat([df_b, pd.DataFrame(_exit_rows)], ignore_index=True)
                                 _esnap = set(etf_entries)
                                 _xsnap = set(etf_exits)
                                 df_b["mvt"] = df_b["ticker"].map(
@@ -4407,8 +4435,8 @@ def _render_live():
                                     column_order=["Ticker", "OTC", "Poids %", "BRVM30 %",
                                                   "Trade (MFCFA)", "J.", "Mvt"],
                                 )
-                                total_buy  = sum(b.get("trade_mfcfa", 0) for b in rebal["basket"] if b.get("trade_mfcfa", 0) > 0)
-                                total_sell = sum(b.get("trade_mfcfa", 0) for b in rebal["basket"] if b.get("trade_mfcfa", 0) < 0)
+                                total_buy  = df_b["trade_mfcfa"].clip(lower=0).sum()
+                                total_sell = df_b["trade_mfcfa"].clip(upper=0).sum()
                                 tc1, tc2, tc3 = st.columns(3)
                                 tc1.metric("Achats", f"+{total_buy:,.1f} MFCFA")
                                 tc2.metric("Ventes", f"{total_sell:,.1f} MFCFA")
