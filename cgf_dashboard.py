@@ -3794,11 +3794,11 @@ def _render_live():
                             styles[cols.index("Ticker")] = "background-color: #FDEDEC; color: #C0392B; font-weight:700"
                         if "Cible rebal (%)" in cols:
                             styles[cols.index("Cible rebal (%)")] = "background-color: #FDEDEC; color: #C0392B; font-weight:600"
-                    # Dérive live vs cible > 1%
-                    if "Poids live (%)" in cols and "Cible rebal (%)" in cols:
+                    # Dérive live vs poids flottant courant de l'indice > 1%
+                    if "Poids live (%)" in cols and "Indice BRVM30 (%)" in cols:
                         live = row["Poids live (%)"]
-                        if live is not None and cible is not None and not pd.isna(live) and not pd.isna(cible):
-                            if abs(live - cible) > 1.0:
+                        if live is not None and b30 is not None and not pd.isna(live) and not pd.isna(b30):
+                            if abs(live - b30) > 1.0:
                                 styles[cols.index("Poids live (%)")] = (
                                     ("background-color: #FDEDEC; " if capped else "")
                                     + "color: #C0392B; font-weight:600"
