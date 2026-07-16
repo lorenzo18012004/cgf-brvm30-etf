@@ -89,6 +89,9 @@ TICKER_META = {
     'BOAM':  ('Finance',       'Mali',           'BOA Mali'),
     'BOAN':  ('Finance',       'Niger',          'BOA Niger'),
     'SDSC':  ('Finance',       'Sénégal',        'Société Générale SN'),
+    'NSBC':  ('Finance',       "Côte d'Ivoire",  'NSIA Banque CI'),
+    'SIVC':  ('Finance',       "Côte d'Ivoire",  'Erium'),
+    'SAFC':  ('Finance',       "Côte d'Ivoire",  'SAFCA CI'),
     # Énergie / Services publics
     'CIEC':  ('Énergie',       "Côte d'Ivoire",  'CIE'),
     'TTLC':  ('Énergie',       "Côte d'Ivoire",  'TotalEnergies CI'),
@@ -96,10 +99,13 @@ TICKER_META = {
     # Agriculture / Agro-industrie
     'SPHC':  ('Agriculture',   "Côte d'Ivoire",  'SAPH'),
     'SCRC':  ('Agriculture',   "Côte d'Ivoire",  'Sucrivoire'),
+    'SOGC':  ('Agriculture',   "Côte d'Ivoire",  'SOGB CI'),
     # Industries & Distribution
     'UNXC':  ('Industries',    "Côte d'Ivoire",  'UNIWAX CI'),
     'STAC':  ('Industries',    "Côte d'Ivoire",  'SETAO CI'),
     'FTSC':  ('Industries',    "Côte d'Ivoire",  'Filtisac CI'),
+    'NEIC':  ('Industries',    "Côte d'Ivoire",  'NEI CEDA CI'),
+    'SEMC':  ('Industries',    "Côte d'Ivoire",  'Crown Siem CI'),
 }
 
 
@@ -637,7 +643,7 @@ class ReportGenerator(BaseScript):
                             f'{vl:,.0f}', 'FCFA PAR PART', val_size='big'),
             self._card_cell('VARIATION JOURNALIÈRE',
                             self._pct(var_j),
-                            f'iNAV {heure} UTC  ·  {n_prix}/27 cours', val_size='big'),
+                            f'iNAV {heure} UTC  ·  {n_prix}/{len(basket)} cours', val_size='big'),
         ], [vl_w, var_w], pad=18))
         story.append(Spacer(1, 6))
 
