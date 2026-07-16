@@ -1,6 +1,6 @@
 {
   "status": "pending",
-  "proposed_at": "2026-07-16 09:03 UTC",
+  "proposed_at": "2026-07-16 10:30 UTC",
   "proposed_rebal_date": "2026-07-01",
   "last_rebal_date": "2026-07-01",
   "entries": [
@@ -13,8 +13,8 @@
     "ONTBF",
     "SHEC"
   ],
-  "turnover_pct": 0.0,
-  "aum_mfcfa": 5471.8,
+  "turnover_pct": 6.0,
+  "aum_mfcfa": 5552.4,
   "new_basket": [
     {
       "ticker": "SNTS",
@@ -63,7 +63,7 @@
     },
     {
       "ticker": "ETIT",
-      "w_etf": 0.053441,
+      "w_etf": 0.05419,
       "w_brvm30": 0.053441,
       "force_otc": false,
       "capped": false,
@@ -72,7 +72,7 @@
     },
     {
       "ticker": "CBIBF",
-      "w_etf": 0.05278,
+      "w_etf": 0.05352,
       "w_brvm30": 0.05278,
       "force_otc": false,
       "capped": false,
@@ -81,7 +81,7 @@
     },
     {
       "ticker": "NSBC",
-      "w_etf": 0.033989,
+      "w_etf": 0.034465,
       "w_brvm30": 0.033989,
       "force_otc": false,
       "capped": false,
@@ -90,7 +90,7 @@
     },
     {
       "ticker": "STBC",
-      "w_etf": 0.03017,
+      "w_etf": 0.030593,
       "w_brvm30": 0.03017,
       "force_otc": false,
       "capped": false,
@@ -99,7 +99,7 @@
     },
     {
       "ticker": "BOAC",
-      "w_etf": 0.025826,
+      "w_etf": 0.026189,
       "w_brvm30": 0.025826,
       "force_otc": false,
       "capped": false,
@@ -108,7 +108,7 @@
     },
     {
       "ticker": "BOAB",
-      "w_etf": 0.025157,
+      "w_etf": 0.02551,
       "w_brvm30": 0.025157,
       "force_otc": false,
       "capped": false,
@@ -117,7 +117,7 @@
     },
     {
       "ticker": "BICB",
-      "w_etf": 0.02334,
+      "w_etf": 0.023668,
       "w_brvm30": 0.02334,
       "force_otc": false,
       "capped": false,
@@ -125,17 +125,8 @@
       "stale_ratio": 0.0
     },
     {
-      "ticker": "CFAC",
-      "w_etf": 0.022,
-      "w_brvm30": 0.022,
-      "force_otc": false,
-      "capped": false,
-      "adv_mfcfa": 5.3,
-      "stale_ratio": 0.0
-    },
-    {
       "ticker": "CIEC",
-      "w_etf": 0.020397,
+      "w_etf": 0.020683,
       "w_brvm30": 0.020397,
       "force_otc": false,
       "capped": false,
@@ -144,7 +135,7 @@
     },
     {
       "ticker": "BOAS",
-      "w_etf": 0.018407,
+      "w_etf": 0.018665,
       "w_brvm30": 0.018407,
       "force_otc": false,
       "capped": false,
@@ -153,7 +144,7 @@
     },
     {
       "ticker": "BOABF",
-      "w_etf": 0.017841,
+      "w_etf": 0.018091,
       "w_brvm30": 0.017841,
       "force_otc": false,
       "capped": false,
@@ -161,8 +152,17 @@
       "stale_ratio": 0.0
     },
     {
+      "ticker": "CFAC",
+      "w_etf": 0.016433,
+      "w_brvm30": 0.022,
+      "force_otc": false,
+      "capped": true,
+      "adv_mfcfa": 5.3,
+      "stale_ratio": 0.0
+    },
+    {
       "ticker": "SPHC",
-      "w_etf": 0.014043,
+      "w_etf": 0.01424,
       "w_brvm30": 0.014043,
       "force_otc": false,
       "capped": false,
@@ -171,7 +171,7 @@
     },
     {
       "ticker": "ORGT",
-      "w_etf": 0.013119,
+      "w_etf": 0.013303,
       "w_brvm30": 0.013119,
       "force_otc": false,
       "capped": false,
@@ -180,7 +180,7 @@
     },
     {
       "ticker": "TTLC",
-      "w_etf": 0.012765,
+      "w_etf": 0.012944,
       "w_brvm30": 0.012765,
       "force_otc": false,
       "capped": false,
@@ -189,7 +189,7 @@
     },
     {
       "ticker": "SOGC",
-      "w_etf": 0.012463,
+      "w_etf": 0.012638,
       "w_brvm30": 0.012463,
       "force_otc": false,
       "capped": false,
@@ -198,7 +198,7 @@
     },
     {
       "ticker": "BOAM",
-      "w_etf": 0.009376,
+      "w_etf": 0.009507,
       "w_brvm30": 0.009376,
       "force_otc": false,
       "capped": false,
@@ -207,7 +207,7 @@
     },
     {
       "ticker": "SDSC",
-      "w_etf": 0.008978,
+      "w_etf": 0.009104,
       "w_brvm30": 0.008978,
       "force_otc": false,
       "capped": false,
@@ -216,7 +216,7 @@
     },
     {
       "ticker": "BOAN",
-      "w_etf": 0.005989,
+      "w_etf": 0.006073,
       "w_brvm30": 0.005989,
       "force_otc": false,
       "capped": false,
@@ -225,7 +225,7 @@
     },
     {
       "ticker": "SCRC",
-      "w_etf": 0.004573,
+      "w_etf": 0.004637,
       "w_brvm30": 0.004573,
       "force_otc": false,
       "capped": false,
@@ -234,7 +234,7 @@
     },
     {
       "ticker": "STAC",
-      "w_etf": 0.003187,
+      "w_etf": 0.003231,
       "w_brvm30": 0.003187,
       "force_otc": false,
       "capped": false,
@@ -243,7 +243,7 @@
     },
     {
       "ticker": "SEMC",
-      "w_etf": 0.002631,
+      "w_etf": 0.002668,
       "w_brvm30": 0.002631,
       "force_otc": false,
       "capped": false,
@@ -252,7 +252,7 @@
     },
     {
       "ticker": "SAFC",
-      "w_etf": 0.002567,
+      "w_etf": 0.002603,
       "w_brvm30": 0.002567,
       "force_otc": false,
       "capped": false,
@@ -261,7 +261,7 @@
     },
     {
       "ticker": "UNXC",
-      "w_etf": 0.00241,
+      "w_etf": 0.002444,
       "w_brvm30": 0.00241,
       "force_otc": false,
       "capped": false,
@@ -270,7 +270,7 @@
     },
     {
       "ticker": "NEIC",
-      "w_etf": 0.001996,
+      "w_etf": 0.002024,
       "w_brvm30": 0.001996,
       "force_otc": false,
       "capped": false,
@@ -279,7 +279,7 @@
     },
     {
       "ticker": "SIVC",
-      "w_etf": 0.001474,
+      "w_etf": 0.001494,
       "w_brvm30": 0.001474,
       "force_otc": false,
       "capped": false,
@@ -287,128 +287,130 @@
       "stale_ratio": 0.0
     }
   ],
-  "capped_tickers": [],
+  "capped_tickers": [
+    "CFAC"
+  ],
   "excluded": {},
   "current_basket": [
     {
-      "ticker": "BICB",
-      "w_etf": 0.02334
-    },
-    {
-      "ticker": "BOAB",
-      "w_etf": 0.025157
-    },
-    {
-      "ticker": "BOABF",
-      "w_etf": 0.017841
-    },
-    {
-      "ticker": "BOAC",
-      "w_etf": 0.025826
-    },
-    {
-      "ticker": "BOAM",
-      "w_etf": 0.009376
-    },
-    {
-      "ticker": "BOAN",
-      "w_etf": 0.005989
-    },
-    {
-      "ticker": "BOAS",
-      "w_etf": 0.018407
-    },
-    {
-      "ticker": "CBIBF",
-      "w_etf": 0.05278
-    },
-    {
-      "ticker": "CFAC",
-      "w_etf": 0.022
-    },
-    {
-      "ticker": "CIEC",
-      "w_etf": 0.020397
-    },
-    {
-      "ticker": "ECOC",
-      "w_etf": 0.061478
-    },
-    {
-      "ticker": "ETIT",
-      "w_etf": 0.053441
-    },
-    {
-      "ticker": "NEIC",
-      "w_etf": 0.001996
-    },
-    {
-      "ticker": "NSBC",
-      "w_etf": 0.033989
+      "ticker": "SNTS",
+      "w_etf": 0.208958
     },
     {
       "ticker": "ORAC",
-      "w_etf": 0.172905
-    },
-    {
-      "ticker": "ORGT",
-      "w_etf": 0.013119
-    },
-    {
-      "ticker": "SAFC",
-      "w_etf": 0.002567
-    },
-    {
-      "ticker": "SCRC",
-      "w_etf": 0.004573
-    },
-    {
-      "ticker": "SDSC",
-      "w_etf": 0.008978
-    },
-    {
-      "ticker": "SEMC",
-      "w_etf": 0.002631
+      "w_etf": 0.15304500000000001
     },
     {
       "ticker": "SGBC",
-      "w_etf": 0.083385
+      "w_etf": 0.076032
     },
     {
       "ticker": "SIBC",
-      "w_etf": 0.061954
+      "w_etf": 0.055937
     },
     {
-      "ticker": "SIVC",
-      "w_etf": 0.001474
+      "ticker": "ECOC",
+      "w_etf": 0.056277
     },
     {
-      "ticker": "SNTS",
-      "w_etf": 0.20136
+      "ticker": "ETIT",
+      "w_etf": 0.092439
     },
     {
-      "ticker": "SOGC",
-      "w_etf": 0.012463
+      "ticker": "CBIBF",
+      "w_etf": 0.062922
     },
     {
-      "ticker": "SPHC",
-      "w_etf": 0.014043
-    },
-    {
-      "ticker": "STAC",
-      "w_etf": 0.003187
+      "ticker": "NSBC",
+      "w_etf": 0.03404
     },
     {
       "ticker": "STBC",
-      "w_etf": 0.03017
+      "w_etf": 0.027069
+    },
+    {
+      "ticker": "BOAC",
+      "w_etf": 0.025293999999999997
+    },
+    {
+      "ticker": "BOAB",
+      "w_etf": 0.023297
+    },
+    {
+      "ticker": "BICB",
+      "w_etf": 0.024793
+    },
+    {
+      "ticker": "CIEC",
+      "w_etf": 0.019046
+    },
+    {
+      "ticker": "BOAS",
+      "w_etf": 0.017271
+    },
+    {
+      "ticker": "BOABF",
+      "w_etf": 0.01968
+    },
+    {
+      "ticker": "CFAC",
+      "w_etf": 0.011875
+    },
+    {
+      "ticker": "SPHC",
+      "w_etf": 0.012393000000000001
+    },
+    {
+      "ticker": "ORGT",
+      "w_etf": 0.012191
     },
     {
       "ticker": "TTLC",
-      "w_etf": 0.012765
+      "w_etf": 0.011552
+    },
+    {
+      "ticker": "SOGC",
+      "w_etf": 0.011609000000000001
+    },
+    {
+      "ticker": "BOAM",
+      "w_etf": 0.010218
+    },
+    {
+      "ticker": "SDSC",
+      "w_etf": 0.009008
+    },
+    {
+      "ticker": "BOAN",
+      "w_etf": 0.006965
+    },
+    {
+      "ticker": "SCRC",
+      "w_etf": 0.004688
+    },
+    {
+      "ticker": "STAC",
+      "w_etf": 0.0028139999999999997
+    },
+    {
+      "ticker": "SEMC",
+      "w_etf": 0.0025340000000000002
+    },
+    {
+      "ticker": "SAFC",
+      "w_etf": 0.002414
     },
     {
       "ticker": "UNXC",
-      "w_etf": 0.00241
+      "w_etf": 0.0022589999999999997
+    },
+    {
+      "ticker": "NEIC",
+      "w_etf": 0.0019320000000000001
+    },
+    {
+      "ticker": "SIVC",
+      "w_etf": 0.001447
     }
   ]
 }

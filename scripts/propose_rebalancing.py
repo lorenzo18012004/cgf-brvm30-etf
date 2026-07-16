@@ -41,10 +41,9 @@ class RebalancingProposer(BaseScript):
 
     # ── Turnover ──────────────────────────────────────────────────────────────── #
 
-    def _compute_turnover(self, old_basket, new_weights):
-        old_w = {b["ticker"]: b.get("w_etf", 0.0) for b in old_basket}
-        all_tickers = set(old_w) | set(new_weights)
-        tv = sum(abs(new_weights.get(tk, 0.0) - old_w.get(tk, 0.0)) for tk in all_tickers)
+    def _compute_turnover(self, old_basket_w, new_weights):
+        all_tickers = set(old_basket_w) | set(new_weights)
+        tv = sum(abs(new_weights.get(tk, 0.0) - old_basket_w.get(tk, 0.0)) for tk in all_tickers)
         return round(tv / 2 * 100, 1)
 
     # ── Email ─────────────────────────────────────────────────────────────────── #
@@ -116,8 +115,14 @@ class RebalancingProposer(BaseScript):
         last_date  = last.get("date", "")
         old_basket = last.get("basket", [])
 
-        # Position courante (en décimal) transmise au moteur ADV-cap
-        old_basket_w = {b["ticker"]: b.get("w_etf", 0.0) for b in old_basket}
+        # Position courante mark-to-market depuis nav_latest.json (mise à jour quotidienne)
+        # Fallback sur rebal_detail si nav_latest n'a pas de basket
+        nav_latest_pre = self.load_json("nav_latest.json", {})
+        nav_basket = nav_latest_pre.get("basket", [])
+        if nav_basket:
+            old_basket_w = {b["ticker"]: b.get("poids_pct", 0.0) / 100 for b in nav_basket}
+        else:
+            old_basket_w = {b["ticker"]: b.get("w_etf", 0.0) for b in old_basket}
 
         # Nouvelle composition
         new_comp       = self.load_json("brvm_composition_latest.json", {})
@@ -146,7 +151,7 @@ class RebalancingProposer(BaseScript):
         entries     = new_comp.get("entries", [])
         exits       = new_comp.get("exits", [])
 
-        nav_latest = self.load_json("nav_latest.json", {})
+        nav_latest = nav_latest_pre
         aum_mfcfa  = float(nav_latest.get("aum_mfcfa") or 5000.0)
 
         # Poids capitalisation totale Sika (même fonction que rebalance_live.py)
@@ -163,7 +168,7 @@ class RebalancingProposer(BaseScript):
             if tk not in forced_tks and basket_weights[tk] < w_brvm30.get(tk, 0) - 1e-6
         )
 
-        turnover = self._compute_turnover(old_basket, basket_weights)
+        turnover = self._compute_turnover(old_basket_w, basket_weights)
 
         basket_detail = [
             {
@@ -190,7 +195,7 @@ class RebalancingProposer(BaseScript):
             "new_basket":          basket_detail,
             "capped_tickers":      capped_tickers,
             "excluded":            exclu_info,
-            "current_basket":      [{"ticker": b["ticker"], "w_etf": b.get("w_etf", 0.0)} for b in old_basket],
+            "current_basket":      [{"ticker": tk, "w_etf": w} for tk, w in old_basket_w.items()],
         }
 
         self.save_json("rebal_pending.json", proposal)
