@@ -3721,6 +3721,8 @@ def _render_live():
                 _last_rb_live = _rebals_live[-1] if _rebals_live else {}
                 _w_cible_live = {b["ticker"]: round(b.get("w_etf", 0) * 100, 4)
                                  for b in _last_rb_live.get("basket", [])}
+                _capped_live  = {b["ticker"]: bool(b.get("capped", False))
+                                 for b in _last_rb_live.get("basket", [])}
 
                 # Var. journalière via Sika — on récupère la variation officielle du jour
                 sika_data = scrape_sika_open()
@@ -3760,6 +3762,7 @@ def _render_live():
                         "Poids live (%)":  w_live,
                         "Cible rebal (%)": w_cible,
                         "Indice BRVM30 (%)": w_b30,
+                        "_capped":         _capped_live.get(r["ticker"], False),
                         "Clôture":         f"{int(last):,}" if last else "—",
                         "Var. J (%)":      var_j,
                         "Val. (M FCFA)":   round(r["pv_mfcfa"], 1),
@@ -3781,12 +3784,9 @@ def _render_live():
                 def _color_drift_live(row):
                     styles = [""] * len(row)
                     cols = list(row.index)
-                    cible = row.get("Cible rebal (%)")
                     b30   = row.get("Indice BRVM30 (%)")
-                    # Titre capé par ADV : cible significativement sous l'indice
-                    capped = (cible is not None and b30 is not None
-                              and not pd.isna(cible) and not pd.isna(b30)
-                              and b30 > 0 and cible < b30 - 0.05)
+                    # Titre capé : lu directement depuis le basket rebal_detail
+                    capped = bool(row.get("_capped", False))
                     if capped:
                         for i in range(len(styles)):
                             styles[i] = "background-color: #FDEDEC"
@@ -3807,6 +3807,7 @@ def _render_live():
 
                 df_styled = df_out.style\
                     .apply(_color_drift_live, axis=1)\
+                    .hide(axis='columns', names=['_capped'])\
                     .map(_color_pct, subset=["Var. J (%)"])\
                     .format({
                         "Var. J (%)":        _fmt_var,
