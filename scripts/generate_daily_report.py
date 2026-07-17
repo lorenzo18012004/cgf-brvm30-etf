@@ -556,10 +556,13 @@ class ReportGenerator(BaseScript):
         snaps = ih.get(report_date) or intra.get('snapshots', [])
         last  = snaps[-1] if snaps else {}
 
-        vl     = float(last.get('vl_live_fcfa') or last.get('vl_fcfa') or last.get('vl') or par)
-        var_j  = last.get('change_1d_pct') or last.get('change_day_pct')
-        aum    = float(last.get('aum_mfcfa') or nl.get('aum_mfcfa') or 0)
-        perf_l = last.get('perf_since_launch')
+        # VL officielle : nav_latest.json (calc_nav_cloud, prix clôture Sika) si dispo pour ce jour
+        # Fallback : dernier snapshot intraday (peut être en cours de séance)
+        nl_is_final = nl.get('calc_date') == report_date and nl.get('vl_par_part_fcfa')
+        vl     = float(nl['vl_par_part_fcfa']) if nl_is_final else float(last.get('vl_live_fcfa') or last.get('vl_fcfa') or last.get('vl') or par)
+        aum    = float(nl['aum_mfcfa']) if nl_is_final else float(last.get('aum_mfcfa') or nl.get('aum_mfcfa') or 0)
+        perf_l = nl.get('perf_since_launch') if nl_is_final else last.get('perf_since_launch')
+        var_j  = nl.get('change_day_pct') if nl_is_final else (last.get('change_1d_pct') or last.get('change_day_pct'))
         heure  = last.get('time','—')
         n_prix = int(last.get('n_prices') or nl.get('n_live_prices') or 0)
 
