@@ -281569,5 +281569,20 @@
         }
       }
     }
+  ],
+  "2026-07-17": [
+    {
+      "time": "09:35",
+      "vl": 110733.0,
+      "vl_fcfa": 110733.0,
+      "nav_indice": 269.8649,
+      "brvm30_official": 228.34,
+      "brvm30_star": 269.8649,
+      "perf_since_launch": 10.7333,
+      "change_1d_pct": 0.0,
+      "change_day_pct": 0.0,
+      "aum_mfcfa": 5536.7,
+      "n_prices": 30
+    }
   ]
 }
