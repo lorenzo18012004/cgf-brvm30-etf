@@ -119,12 +119,35 @@ class NavRecalculator(BaseScript):
         })
 
         self.save_json_path(os.path.join(self.data_dir, 'nav_latest.json'), nl)
+        print(f"\n[OK] nav_latest.json mis a jour (methode caps, {len(init_weights)} titres).")
 
-        print(f"\n[OK] nav_latest.json mis à jour (méthode caps, {len(init_weights)} titres).")
+        # ── Mise à jour nav_intraday_history.json ─────────────────────────────
+        # Les VL stockées dans les snapshots intraday utilisaient l'ancien basket.
+        # On corrige la VL de clôture de chaque jour (dernier snapshot du jour).
+        nih_path = os.path.join(self.data_dir, 'nav_intraday_history.json')
+        nih = self.load_json_path(nih_path) or {}
+
+        updated_days = 0
+        for day, nav_corrected in nav_series.items():
+            if day not in nih or not nih[day]:
+                continue
+            vl_corrected    = round(par_fcfa * (nav_corrected / nav_at_launch), 0)
+            perf_corrected  = round((nav_corrected / nav_at_launch - 1) * 100, 4)
+            aum_corrected   = round(vl_corrected * n_parts / 1_000_000, 1)
+            for snap in nih[day]:
+                snap['vl']              = vl_corrected
+                snap['vl_fcfa']         = vl_corrected
+                snap['nav_indice']      = round(nav_corrected, 4)
+                snap['perf_since_launch'] = perf_corrected
+                snap['aum_mfcfa']       = aum_corrected
+            updated_days += 1
+
+        self.save_json_path(nih_path, nih)
+        print(f"[OK] nav_intraday_history.json corrige ({updated_days} jours).")
         print(f"     NAV indice   : {last_nav:.4f}")
         print(f"     VL par part  : {vl_final:,.0f} FCFA")
         print(f"     Perf lct     : {perf_final:+.3f}%")
-        print(f"     Poids OK     : {sum(weights.values()):.6f} (doit être ~1.0)")
+        print(f"     Poids OK     : {sum(weights.values()):.6f} (doit etre ~1.0)")
 
 
 if __name__ == '__main__':
