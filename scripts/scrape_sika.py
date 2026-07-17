@@ -10,7 +10,7 @@ Usage :
     python scrape_sika.py --date 2026-05-23   # forcer une date précise
 
 Puis enchaîner avec :
-    python calc_nav.py
+    python calc_nav_cloud.py
 """
 
 import sys, io, os, re, json, argparse, shutil, warnings
@@ -327,7 +327,7 @@ class SikaScraper(BaseScript):
                 print(f"    {t:<8} : {p:>8,.0f} FCFA")
         else:
             print(f"\n  [OK] Excel mis a jour.")
-            print(f"  Relancer : python calc_nav.py")
+            print(f"  Relancer : python calc_nav_cloud.py")
 
         if s.get('tickers_missing'):
             print(f"\n  Tickers Sika non reconnus : {s['tickers_missing']}")

@@ -47,7 +47,7 @@ BCH_PATH = os.path.join(DATA, 'brvm_composition_history.json')
 DD_PATH  = os.path.join(DATA, 'dashboard_data.json')
 RD_PATH  = os.path.join(DATA, 'rebal_detail.json')
 
-# ── Paramètres (identiques à rebuild_backtest.py) ─────────────────────────────
+# ── Paramètres ────────────────────────────────────────────────────────────────
 MAX_EXEC_LARGE   = 62      # jours pour grands titres (>= 3% BRVM30)
 MAX_EXEC_SMALL   = 32      # jours pour petits titres (< 3% BRVM30)
 LARGE_THRESHOLD  = 0.03

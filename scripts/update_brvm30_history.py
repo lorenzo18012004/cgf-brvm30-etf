@@ -7,9 +7,6 @@ Usage : python update_brvm30_history.py
 import os, sys, json
 from datetime import date, datetime, timezone
 
-import requests
-from bs4 import BeautifulSoup
-
 from base import BaseScript
 
 
@@ -27,36 +24,17 @@ class Brvm30HistoryUpdater(BaseScript):
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-    def _scrape_brvm30_from_sika(self):
-        """Récupère la valeur actuelle du BRVM30 officiel depuis Sika Finance."""
+    def _scrape_brvm30_fallback(self):
+        """Récupère la valeur du BRVM30 via le provider actif (fallback)."""
         try:
-            resp = requests.get(
-                'https://sikafinance.com/marches/aaz',
-                headers={'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'fr-FR'},
-                verify=False, timeout=15,
-            )
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            # Chercher la valeur de l'indice BRVM30 dans la page
-            for tag in soup.find_all(string=lambda t: t and 'BRVM30' in t):
-                parent = tag.find_parent()
-                if not parent:
-                    continue
-                row = parent.find_parent('tr')
-                if not row:
-                    continue
-                cells = row.find_all(['td', 'th'])
-                if len(cells) >= 2:
-                    for cell in cells[1:5]:
-                        txt = cell.get_text(strip=True).replace('\xa0', '').replace(' ', '').replace(',', '.')
-                        try:
-                            val = float(txt)
-                            if 100 < val < 10000:
-                                print(f"  [Sika fallback] BRVM30 = {val}")
-                                return val
-                        except ValueError:
-                            continue
+            sys.path.insert(0, self.scripts_dir)
+            from data_provider import get_provider
+            val = get_provider().get_brvm30_index()
+            if val:
+                print(f"  [provider fallback] BRVM30 = {val}")
+            return val
         except Exception as e:
-            print(f"  [Sika fallback] Erreur scraping : {e}")
+            print(f"  [provider fallback] Erreur : {e}")
         return None
 
     def run(self):
@@ -98,14 +76,14 @@ class Brvm30HistoryUpdater(BaseScript):
                 updated += 1
                 print(f"  {day} : {val}")
 
-        # Fallback Sika pour today si toujours manquant après clôture
+        # Fallback provider pour today si toujours manquant après clôture
         if today_str not in brvm and market_closed:
-            print(f"  {today_str} manquant après clôture — tentative scraping Sika...")
-            sika_val = self._scrape_brvm30_from_sika()
-            if sika_val:
-                brvm[today_str] = sika_val
+            print(f"  {today_str} manquant après clôture — tentative via provider...")
+            fallback_val = self._scrape_brvm30_fallback()
+            if fallback_val:
+                brvm[today_str] = fallback_val
                 updated += 1
-                print(f"  {today_str} : {sika_val} (via Sika)")
+                print(f"  {today_str} : {fallback_val} (via provider)")
 
         brvm_sorted = dict(sorted(brvm.items()))
         self._save('brvm30_index_history.json', brvm_sorted)
