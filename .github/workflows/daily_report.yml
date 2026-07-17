@@ -1,37 +1,17 @@
-name: Rapport Journalier 16h
+name: Rapport Journalier
 
 on:
   schedule:
-    - cron: '0 17 * * 1-5'   # backup — peu fiable, remplacé par cron-job.org
+    - cron: '0 7 * * 2-6'   # 7h UTC mar–sam → rapport du dernier jour ouvré
   workflow_dispatch:
     inputs:
       date:
-        description: 'Date du rapport (YYYY-MM-DD, vide = aujourd''hui)'
+        description: 'Date du rapport (YYYY-MM-DD, vide = hier)'
         required: false
         default: ''
-  repository_dispatch:
-    types: [trigger-daily-report]   # appelé par cron-job.org ou Task Scheduler
 
 jobs:
-  check-weekday:
-    runs-on: ubuntu-latest
-    outputs:
-      is_workday: ${{ steps.check.outputs.is_workday }}
-    steps:
-      - id: check
-        run: |
-          dow=$(date -u +%u)
-          if [ "$dow" -lt 6 ]; then
-            echo "is_workday=true" >> $GITHUB_OUTPUT
-            echo "[OK] Jour ouvré ($dow)"
-          else
-            echo "is_workday=false" >> $GITHUB_OUTPUT
-            echo "[SKIP] Week-end ($dow) — aucun rapport."
-          fi
-
   daily-report:
-    needs: check-weekday
-    if: needs.check-weekday.outputs.is_workday == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -42,81 +22,95 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup Python 3.11
+      - name: Calculer la date cible (dernier jour ouvré)
+        id: date
+        run: |
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            TARGET="${{ github.event.inputs.date }}"
+          else
+            # Remonter au dernier jour ouvré (vendredi si week-end)
+            CANDIDATE=$(date -u -d "yesterday" +%Y-%m-%d)
+            DOW=$(date -u -d "yesterday" +%u)
+            if [ "$DOW" -eq 6 ]; then
+              CANDIDATE=$(date -u -d "2 days ago" +%Y-%m-%d)
+            elif [ "$DOW" -eq 7 ]; then
+              CANDIDATE=$(date -u -d "3 days ago" +%Y-%m-%d)
+            fi
+            TARGET="$CANDIDATE"
+          fi
+
+          YEAR=$(echo $TARGET | cut -d- -f1)
+          YM=$(echo $TARGET | cut -d- -f1,2)
+          PDF="data/pdfs/journalier/${YEAR}/${YM}/rapport_journalier_${TARGET}.pdf"
+
+          echo "target=$TARGET" >> $GITHUB_OUTPUT
+
+          if [ -f "$PDF" ] && [ -z "${{ github.event.inputs.date }}" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "[OK] Rapport $TARGET déjà présent."
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "[RUN] Génération du rapport $TARGET."
+          fi
+
+      - name: Setup Python
+        if: steps.date.outputs.skip == 'false'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: requirements/requirements_cloud.txt
 
-      - name: Installer dependances
+      - name: Installer dépendances
+        if: steps.date.outputs.skip == 'false'
         run: pip install -r requirements/requirements_cloud.txt
 
-      - name: Mettre à jour les prix de clôture (Sika)
+      - name: Mettre à jour les prix de clôture
+        if: steps.date.outputs.skip == 'false'
         run: python scripts/scrape_sika_history.py
 
-      - name: Vérifier actions corporatives + provisions DSG
+      - name: Vérifier actions corporatives
+        if: steps.date.outputs.skip == 'false'
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: python scripts/check_corporate_actions.py || true
 
-      - name: Prévisualisation rebalancement (dry-run, aucun fichier modifié)
-        run: python scripts/rebalance_live.py --dry-run
-
       - name: Recalculer la NAV
+        if: steps.date.outputs.skip == 'false'
         run: python scripts/calc_nav_cloud.py
 
-      - name: Snapshot de clôture iNAV (16h UTC — marché fermé)
-        run: |
-          current_hour=$(date -u +%H)
-          if [ "$current_hour" -lt "17" ]; then
-            python scripts/scrape_intraday_cloud.py --force
-          else
-            echo "[SKIP] Job trop retardé (${current_hour}h UTC), snapshot ignoré."
-          fi
-
-      - name: Mettre à jour brvm30_index_history (clôture officielle du jour)
+      - name: Mettre à jour brvm30_index_history
+        if: steps.date.outputs.skip == 'false'
         run: python scripts/update_brvm30_history.py
 
       - name: Générer le rapport PDF
-        run: |
-          if [ -n "${{ github.event.inputs.date }}" ]; then
-            python scripts/generate_daily_report.py --date "${{ github.event.inputs.date }}" --force
-          else
-            python scripts/generate_daily_report.py --force
-          fi
-
-      - name: Vérifier alertes NAV
-        env:
-          GMAIL_USER: ${{ secrets.GMAIL_USER }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-        run: python scripts/send_alert.py || true
+        if: steps.date.outputs.skip == 'false'
+        run: python scripts/generate_daily_report.py --date "${{ steps.date.outputs.target }}" --force
 
       - name: Envoyer par email
+        if: steps.date.outputs.skip == 'false'
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: python scripts/send_report_email.py || true
 
       - name: Commit & push
+        if: steps.date.outputs.skip == 'false'
         run: |
           git config user.name "cgf-bot"
           git config user.email "bot@cgf-bourse.ci"
           git add \
             data/sika_history.json \
             data/nav_latest.json \
-            data/intraday_nav.json \
-            data/nav_intraday_history.json \
             data/brvm30_index_history.json \
-            data/dashboard_data.json \
             data/rebal_detail.json \
             data/dividend_accounting.json \
             "data/pdfs/journalier/"
           if git diff --cached --quiet; then
-            echo "[SKIP] Aucune modification à commiter."
+            echo "[SKIP] Aucune modification."
           else
-            git commit -m "data: prix + NAV + rapport $(date -u +'%Y-%m-%d')"
+            git commit -m "data: prix + NAV + rapport ${{ steps.date.outputs.target }}"
             git pull --rebase origin main
             git push origin main
           fi
