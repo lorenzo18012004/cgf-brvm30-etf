@@ -5171,9 +5171,10 @@ def _render_live():
             fig_cal.update_layout(
                 **PLOTLY_LAYOUT, height=320, barmode="relative",
                 title="Volume journalier lissé (M FCFA) — réalisé vs prévision",
-                yaxis_title="M FCFA", xaxis=dict(type="date"),
+                yaxis_title="M FCFA",
                 legend=dict(orientation="h", y=1.08, font=dict(size=11)),
             )
+            fig_cal.update_xaxes(type="date")
             st.plotly_chart(fig_cal, width='stretch')
 
             # ── Tableau jour par jour ─────────────────────────────────────────
