@@ -5136,43 +5136,58 @@ def _render_live():
 
             all_days_sorted = sorted(daily_detail.keys())
 
-            # ── Graphique timeline achats/ventes ──────────────────────────────
-            buy_past, buy_prev, sell_past, sell_prev, dates = [], [], [], [], []
-            for d in all_days_sorted:
-                dt = _dt.strptime(d, "%Y-%m-%d")
-                is_past = dt < today_dt
-                b = sum(v for _, v in daily_detail[d]["achats"])
-                s = sum(v for _, v in daily_detail[d]["ventes"])
-                dates.append(d)
-                buy_past.append(b if is_past else 0)
-                buy_prev.append(b if not is_past else 0)
-                sell_past.append(s if is_past else 0)
-                sell_prev.append(s if not is_past else 0)
+            # ── Graphique timeline : une couleur par ticker ───────────────────
+            import plotly.colors as _pc
+
+            _palette = (_pc.qualitative.Plotly + _pc.qualitative.D3
+                        + _pc.qualitative.G10 + _pc.qualitative.Pastel)
+            all_tickers_ord = sorted(set(o["ticker"] for o in orders_last))
+            ticker_clr = {tk: _palette[i % len(_palette)]
+                          for i, tk in enumerate(all_tickers_ord)}
+
+            def _hex_to_rgba(hex_c, alpha):
+                h = hex_c.lstrip("#")
+                r, g, b = int(h[0:2],16), int(h[2:4],16), int(h[4:6],16)
+                return f"rgba({r},{g},{b},{alpha})"
 
             fig_cal = go.Figure()
-            fig_cal.add_trace(go.Bar(x=dates, y=buy_past,  name="Achats réalisés",
-                marker_color="#1a3557",
-                hovertemplate="%{x}<br>Achat réalisé : <b>%{y:.1f} M</b><extra></extra>"))
-            fig_cal.add_trace(go.Bar(x=dates, y=buy_prev,  name="Achats prévus",
-                marker_color="#7fa8d4",
-                hovertemplate="%{x}<br>Achat prévu : <b>%{y:.1f} M</b><extra></extra>"))
-            fig_cal.add_trace(go.Bar(x=dates, y=[-v for v in sell_past], name="Ventes réalisées",
-                marker_color="#c0392b",
-                hovertemplate="%{x}<br>Vente réalisée : <b>%{customdata:.1f} M</b><extra></extra>",
-                customdata=sell_past))
-            fig_cal.add_trace(go.Bar(x=dates, y=[-v for v in sell_prev], name="Ventes prévues",
-                marker_color="#e8948a",
-                hovertemplate="%{x}<br>Vente prévue : <b>%{customdata:.1f} M</b><extra></extra>",
-                customdata=sell_prev))
-            # Ligne "aujourd'hui"
+            for tk in all_tickers_ord:
+                x_r, y_r, x_p, y_p = [], [], [], []
+                for d in all_days_sorted:
+                    ach = sum(v for t, v in daily_detail[d]["achats"] if t == tk)
+                    ven = sum(v for t, v in daily_detail[d]["ventes"] if t == tk)
+                    val = ach - ven
+                    if val == 0:
+                        continue
+                    is_past = _dt.strptime(d, "%Y-%m-%d") < today_dt
+                    if is_past:
+                        x_r.append(d); y_r.append(val)
+                    else:
+                        x_p.append(d); y_p.append(val)
+
+                clr = ticker_clr[tk]
+                if x_r:
+                    fig_cal.add_trace(go.Bar(
+                        x=x_r, y=y_r, name=tk,
+                        marker_color=clr, legendgroup=tk,
+                        hovertemplate=f"<b>{tk}</b><br>%{{x}}<br>%{{y:.1f}} M FCFA<extra></extra>",
+                    ))
+                if x_p:
+                    fig_cal.add_trace(go.Bar(
+                        x=x_p, y=y_p, name=tk,
+                        marker_color=_hex_to_rgba(clr if clr.startswith("#") else "#888888", 0.35),
+                        legendgroup=tk, showlegend=False,
+                        hovertemplate=f"<b>{tk}</b> (prévu)<br>%{{x}}<br>%{{y:.1f}} M FCFA<extra></extra>",
+                    ))
+
             fig_cal.add_vline(x=today_dt.strftime("%Y-%m-%d"), line_dash="dash",
                               line_color="#b8922f", annotation_text="Aujourd'hui",
                               annotation_position="top right")
             fig_cal.update_layout(
-                **PLOTLY_LAYOUT, height=320, barmode="relative",
-                title="Volume journalier lissé (M FCFA) — réalisé vs prévision",
+                **PLOTLY_LAYOUT, height=420, barmode="relative",
+                title="Volume journalier lissé par titre (M FCFA) — plein=réalisé, transparent=prévu",
                 yaxis_title="M FCFA",
-                legend=dict(orientation="h", y=1.08, font=dict(size=11)),
+                legend=dict(orientation="h", y=1.06, font=dict(size=10)),
             )
             fig_cal.update_xaxes(type="date")
             st.plotly_chart(fig_cal, width='stretch')
