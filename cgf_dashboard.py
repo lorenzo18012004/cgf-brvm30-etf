@@ -5111,9 +5111,6 @@ def _render_live():
 
         # ── Exécution lissée du dernier rebalancement ────────────────────────
         orders_last = last_rb.get("orders", [])
-        if True:  # debug: force affichage même si orders_last vide
-            st.markdown("---")
-            st.write(f"DEBUG lissage — orders: {len(orders_last)}, last_rb keys: {list(last_rb.keys())[:5]}")
         if orders_last:
             from datetime import datetime as _dt, timedelta as _td
             st.markdown("---")
