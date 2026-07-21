@@ -5109,103 +5109,103 @@ def _render_live():
                 use_container_width=True, hide_index=True,
             )
 
-        # ── Exécution lissée du dernier rebalancement ────────────────────────
+        # ── Calendrier d'exécution jour par jour ─────────────────────────────
         orders_last = last_rb.get("orders", [])
         if orders_last:
             from datetime import datetime as _dt, timedelta as _td
             st.markdown("---")
             rebal_date_str = last_rb.get("date", "")
             rebal_dt = _dt.strptime(rebal_date_str, "%Y-%m-%d") if rebal_date_str else _dt(2026, 7, 1)
-            _section(f"Lissage d'exécution — rebalancement du {rebal_date_str}")
+            today_dt = _dt.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            _section(f"Calendrier d'exécution — rebalancement du {rebal_date_str}")
 
-            # KPIs
-            _t_ach = sum(o["montant_mfcfa"] for o in orders_last if o["sens"] == "ACHETER")
-            _t_ven = sum(o["montant_mfcfa"] for o in orders_last if o["sens"] == "VENDRE")
-            _max_d = max((o.get("days_exec", 0) for o in orders_last), default=0)
-            _nb_cp = sum(1 for o in orders_last if o.get("capped"))
-            _k1, _k2, _k3, _k4 = st.columns(4)
-            _k1.metric("Durée max", f"{int(_max_d)} j.")
-            _k2.metric("Total achats", f"{_t_ach:.0f} M FCFA")
-            _k3.metric("Total ventes", f"{_t_ven:.0f} M FCFA")
-            _k4.metric("Titres capés ADV", str(_nb_cp))
-
-            # Gantt chart
-            gantt_rows = [o for o in orders_last if o.get("days_exec", 0) >= 1]
-            gantt_rows.sort(key=lambda x: x.get("days_exec", 0), reverse=True)
-
-            fig_gantt = go.Figure()
-            for o in gantt_rows:
-                d_ex   = int(o.get("days_exec", 1))
-                color  = "#1a3557" if o["sens"] == "ACHETER" else "#c0392b"
-                border = "#b8922f" if o.get("capped") else color
-                lw     = 3 if o.get("capped") else 0
-                fig_gantt.add_trace(go.Bar(
-                    y=[o["ticker"]],
-                    x=[d_ex],
-                    orientation="h",
-                    marker=dict(color=color, line=dict(color=border, width=lw)),
-                    hovertemplate=(
-                        f"<b>{o['ticker']}</b><br>"
-                        f"{o['sens']} — {o['montant_mfcfa']:.1f} M FCFA<br>"
-                        f"Durée : {d_ex} j.<br>"
-                        f"{'⚠ Capé ADV' if o.get('capped') else ''}"
-                        "<extra></extra>"
-                    ),
-                    showlegend=False,
-                ))
-            # Légende manuelle
-            for label, clr in [("Achat", "#1a3557"), ("Vente", "#c0392b")]:
-                fig_gantt.add_trace(go.Bar(
-                    y=[None], x=[None], orientation="h",
-                    marker_color=clr, name=label, showlegend=True,
-                ))
-            _gh = max(350, len(gantt_rows) * 22)
-            fig_gantt.update_layout(
-                **PLOTLY_LAYOUT, height=_gh,
-                title="Planning d'exécution (ordres ≥ 1 jour)",
-                xaxis_title="Jours depuis le rebalancement",
-                barmode="overlay",
-                legend=dict(orientation="h", y=1.05),
-            )
-            st.plotly_chart(fig_gantt, width='stretch')
-
-            # Volume quotidien lissé
-            daily_buy_map:  dict = {}
-            daily_sell_map: dict = {}
+            # Construire le détail jour par jour
+            # daily_detail[date] = {'achats': [(ticker, montant)], 'ventes': [(ticker, montant)]}
+            daily_detail = {}
             for o in orders_last:
-                d_ex   = max(int(o.get("days_exec", 0)), 1)
-                daily  = o["montant_mfcfa"] / d_ex
+                d_ex  = max(int(o.get("days_exec", 0)), 1)
+                daily = o["montant_mfcfa"] / d_ex
                 for day in range(d_ex):
-                    key = (rebal_dt + _td(days=day)).strftime("%Y-%m-%d")
+                    dt_key = (rebal_dt + _td(days=day)).strftime("%Y-%m-%d")
+                    if dt_key not in daily_detail:
+                        daily_detail[dt_key] = {"achats": [], "ventes": []}
                     if o["sens"] == "ACHETER":
-                        daily_buy_map[key]  = daily_buy_map.get(key, 0)  + daily
+                        daily_detail[dt_key]["achats"].append((o["ticker"], daily))
                     else:
-                        daily_sell_map[key] = daily_sell_map.get(key, 0) + daily
+                        daily_detail[dt_key]["ventes"].append((o["ticker"], daily))
 
-            all_days_v = sorted(set(list(daily_buy_map) + list(daily_sell_map)))
-            fig_vol = go.Figure()
-            fig_vol.add_trace(go.Bar(
-                x=all_days_v,
-                y=[daily_buy_map.get(d, 0) for d in all_days_v],
-                name="Achats", marker_color="#1a3557",
-                hovertemplate="%{x}<br>Achats : <b>%{y:.1f} M FCFA</b><extra></extra>",
-            ))
-            fig_vol.add_trace(go.Bar(
-                x=all_days_v,
-                y=[-daily_sell_map.get(d, 0) for d in all_days_v],
-                name="Ventes", marker_color="#c0392b",
-                hovertemplate="%{x}<br>Ventes : <b>%{customdata:.1f} M FCFA</b><extra></extra>",
-                customdata=[daily_sell_map.get(d, 0) for d in all_days_v],
-            ))
-            fig_vol.update_layout(
-                **PLOTLY_LAYOUT, height=300,
-                title="Volume quotidien lissé (M FCFA/jour)",
-                barmode="overlay",
-                yaxis_title="M FCFA",
-                xaxis=dict(type="date"),
-                legend=dict(orientation="h", y=1.05),
+            all_days_sorted = sorted(daily_detail.keys())
+
+            # ── Graphique timeline achats/ventes ──────────────────────────────
+            buy_past, buy_prev, sell_past, sell_prev, dates = [], [], [], [], []
+            for d in all_days_sorted:
+                dt = _dt.strptime(d, "%Y-%m-%d")
+                is_past = dt < today_dt
+                b = sum(v for _, v in daily_detail[d]["achats"])
+                s = sum(v for _, v in daily_detail[d]["ventes"])
+                dates.append(d)
+                buy_past.append(b if is_past else 0)
+                buy_prev.append(b if not is_past else 0)
+                sell_past.append(s if is_past else 0)
+                sell_prev.append(s if not is_past else 0)
+
+            fig_cal = go.Figure()
+            fig_cal.add_trace(go.Bar(x=dates, y=buy_past,  name="Achats réalisés",
+                marker_color="#1a3557",
+                hovertemplate="%{x}<br>Achat réalisé : <b>%{y:.1f} M</b><extra></extra>"))
+            fig_cal.add_trace(go.Bar(x=dates, y=buy_prev,  name="Achats prévus",
+                marker_color="#7fa8d4",
+                hovertemplate="%{x}<br>Achat prévu : <b>%{y:.1f} M</b><extra></extra>"))
+            fig_cal.add_trace(go.Bar(x=dates, y=[-v for v in sell_past], name="Ventes réalisées",
+                marker_color="#c0392b",
+                hovertemplate="%{x}<br>Vente réalisée : <b>%{customdata:.1f} M</b><extra></extra>",
+                customdata=sell_past))
+            fig_cal.add_trace(go.Bar(x=dates, y=[-v for v in sell_prev], name="Ventes prévues",
+                marker_color="#e8948a",
+                hovertemplate="%{x}<br>Vente prévue : <b>%{customdata:.1f} M</b><extra></extra>",
+                customdata=sell_prev))
+            # Ligne "aujourd'hui"
+            fig_cal.add_vline(x=today_dt.strftime("%Y-%m-%d"), line_dash="dash",
+                              line_color="#b8922f", annotation_text="Aujourd'hui",
+                              annotation_position="top right")
+            fig_cal.update_layout(
+                **PLOTLY_LAYOUT, height=320, barmode="relative",
+                title="Volume journalier lissé (M FCFA) — réalisé vs prévision",
+                yaxis_title="M FCFA", xaxis=dict(type="date"),
+                legend=dict(orientation="h", y=1.08, font=dict(size=11)),
             )
-            st.plotly_chart(fig_vol, width='stretch')
+            st.plotly_chart(fig_cal, width='stretch')
+
+            # ── Tableau jour par jour ─────────────────────────────────────────
+            rows_cal = []
+            for d in all_days_sorted:
+                dt = _dt.strptime(d, "%Y-%m-%d")
+                is_past = dt < today_dt
+                statut  = "✅ Réalisé" if is_past else "🔵 Prévu"
+                ach = daily_detail[d]["achats"]
+                ven = daily_detail[d]["ventes"]
+                total_ach = sum(v for _, v in ach)
+                total_ven = sum(v for _, v in ven)
+                ach_detail = ", ".join(f"{tk} ({v:.1f}M)" for tk, v in sorted(ach, key=lambda x: -x[1]))
+                ven_detail = ", ".join(f"{tk} ({v:.1f}M)" for tk, v in sorted(ven, key=lambda x: -x[1]))
+                rows_cal.append({
+                    "Date":           d,
+                    "Statut":         statut,
+                    "Achats (M)":     round(total_ach, 1) if total_ach else None,
+                    "Tickers achetés":  ach_detail or "—",
+                    "Ventes (M)":     round(total_ven, 1) if total_ven else None,
+                    "Tickers vendus":   ven_detail or "—",
+                })
+
+            df_cal = pd.DataFrame(rows_cal)
+            st.dataframe(
+                df_cal.style.apply(
+                    lambda row: ["background-color:#f0f4f8"] * len(row)
+                    if "Réalisé" in str(row["Statut"]) else [""] * len(row),
+                    axis=1
+                ),
+                use_container_width=True, hide_index=True, height=400,
+            )
 
         # ── Analyse quantitative (3 onglets) ─────────────────────────────────
         st.markdown("---")
