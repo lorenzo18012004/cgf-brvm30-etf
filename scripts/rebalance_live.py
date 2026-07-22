@@ -8,8 +8,8 @@ Détecte si aujourd'hui est le premier jour ouvré d'un trimestre BRVM30
 
 Méthode identique au backtest :
   - Poids cible     : capitalisation totale Sika (nb_titres × prix)
-  - Contrainte ADV  : grands titres (>=3%) plafonnés à ADV × 62j / AUM
-                      petits titres (< 3%) plafonnés à ADV × 32j / AUM
+  - Contrainte ADV  : grands titres (>=3%) plafonnés à ADV × 40j / AUM
+                      petits titres (< 3%) plafonnés à ADV × 20j / AUM
   - Excès redistribué proportionnellement aux non-plafonnés
   - Titres sans ADV mesurable ou poids < 0.1% : exclus
 
@@ -158,7 +158,7 @@ def get_total_cap_weights(tickers, rebal_date, sh, soc):
 def build_adv_capped_weights(w_brvm30, rebal_date, aum_mfcfa, sh, old_basket=None):
     """
     Top FORCE_TOP_N par poids indice → OTC (tient le plein poids indice, bloc négocié).
-    Autres titres → si le delta dépasse la capacité screen (15% ADV × 62j/32j) → CAP
+    Autres titres → si le delta dépasse la capacité screen (15% ADV × 40j/20j) → CAP
                     (poids réduit à ce qu'on peut acheter/vendre sur screen).
     Exclusion uniquement si ADV < MIN_ADV_MFCFA ou poids résiduel < MIN_WEIGHT.
     Retourne (final_weights, exclu_info, otc_set).

@@ -64,8 +64,8 @@
     "methode": "Hybride OTC top-N + ADV-cap redistribution",
     "force_top_n": 5,
     "force_top_n_note": "Top 5 titres BRVM30 tenus à leur poids exact via OTC (no ADV constraint)",
-    "max_exec_large_days": 62,
-    "max_exec_small_days": 32,
+    "max_exec_large_days": 40,
+    "max_exec_small_days": 20,
     "large_threshold_pct": 3.0,
     "participation_rate_pct": 15.0,
     "min_adv_mfcfa": 0.5,
@@ -105,7 +105,7 @@
     "2025-10-01": 17,
     "2026-01-02": 6,
     "2026-04-01": 7,
-    "2026-07-01": 6
+    "2026-07-01": 11
   },
   "te_t3": 0.009465,
   "td_t3": -0.030624,

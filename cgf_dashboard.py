@@ -1311,9 +1311,9 @@ Poids minimum apres redistribution : **%.1f%%**.
 """ % (sp.get("force_top_n", 5),
        sp.get("participation_rate_pct", 15),
        sp.get("large_threshold_pct", 3),
-       sp.get("max_exec_large_days", 62),
+       sp.get("max_exec_large_days", 40),
        sp.get("large_threshold_pct", 3),
-       sp.get("max_exec_small_days", 32),
+       sp.get("max_exec_small_days", 20),
        sp.get("min_adv_mfcfa", 0.5),
        sp.get("min_basket_weight_pct", 0.1)))
             with col_r2:
@@ -2351,7 +2351,7 @@ Distribution : dernier jour de bourse de **juin et decembre**.
                 "max_w_i = poids maximum attribuable au titre i dans le panier ADV-capped",
                 "20 % = taux de participation maximum (screen + petits blocs OTC)",
                 "ADV_i = volume journalier moyen du titre i sur les 63 derniers jours (en M FCFA)",
-                "N_i = 62 jours si w_i^{BRVM30} ≥ 3 % (grand titre), sinon 32 jours (petit titre)",
+                "N_i = 40 jours si w_i^{BRVM30} ≥ 3 % (grand titre), sinon 20 jours (petit titre)",
                 "AUM = actif sous gestion de référence (M FCFA)",
                 "w_budget = 1 − Σ(poids des top 5 OTC) = budget disponible pour les 25 restants",
             ],
