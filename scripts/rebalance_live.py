@@ -352,7 +352,8 @@ def main():
         w_b30    = w_brvm30.get(tk, 0.0)
         days_raw = (montant_mfcfa / adv / PARTICIPATION_RATE) if adv > 0 else 999.0
         max_days = MAX_EXEC_LARGE if w_b30 >= LARGE_THRESHOLD else MAX_EXEC_SMALL
-        days_exec = min(days_raw, max_days)  # cappé au max autorisé
+        is_full_exit = (w_new == 0.0)  # sortant : liquider à 0%, pas de cap
+        days_exec = days_raw if is_full_exit else min(days_raw, max_days)
         orders.append({
             'ticker':       tk,
             'sens':         sens,
