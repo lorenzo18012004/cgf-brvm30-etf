@@ -5119,8 +5119,14 @@ def _render_live():
             _section(f"Calendrier d'exécution — rebalancement du {rebal_date_str}")
 
             # T+3 BRVM : ventes démarrent J0, achats démarrent J+3 jours ouvrés
+            # Tous les jours d'exécution sont des jours ouvrés (pas de weekend)
             T3 = 3
-            buy_start_dt = (pd.Timestamp(rebal_dt) + pd.offsets.BDay(T3)).to_pydatetime()
+            _rebal_ts     = pd.Timestamp(rebal_dt)
+            _buy_start_ts = _rebal_ts + pd.offsets.BDay(T3)
+
+            def _bday_range(start_ts, n):
+                """Retourne n dates de jours ouvrés à partir de start_ts."""
+                return [(start_ts + pd.offsets.BDay(k)).strftime("%Y-%m-%d") for k in range(n)]
 
             # Construire le détail jour par jour
             # daily_detail[date] = {'achats': [(ticker, montant)], 'ventes': [(ticker, montant)]}
@@ -5128,9 +5134,8 @@ def _render_live():
             for o in orders_last:
                 d_ex  = max(int(o.get("days_exec", 0)), 1)
                 daily = o["montant_mfcfa"] / d_ex
-                start_dt = buy_start_dt if o["sens"] == "ACHETER" else rebal_dt
-                for day in range(d_ex):
-                    dt_key = (start_dt + _td(days=day)).strftime("%Y-%m-%d")
+                start_ts = _buy_start_ts if o["sens"] == "ACHETER" else _rebal_ts
+                for dt_key in _bday_range(start_ts, d_ex):
                     if dt_key not in daily_detail:
                         daily_detail[dt_key] = {"achats": [], "ventes": []}
                     if o["sens"] == "ACHETER":
