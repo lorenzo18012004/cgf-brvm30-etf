@@ -4107,7 +4107,8 @@
           "days_exec": 0.2,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 0.2
         },
         {
           "ticker": "BOAB",
@@ -4121,7 +4122,8 @@
           "days_exec": 0.9,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 0.9
         },
         {
           "ticker": "BOABF",
@@ -4135,7 +4137,8 @@
           "days_exec": 2.3,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 2.3
         },
         {
           "ticker": "BOAC",
@@ -4149,7 +4152,8 @@
           "days_exec": 0.2,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 0.2
         },
         {
           "ticker": "BOAM",
@@ -4163,7 +4167,8 @@
           "days_exec": 2.2,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 2.2
         },
         {
           "ticker": "BOAN",
@@ -4177,7 +4182,8 @@
           "days_exec": 1.4,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 1.4
         },
         {
           "ticker": "BOAS",
@@ -4191,7 +4197,8 @@
           "days_exec": 0.4,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 0.4
         },
         {
           "ticker": "CBIBF",
@@ -4205,7 +4212,8 @@
           "days_exec": 19.3,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 19.3
         },
         {
           "ticker": "CFAC",
@@ -4216,10 +4224,11 @@
           "w_new_pct": 1.44,
           "w_brvm30_pct": 2.2,
           "adv_mfcfa": 5.3,
-          "days_exec": 32.0,
+          "days_exec": 20,
           "otc": false,
           "capped": true,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 32.0
         },
         {
           "ticker": "CIEC",
@@ -4233,7 +4242,8 @@
           "days_exec": 6.0,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 6.0
         },
         {
           "ticker": "ECOC",
@@ -4247,7 +4257,8 @@
           "days_exec": 7.9,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 7.9
         },
         {
           "ticker": "ETIT",
@@ -4261,7 +4272,8 @@
           "days_exec": 3.7,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 3.7
         },
         {
           "ticker": "FTSC",
@@ -4275,7 +4287,8 @@
           "days_exec": 10.4,
           "otc": false,
           "capped": false,
-          "section": "Sortant"
+          "section": "Sortant",
+          "days_exec_raw": 10.4
         },
         {
           "ticker": "NEIC",
@@ -4289,7 +4302,8 @@
           "days_exec": 5.7,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 5.7
         },
         {
           "ticker": "NSBC",
@@ -4303,7 +4317,8 @@
           "days_exec": 35.4,
           "otc": false,
           "capped": false,
-          "section": "Entrant"
+          "section": "Entrant",
+          "days_exec_raw": 35.4
         },
         {
           "ticker": "ONTBF",
@@ -4317,7 +4332,8 @@
           "days_exec": 60.9,
           "otc": false,
           "capped": false,
-          "section": "Sortant"
+          "section": "Sortant",
+          "days_exec_raw": 60.9
         },
         {
           "ticker": "ORAC",
@@ -4331,7 +4347,8 @@
           "days_exec": 8.5,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 8.5
         },
         {
           "ticker": "ORGT",
@@ -4345,7 +4362,8 @@
           "days_exec": 14.9,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 14.9
         },
         {
           "ticker": "SAFC",
@@ -4359,7 +4377,8 @@
           "days_exec": 2.5,
           "otc": false,
           "capped": false,
-          "section": "Entrant"
+          "section": "Entrant",
+          "days_exec_raw": 2.5
         },
         {
           "ticker": "SCRC",
@@ -4373,7 +4392,8 @@
           "days_exec": 1.6,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 1.6
         },
         {
           "ticker": "SDSC",
@@ -4387,7 +4407,8 @@
           "days_exec": 1.1,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 1.1
         },
         {
           "ticker": "SEMC",
@@ -4401,7 +4422,8 @@
           "days_exec": 10.8,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 10.8
         },
         {
           "ticker": "SGBC",
@@ -4415,7 +4437,8 @@
           "days_exec": 0.1,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 0.1
         },
         {
           "ticker": "SHEC",
@@ -4429,7 +4452,8 @@
           "days_exec": 44.9,
           "otc": false,
           "capped": false,
-          "section": "Sortant"
+          "section": "Sortant",
+          "days_exec_raw": 44.9
         },
         {
           "ticker": "SIBC",
@@ -4443,7 +4467,8 @@
           "days_exec": 3.8,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 3.8
         },
         {
           "ticker": "SIVC",
@@ -4457,7 +4482,8 @@
           "days_exec": 3.8,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 3.8
         },
         {
           "ticker": "SNTS",
@@ -4471,7 +4497,8 @@
           "days_exec": 4.5,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 4.5
         },
         {
           "ticker": "SOGC",
@@ -4485,7 +4512,8 @@
           "days_exec": 11.7,
           "otc": false,
           "capped": false,
-          "section": "Entrant"
+          "section": "Entrant",
+          "days_exec_raw": 11.7
         },
         {
           "ticker": "SPHC",
@@ -4499,7 +4527,8 @@
           "days_exec": 0.2,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 0.2
         },
         {
           "ticker": "STAC",
@@ -4513,7 +4542,8 @@
           "days_exec": 0.3,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 0.3
         },
         {
           "ticker": "STBC",
@@ -4527,7 +4557,8 @@
           "days_exec": 0.9,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 0.9
         },
         {
           "ticker": "TTLC",
@@ -4541,7 +4572,8 @@
           "days_exec": 1.0,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 1.0
         },
         {
           "ticker": "UNXC",
@@ -4555,7 +4587,8 @@
           "days_exec": 0.6,
           "otc": false,
           "capped": false,
-          "section": "Ajustement"
+          "section": "Ajustement",
+          "days_exec_raw": 0.6
         }
       ],
       "cost_bps": 11.9,
