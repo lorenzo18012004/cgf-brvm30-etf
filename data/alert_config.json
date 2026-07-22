@@ -1,6 +1,6 @@
 {
   "_comment": "Mot de passe dans secrets.json (non commité). Pour Gmail : activer 2FA → Sécurité → Mots de passe des applications.",
-  "enabled": true,
+  "enabled": false,
   "smtp_host": "smtp.gmail.com",
   "smtp_port": 587,
   "smtp_user": "philippee.pro@gmail.com",
