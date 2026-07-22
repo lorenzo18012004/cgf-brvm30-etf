@@ -5118,14 +5118,19 @@ def _render_live():
             today_dt = _dt.now().replace(hour=0, minute=0, second=0, microsecond=0)
             _section(f"Calendrier d'exécution — rebalancement du {rebal_date_str}")
 
+            # T+3 BRVM : ventes démarrent J0, achats démarrent J+3 jours ouvrés
+            T3 = 3
+            buy_start_dt = (pd.Timestamp(rebal_dt) + pd.offsets.BDay(T3)).to_pydatetime()
+
             # Construire le détail jour par jour
             # daily_detail[date] = {'achats': [(ticker, montant)], 'ventes': [(ticker, montant)]}
             daily_detail = {}
             for o in orders_last:
                 d_ex  = max(int(o.get("days_exec", 0)), 1)
                 daily = o["montant_mfcfa"] / d_ex
+                start_dt = buy_start_dt if o["sens"] == "ACHETER" else rebal_dt
                 for day in range(d_ex):
-                    dt_key = (rebal_dt + _td(days=day)).strftime("%Y-%m-%d")
+                    dt_key = (start_dt + _td(days=day)).strftime("%Y-%m-%d")
                     if dt_key not in daily_detail:
                         daily_detail[dt_key] = {"achats": [], "ventes": []}
                     if o["sens"] == "ACHETER":
@@ -5184,7 +5189,7 @@ def _render_live():
                               annotation_position="top right")
             fig_cal.update_layout(
                 **PLOTLY_LAYOUT, height=420, barmode="relative",
-                title="Volume journalier lissé par titre (M FCFA) — plein=réalisé, transparent=prévu",
+                title="Volume journalier lissé par titre (M FCFA) — ventes J0 / achats J+3 (T+3 BRVM) — plein=réalisé, transparent=prévu",
                 yaxis_title="M FCFA",
                 legend=dict(orientation="h", y=1.06, font=dict(size=10)),
             )
