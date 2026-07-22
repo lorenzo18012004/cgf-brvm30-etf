@@ -1569,16 +1569,20 @@ Distribution : dernier jour de bourse de **juin et decembre**.
         start_dt, end_dt = _date_filter("bt_te")
         st.markdown("---")
         m = dd.get("metrics", {})
-        c1, c2, c3 = st.columns(3)
         te_inst  = bm.get("te_full", bm.get("te", 0))
         te_prog  = bm.get("te_prog", 0)
-        delta_te = (te_prog or 0) - (te_inst or 0)
+        te_t3    = bm.get("te_t3",   te_prog)   # T+3 settlement delay
+        delta_prog = (te_prog or 0) - (te_inst or 0)
+        delta_t3   = (te_t3  or 0) - (te_inst or 0)
+        c1, c2, c3, c4 = st.columns(4)
         c1.metric("TE instantanée",  pct(te_inst, sign=False),
-                  help="TE si tous les trades du rebalancement sont exécutés le jour J (liquidité parfaite).")
-        c2.metric("TE progressive",  pct(te_prog, sign=False),
-                  help="TE simulée en étalant les trades sur plusieurs jours selon l'ADV de chaque titre (7 à 30 jours selon le rebalancement). Capture le risque d'exécution graduelle.")
-        c3.metric("Surcoût exécution progressive", f"+{delta_te*100:.3f}pp",
-                  help="Écart de TE entre exécution progressive et instantanée. Représente le coût en tracking de l'étalement des trades.")
+                  help="TE si tous les trades du rebalancement sont exécutés le jour J (liquidité parfaite). Scénario théorique de référence.")
+        c2.metric("TE progressive (sans T+3)", pct(te_prog, sign=False),
+                  help="TE simulée en étalant les trades sur plusieurs jours selon l'ADV, mais sans décalage de règlement. Intermédiaire de référence.")
+        c3.metric("TE progressive + T+3 ✅", pct(te_t3, sign=False),
+                  help="TE réaliste : trades étalés sur l'ADV + décalage T+3 BRVM (ventes J0 → cash J+3, achats démarrent J+3). Cash en transit gagne 0%.")
+        c4.metric("Impact T+3 vs instantané", f"+{delta_t3*100:.3f}pp",
+                  help="Surcoût total en tracking dû à l'exécution graduelle ET au délai de règlement T+3 BRVM.")
 
         _section("TE hebdomadaire glissante (52 semaines)")
         nav_g = to_series(dd.get("nav_gross", dd["nav_etf"])).loc[start_dt:end_dt]
