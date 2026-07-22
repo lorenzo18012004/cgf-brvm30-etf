@@ -350,8 +350,9 @@ def main():
         sens  = 'ACHETER' if delta > 0 else 'VENDRE'
         adv      = compute_adv(sh, tk, today)
         w_b30    = w_brvm30.get(tk, 0.0)
-        days     = (montant_mfcfa / adv / PARTICIPATION_RATE) if adv > 0 else 999.0
+        days_raw = (montant_mfcfa / adv / PARTICIPATION_RATE) if adv > 0 else 999.0
         max_days = MAX_EXEC_LARGE if w_b30 >= LARGE_THRESHOLD else MAX_EXEC_SMALL
+        days_exec = min(days_raw, max_days)  # cappé au max autorisé
         orders.append({
             'ticker':       tk,
             'sens':         sens,
@@ -361,8 +362,9 @@ def main():
             'w_new_pct':    round(w_new * 100, 2),
             'w_brvm30_pct': round(w_b30 * 100, 2),
             'adv_mfcfa':    round(adv, 1),
-            'days_exec':    round(days, 1),
-            'otc':          tk in forced_tks and days > max_days,
+            'days_exec':    round(days_exec, 1),
+            'days_exec_raw':round(days_raw, 1),  # valeur brute conservée pour info
+            'otc':          tk in forced_tks and days_raw > max_days,
             'capped':       tk not in forced_tks and w_new < w_b30 - 1e-4,
         })
         turnover += abs(delta)

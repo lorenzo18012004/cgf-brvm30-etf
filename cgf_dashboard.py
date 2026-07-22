@@ -5130,9 +5130,11 @@ def _render_live():
 
             # Construire le détail jour par jour
             # daily_detail[date] = {'achats': [(ticker, montant)], 'ventes': [(ticker, montant)]}
+            _MAX_LARGE, _MAX_SMALL, _LARGE_THR = 40, 20, 3.0
             daily_detail = {}
             for o in orders_last:
-                d_ex  = max(int(o.get("days_exec", 0)), 1)
+                _max_d = _MAX_LARGE if o.get("w_brvm30_pct", 0) >= _LARGE_THR else _MAX_SMALL
+                d_ex  = max(min(int(o.get("days_exec", 0)), _max_d), 1)
                 daily = o["montant_mfcfa"] / d_ex
                 start_ts = _buy_start_ts if o["sens"] == "ACHETER" else _rebal_ts
                 for dt_key in _bday_range(start_ts, d_ex):
