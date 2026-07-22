@@ -1324,6 +1324,12 @@ Cible mise a jour : **trimestriel** (jan/avr/jul/oct).
 
 Execution : verification **mensuelle** — on ne trade que les titres ayant derive de plus de **%.0f%%** par rapport a la cible.
 
+**Règlement T+3 BRVM :**
+
+Ventes executees J0 → cash recu J+3.
+Achats executes a partir de J+3 → titres recus J+6.
+Cash en transit (J0→J+3) gagne **0%** (non place).
+
 **Spread variable selon ADV :**
 - >= 100 MFCFA/j : 25 bps
 - >= 30 : 40 bps
