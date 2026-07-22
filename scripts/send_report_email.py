@@ -18,12 +18,13 @@ from base import BaseScript
 class ReportEmailSender(BaseScript):
     def __init__(self):
         super().__init__()
-        self.RECIPIENT = "l.philippe@cgfgestion.com"
+        self.RECIPIENTS = ["l.philippe@cgfgestion.com", "philippee.pro@gmail.com"]
 
     def _send_gmail(self, pdf_path, date_str, gmail_user, gmail_pass):
+        recipients_str = ", ".join(self.RECIPIENTS)
         msg = MIMEMultipart()
         msg['From']    = gmail_user
-        msg['To']      = self.RECIPIENT
+        msg['To']      = recipients_str
         msg['Subject'] = f"CGF BRVM30 ETF — Rapport journalier {date_str}"
 
         body = (
@@ -44,16 +45,16 @@ class ReportEmailSender(BaseScript):
 
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(gmail_user, gmail_pass)
-            server.sendmail(gmail_user, self.RECIPIENT, msg.as_string())
+            server.sendmail(gmail_user, self.RECIPIENTS, msg.as_string())
 
-        print(f"[OK] Email envoyé via Gmail à {self.RECIPIENT}")
+        print(f"[OK] Email envoyé via Gmail à {recipients_str}")
         return True
 
     def _send_outlook(self, pdf_path, date_str):
         import win32com.client
         outlook = win32com.client.Dispatch("Outlook.Application")
         mail    = outlook.CreateItem(0)
-        mail.To      = self.RECIPIENT
+        mail.To      = "; ".join(self.RECIPIENTS)
         mail.Subject = f"CGF BRVM30 ETF — Rapport journalier {date_str}"
         mail.Body    = (
             f"Bonjour,\n\n"
@@ -64,7 +65,7 @@ class ReportEmailSender(BaseScript):
         )
         mail.Attachments.Add(pdf_path)
         mail.Send()
-        print(f"[OK] Email envoyé via Outlook à {self.RECIPIENT}")
+        print(f"[OK] Email envoyé via Outlook à {'; '.join(self.RECIPIENTS)}")
         return True
 
     def _load_secrets(self):
@@ -80,7 +81,10 @@ class ReportEmailSender(BaseScript):
         if date_str is None:
             date_str = datetime.date.today().strftime("%Y-%m-%d")
 
-        pdf_path = os.path.join(self.data_dir, "pdfs", f"rapport_journalier_{date_str}.pdf")
+        year_month = date_str[:7]   # "2026-07"
+        year       = date_str[:4]   # "2026"
+        pdf_path = os.path.join(self.data_dir, "pdfs", "journalier", year, year_month,
+                                f"rapport_journalier_{date_str}.pdf")
         if not os.path.exists(pdf_path):
             print(f"[ERREUR] PDF introuvable : {pdf_path}")
             return False
