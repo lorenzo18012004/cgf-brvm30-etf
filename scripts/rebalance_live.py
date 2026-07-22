@@ -48,8 +48,8 @@ DD_PATH  = os.path.join(DATA, 'dashboard_data.json')
 RD_PATH  = os.path.join(DATA, 'rebal_detail.json')
 
 # ── Paramètres ────────────────────────────────────────────────────────────────
-MAX_EXEC_LARGE   = 62      # jours pour grands titres (>= 3% BRVM30)
-MAX_EXEC_SMALL   = 32      # jours pour petits titres (< 3% BRVM30)
+MAX_EXEC_LARGE   = 40      # jours de bourse pour grands titres (>= 3% BRVM30) — ≈2 mois, fini avant le T+1
+MAX_EXEC_SMALL   = 20      # jours de bourse pour petits titres (< 3% BRVM30) — ≈1 mois
 LARGE_THRESHOLD  = 0.03
 PARTICIPATION_RATE = 0.15  # max 15% de l'ADV quotidien (screen + OTC petits blocs)
 MIN_ADV_MFCFA    = 0.5

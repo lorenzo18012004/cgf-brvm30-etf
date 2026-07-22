@@ -76,7 +76,7 @@ for i, dt in enumerate(rebal_dates):
             if j > n_max:
                 n_max = j
                 worst = (tk, j)
-    n_exec = int(np.ceil(min(n_max, 30)))
+    n_exec = int(np.ceil(min(n_max, 40)))  # cap = MAX_EXEC_LARGE (40 jours de bourse)
     exec_days_map[dt] = n_exec
     print(f"  {dt}: {n_exec} jours (max: {worst[0]} {worst[1]:.1f}j)")
 
