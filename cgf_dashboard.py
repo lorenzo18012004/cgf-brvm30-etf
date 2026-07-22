@@ -522,7 +522,7 @@ def _gh_get_verified():
     except Exception:
         return None, None
 
-def _gh_save_verified(data):
+def _gh_save_verified(data, sha=None):
     """Écrit verified_rebals.json sur GitHub via l'API."""
     if not _GITHUB_TOKEN or not _GITHUB_REPO:
         return False
