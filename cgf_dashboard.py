@@ -1581,8 +1581,8 @@ Distribution : dernier jour de bourse de **juin et decembre**.
                   help="TE simulée en étalant les trades sur plusieurs jours selon l'ADV, mais sans décalage de règlement. Intermédiaire de référence.")
         c3.metric("TE progressive + T+3 ✅", pct(te_t3, sign=False),
                   help="TE réaliste : trades étalés sur l'ADV + décalage T+3 BRVM (ventes J0 → cash J+3, achats démarrent J+3). Cash en transit gagne 0%.")
-        c4.metric("Impact T+3 vs instantané", f"+{delta_t3*100:.3f}pp",
-                  help="Surcoût total en tracking dû à l'exécution graduelle ET au délai de règlement T+3 BRVM.")
+        c4.metric("Impact T+3 vs instantané", f"{delta_t3*100:+.3f}pp",
+                  help="Écart de TE entre exécution T+3 réaliste et instantanée. Négatif si le lissage T+3 réduit accidentellement la volatilité des écarts journaliers.")
 
         _section("TE hebdomadaire glissante (52 semaines)")
         nav_g = to_series(dd.get("nav_gross", dd["nav_etf"])).loc[start_dt:end_dt]
