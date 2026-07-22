@@ -1277,7 +1277,7 @@ def _render_backtest():
         st.markdown("---")
         m = dd.get("metrics", {})
         c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(8)
-        c1.metric("TE annualisée",  pct(m.get("te"), sign=False),     help="Tracking Error journalière annualisée vs BRVM30 PR")
+        c1.metric("TE progressive T+3", pct(bm.get("te_t3", m.get("te")), sign=False), help="TE réaliste : exécution étalée sur l'ADV + décalage règlement T+3 BRVM (ventes J0, achats J+3, cash en transit gagne 0%)")
         c2.metric("TD cumulé",      pct(m.get("td")),                 help="ETF PR nette vs BRVM30 PR — période complète")
         c3.metric("TD /an",         pct(m.get("td_ann")),             help="TD net annualisé")
         c4.metric("Rebalancements", str(bm.get("n_rebal", "—")))
@@ -1569,20 +1569,9 @@ Distribution : dernier jour de bourse de **juin et decembre**.
         start_dt, end_dt = _date_filter("bt_te")
         st.markdown("---")
         m = dd.get("metrics", {})
-        te_inst  = bm.get("te_full", bm.get("te", 0))
-        te_prog  = bm.get("te_prog", 0)
-        te_t3    = bm.get("te_t3",   te_prog)   # T+3 settlement delay
-        delta_prog = (te_prog or 0) - (te_inst or 0)
-        delta_t3   = (te_t3  or 0) - (te_inst or 0)
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("TE instantanée",  pct(te_inst, sign=False),
-                  help="TE si tous les trades du rebalancement sont exécutés le jour J (liquidité parfaite). Scénario théorique de référence.")
-        c2.metric("TE progressive (sans T+3)", pct(te_prog, sign=False),
-                  help="TE simulée en étalant les trades sur plusieurs jours selon l'ADV, mais sans décalage de règlement. Intermédiaire de référence.")
-        c3.metric("TE progressive + T+3 ✅", pct(te_t3, sign=False),
-                  help="TE réaliste : trades étalés sur l'ADV + décalage T+3 BRVM (ventes J0 → cash J+3, achats démarrent J+3). Cash en transit gagne 0%.")
-        c4.metric("Impact T+3 vs instantané", f"{delta_t3*100:+.3f}pp",
-                  help="Écart de TE entre exécution T+3 réaliste et instantanée. Négatif si le lissage T+3 réduit accidentellement la volatilité des écarts journaliers.")
+        te_t3 = bm.get("te_t3", bm.get("te_prog", 0))
+        st.metric("TE progressive + T+3", pct(te_t3, sign=False),
+                  help="TE réaliste : trades étalés sur l'ADV + décalage règlement T+3 BRVM (ventes J0 → cash J+3, achats démarrent J+3). Cash en transit gagne 0%.")
 
         _section("TE hebdomadaire glissante (52 semaines)")
         nav_g = to_series(dd.get("nav_gross", dd["nav_etf"])).loc[start_dt:end_dt]
