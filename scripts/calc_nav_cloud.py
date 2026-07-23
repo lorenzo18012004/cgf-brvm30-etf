@@ -114,6 +114,13 @@ class NavCalculatorCloud(BaseScript):
         aum = vl_new * n_parts / 1_000_000
         chg = total_ret * 100
 
+        # Append daily VL point to nav_live_series
+        live_series = nl.get("nav_live_series") or []
+        existing_dates = {row[0] for row in live_series}
+        if today_str not in existing_dates:
+            live_series.append([today_str, round(vl_new, 0)])
+            live_series.sort(key=lambda x: x[0])
+
         nl.update({
             "calc_date":          today_str,
             "launched":           True,
@@ -124,6 +131,7 @@ class NavCalculatorCloud(BaseScript):
             "change_day_pct":     round(chg, 4),
             "source":             "cloud_fallback_sika",
             "n_live_prices":      n_live,
+            "nav_live_series":    live_series,
         })
 
         for item in nl["basket"]:
