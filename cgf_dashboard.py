@@ -1289,67 +1289,158 @@ def _render_backtest():
         # ── Règles de sélection du panier ─────────────────────────────────
         sp = bm.get("selection_params", {})
         if sp:
-            _section("Méthodologie complète (backtest)")
-            col_r1, col_r2, col_r3 = st.columns(3)
-            with col_r1:
-                st.markdown("""
-**Composition du panier**
+            _section("Méthodologie complète")
+            _top_n      = sp.get("force_top_n", 5)
+            _part_rate  = sp.get("participation_rate_pct", 15)
+            _thr_pct    = sp.get("large_threshold_pct", 3)
+            _n_large    = sp.get("max_exec_large_days", 40)
+            _n_small    = sp.get("max_exec_small_days", 20)
+            _adv_min    = sp.get("min_adv_mfcfa", 0.5)
+            _w_min      = sp.get("min_basket_weight_pct", 0.1)
+            _drift_thr  = sp.get("drift_threshold_pct", 1)
+            _rf_rate    = sp.get("dividende_placement_taux", 3)
+            _mgmt_fee   = sp.get("mgmt_fee_ann_pct", 0.6)
+            st.markdown(f"""
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:8px">
 
-Top %d titres (par poids BRVM30) tenus a leur poids exact via **OTC** — aucune contrainte ADV.
+  <!-- BLOC 1 : COMPOSITION -->
+  <div style="background:#fff;border:1px solid var(--c-border);border-top:3px solid var(--c-gold);padding:24px 22px;border-radius:2px">
+    <div style="font-size:0.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--c-gold);font-weight:700;margin-bottom:14px">01 — Composition du panier</div>
 
-25 restants : plafond ADV applique.
+    <div style="margin-bottom:16px">
+      <div style="font-size:0.72rem;font-weight:600;color:var(--c-navy);margin-bottom:6px">Top {_top_n} titres — OTC</div>
+      <div style="font-size:0.78rem;color:var(--c-text2);line-height:1.6">Tenus à leur <strong>poids exact BRVM30</strong> via bloc OTC négocié. Aucune contrainte de liquidité.</div>
+    </div>
 
-**Formule du plafond :**
-`max_w = %.0f%% x ADV x N_jours / AUM`
-- Grands (>= %.0f%% BRVM30) : N = **%d j**
-- Petits (< %.0f%% BRVM30) : N = **%d j**
+    <div style="margin-bottom:16px">
+      <div style="font-size:0.72rem;font-weight:600;color:var(--c-navy);margin-bottom:6px">25 titres restants — Plafond ADV</div>
+      <div style="background:var(--c-gold-bg);border-left:3px solid var(--c-gold);padding:10px 12px;border-radius:1px;font-family:monospace;font-size:0.75rem;color:var(--c-navy);margin-bottom:8px">
+        max_w = {_part_rate}% × ADV × N / AUM
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="background:#f7f5f0;border:1px solid var(--c-border);padding:8px 10px;border-radius:2px;text-align:center">
+          <div style="font-size:0.6rem;color:var(--c-muted);margin-bottom:2px">Grands ≥ {_thr_pct}% BRVM30</div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--c-navy)">{_n_large} j</div>
+        </div>
+        <div style="background:#f7f5f0;border:1px solid var(--c-border);padding:8px 10px;border-radius:2px;text-align:center">
+          <div style="font-size:0.6rem;color:var(--c-muted);margin-bottom:2px">Petits &lt; {_thr_pct}% BRVM30</div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--c-navy)">{_n_small} j</div>
+        </div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--c-text2);margin-top:10px;line-height:1.5">Si un titre dépasse son plafond, l'excès est <strong>redistribué proportionnellement</strong> aux titres non plafonnés.</div>
+    </div>
 
-Si `w_brvm30 > max_w` → titre **cape** a `max_w`. L'exces est redistribue proportionnellement aux titres non plafonnes.
+    <div style="border-top:1px solid var(--c-border);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <div style="font-size:0.6rem;color:var(--c-muted);text-transform:uppercase;letter-spacing:.1em">ADV minimum</div>
+        <div style="font-size:0.82rem;font-weight:600;color:var(--c-navy)">{_adv_min} M FCFA/j</div>
+      </div>
+      <div>
+        <div style="font-size:0.6rem;color:var(--c-muted);text-transform:uppercase;letter-spacing:.1em">Poids minimum</div>
+        <div style="font-size:0.82rem;font-weight:600;color:var(--c-navy)">{_w_min}%</div>
+      </div>
+    </div>
+  </div>
 
-ADV minimum : **%.1f M FCFA/j** (sinon exclu).
-Poids minimum apres redistribution : **%.1f%%**.
-""" % (sp.get("force_top_n", 5),
-       sp.get("participation_rate_pct", 15),
-       sp.get("large_threshold_pct", 3),
-       sp.get("max_exec_large_days", 40),
-       sp.get("large_threshold_pct", 3),
-       sp.get("max_exec_small_days", 20),
-       sp.get("min_adv_mfcfa", 0.5),
-       sp.get("min_basket_weight_pct", 0.1)))
-            with col_r2:
-                st.markdown("""
-**Rebalancement**
+  <!-- BLOC 2 : REBALANCEMENT -->
+  <div style="background:#fff;border:1px solid var(--c-border);border-top:3px solid var(--c-gold);padding:24px 22px;border-radius:2px">
+    <div style="font-size:0.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--c-gold);font-weight:700;margin-bottom:14px">02 — Rebalancement</div>
 
-Cible mise a jour : **trimestriel** (jan/avr/jul/oct).
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:#f7f5f0;border:1px solid var(--c-border);padding:10px;border-radius:2px;text-align:center">
+        <div style="font-size:0.6rem;color:var(--c-muted);margin-bottom:2px">Cible mise à jour</div>
+        <div style="font-size:0.78rem;font-weight:700;color:var(--c-navy)">Trimestriel</div>
+        <div style="font-size:0.65rem;color:var(--c-muted)">jan / avr / jul / oct</div>
+      </div>
+      <div style="background:#f7f5f0;border:1px solid var(--c-border);padding:10px;border-radius:2px;text-align:center">
+        <div style="font-size:0.6rem;color:var(--c-muted);margin-bottom:2px">Seuil de dérive</div>
+        <div style="font-size:0.78rem;font-weight:700;color:var(--c-navy)">&gt; {_drift_thr}%</div>
+        <div style="font-size:0.65rem;color:var(--c-muted)">vérification mensuelle</div>
+      </div>
+    </div>
 
-Execution : verification **mensuelle** — on ne trade que les titres ayant derive de plus de **%.0f%%** par rapport a la cible.
+    <div style="margin-bottom:16px">
+      <div style="font-size:0.72rem;font-weight:600;color:var(--c-navy);margin-bottom:8px">Règlement T+3 BRVM</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.75rem">
+          <span style="background:var(--c-navy);color:#fff;padding:2px 7px;border-radius:10px;font-size:0.65rem;font-weight:600;white-space:nowrap">J0</span>
+          <span style="color:var(--c-text2)">Ventes exécutées — cash en transit</span>
+        </div>
+        <div style="margin-left:18px;color:var(--c-muted);font-size:0.72rem">↓ 0% (non placé)</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.75rem">
+          <span style="background:var(--c-gold);color:#fff;padding:2px 7px;border-radius:10px;font-size:0.65rem;font-weight:600;white-space:nowrap">J+3</span>
+          <span style="color:var(--c-text2)">Cash reçu → <strong>achats démarrent</strong></span>
+        </div>
+        <div style="margin-left:18px;color:var(--c-muted);font-size:0.72rem">↓ exécution étalée</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.75rem">
+          <span style="background:var(--c-pos);color:#fff;padding:2px 7px;border-radius:10px;font-size:0.65rem;font-weight:600;white-space:nowrap">J+6</span>
+          <span style="color:var(--c-text2)">Titres achetés reçus</span>
+        </div>
+      </div>
+    </div>
 
-**Règlement T+3 BRVM :**
+    <div>
+      <div style="font-size:0.72rem;font-weight:600;color:var(--c-navy);margin-bottom:8px">Spread de transaction (selon ADV)</div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.72rem">
+        <tr style="background:var(--c-gold-bg)">
+          <th style="padding:4px 8px;text-align:left;color:var(--c-navy);font-weight:600;border-bottom:1px solid var(--c-border)">ADV</th>
+          <th style="padding:4px 8px;text-align:right;color:var(--c-navy);font-weight:600;border-bottom:1px solid var(--c-border)">Spread</th>
+        </tr>
+        <tr><td style="padding:4px 8px;color:var(--c-text2);border-bottom:1px solid #f0ece6">≥ 100 M FCFA/j</td><td style="padding:4px 8px;text-align:right;font-weight:600;color:var(--c-pos)">25 bps</td></tr>
+        <tr style="background:#fafaf8"><td style="padding:4px 8px;color:var(--c-text2);border-bottom:1px solid #f0ece6">≥ 30</td><td style="padding:4px 8px;text-align:right;font-weight:600;color:var(--c-pos)">40 bps</td></tr>
+        <tr><td style="padding:4px 8px;color:var(--c-text2);border-bottom:1px solid #f0ece6">≥ 10</td><td style="padding:4px 8px;text-align:right;font-weight:600;color:#8a6a00">80 bps</td></tr>
+        <tr style="background:#fafaf8"><td style="padding:4px 8px;color:var(--c-text2);border-bottom:1px solid #f0ece6">≥ 5</td><td style="padding:4px 8px;text-align:right;font-weight:600;color:#8a6a00">125 bps</td></tr>
+        <tr><td style="padding:4px 8px;color:var(--c-text2)">< 5</td><td style="padding:4px 8px;text-align:right;font-weight:600;color:var(--c-neg)">175 bps</td></tr>
+      </table>
+    </div>
+  </div>
 
-Ventes executees J0 → cash recu J+3.
-Achats executes a partir de J+3 → titres recus J+6.
-Cash en transit (J0→J+3) gagne **0%%** (non place).
+  <!-- BLOC 3 : DIVIDENDES & FRAIS -->
+  <div style="background:#fff;border:1px solid var(--c-border);border-top:3px solid var(--c-gold);padding:24px 22px;border-radius:2px">
+    <div style="font-size:0.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--c-gold);font-weight:700;margin-bottom:14px">03 — Dividendes &amp; Frais</div>
 
-**Spread variable selon ADV :**
-- >= 100 MFCFA/j : 25 bps
-- >= 30 : 40 bps
-- >= 10 : 80 bps
-- >= 5 : 125 bps
-- < 5 : 175 bps
-""" % sp.get("drift_threshold_pct", 1))
-            with col_r3:
-                st.markdown("""
-**Dividendes (distribution semestrielle)**
+    <div style="margin-bottom:20px">
+      <div style="font-size:0.72rem;font-weight:600;color:var(--c-navy);margin-bottom:10px">Distribution semestrielle</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="width:32px;height:32px;background:var(--c-gold-bg);border:1px solid var(--c-gold);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.65rem;font-weight:700;color:var(--c-gold)">1</div>
+          <div>
+            <div style="font-size:0.75rem;font-weight:600;color:var(--c-navy)">Réserve de dividendes</div>
+            <div style="font-size:0.72rem;color:var(--c-text2);line-height:1.5">Dividendes reçus capitalisés au taux sans risque <strong>{_rf_rate}%/an</strong> jusqu'à distribution.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="width:32px;height:32px;background:var(--c-gold-bg);border:1px solid var(--c-gold);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.65rem;font-weight:700;color:var(--c-gold)">2</div>
+          <div>
+            <div style="font-size:0.75rem;font-weight:600;color:var(--c-navy)">Ex-date convention BRVM</div>
+            <div style="font-size:0.72rem;color:var(--c-text2);line-height:1.5"><strong>1er juillet</strong> de l'année N+1 pour les dividendes de l'exercice N.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="width:32px;height:32px;background:var(--c-gold-bg);border:1px solid var(--c-gold);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.65rem;font-weight:700;color:var(--c-gold)">3</div>
+          <div>
+            <div style="font-size:0.75rem;font-weight:600;color:var(--c-navy)">Dates de distribution</div>
+            <div style="font-size:0.72rem;color:var(--c-text2);line-height:1.5">Dernier jour de bourse de <strong>juin</strong> et de <strong>décembre</strong>.</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-Ex-date : **1er juillet** de l'annee N+1 pour l'exercice N (convention BRVM).
+    <div style="border-top:1px solid var(--c-border);padding-top:16px">
+      <div style="font-size:0.72rem;font-weight:600;color:var(--c-navy);margin-bottom:10px">Frais de gestion</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--c-gold-bg);border:1px solid rgba(184,151,63,0.25);padding:12px 16px;border-radius:2px">
+        <div style="font-size:0.75rem;color:var(--c-text2)">Déduits <strong>quotidiennement</strong> de la VL</div>
+        <div style="font-size:1.4rem;font-weight:700;color:var(--c-navy);font-family:'Cormorant Garamond',Georgia,serif">{_mgmt_fee}%<span style="font-size:0.7rem;color:var(--c-muted);font-family:Inter,sans-serif">/an</span></div>
+      </div>
+      <div style="margin-top:10px;background:#f7f5f0;border:1px solid var(--c-border);padding:10px 12px;border-radius:2px">
+        <div style="font-size:0.65rem;color:var(--c-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Poche de liquidité</div>
+        <div style="font-size:0.75rem;color:var(--c-text2)"><strong>1% du NAV</strong> en cash permanent, capitalisé au taux sans risque {_rf_rate}%/an.</div>
+      </div>
+    </div>
+  </div>
 
-Placement de la reserve au **taux sans risque %.0f%%/an** jusqu'a la distribution.
-
-Distribution : dernier jour de bourse de **juin et decembre**.
-
-**Frais de gestion : %.1f%%/an** deduits quotidiennement.
-""" % (sp.get("dividende_placement_taux", 3),
-       sp.get("mgmt_fee_ann_pct", 0.6)))
+</div>
+""", unsafe_allow_html=True)
 
         nav_e = nav_e_full.loc[start_dt:end_dt]
         nav_b = nav_b_full.loc[start_dt:end_dt]
