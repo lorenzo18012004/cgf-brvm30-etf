@@ -1,5 +1,5 @@
 {
-  "status": "pending",
+  "status": "ignored",
   "proposed_at": "2026-07-16 10:30 UTC",
   "proposed_rebal_date": "2026-07-01",
   "last_rebal_date": "2026-07-01",
@@ -412,5 +412,6 @@
       "ticker": "SIVC",
       "w_etf": 0.001447
     }
-  ]
+  ],
+  "ignored_reason": "Obsolete - rebalancement juillet 2026 deja applique avec nouvelles regles (caps 40/20j)"
 }
