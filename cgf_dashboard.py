@@ -1300,7 +1300,7 @@ def _render_backtest():
             _drift_thr  = sp.get("drift_threshold_pct", 1)
             _rf_rate    = sp.get("dividende_placement_taux", 3)
             _mgmt_fee   = sp.get("mgmt_fee_ann_pct", 0.6)
-            st.markdown(f"""
+            st.html(f"""
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:8px">
 
   <!-- BLOC 1 : COMPOSITION -->
@@ -1440,7 +1440,7 @@ def _render_backtest():
   </div>
 
 </div>
-""", unsafe_allow_html=True)
+""")
 
         nav_e = nav_e_full.loc[start_dt:end_dt]
         nav_b = nav_b_full.loc[start_dt:end_dt]
