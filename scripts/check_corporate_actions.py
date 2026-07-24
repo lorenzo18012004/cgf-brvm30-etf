@@ -25,7 +25,7 @@ class CorporateActionsChecker(BaseScript):
         self.THRESHOLD_DIV   = 0.04
         self.THRESHOLD_SPLIT = 0.10
         self.CALENDAR_DAYS   = 5
-        self.RECIPIENT       = "l.philippe@cgfgestion.com"
+        self.RECIPIENTS      = ["l.philippe@cgfgestion.com", "philippee.pro@gmail.com"]
         self.SIKA_HIST    = os.path.join(self.data_dir, "sika_history.json")
         self.NAV_LATEST   = os.path.join(self.data_dir, "nav_latest.json")
         self.DIV_CALENDAR = os.path.join(self.data_dir, "dividend_calendar.json")
@@ -71,13 +71,13 @@ class CorporateActionsChecker(BaseScript):
     def _send_alert(self, subject, body_html, gmail_user, gmail_pass):
         msg = MIMEMultipart("alternative")
         msg["From"]    = gmail_user
-        msg["To"]      = self.RECIPIENT
+        msg["To"]      = ", ".join(self.RECIPIENTS)
         msg["Subject"] = subject
         msg.attach(MIMEText(body_html, "html"))
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as srv:
             srv.login(gmail_user, gmail_pass)
-            srv.sendmail(gmail_user, self.RECIPIENT, msg.as_string())
-        print(f"[OK] Alerte envoyée à {self.RECIPIENT}")
+            srv.sendmail(gmail_user, self.RECIPIENTS, msg.as_string())
+        print(f"[OK] Alerte envoyée à {', '.join(self.RECIPIENTS)}")
 
     # ── Dividend Settlement Gap ───────────────────────────────────────────── #
 

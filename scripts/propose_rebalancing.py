@@ -37,7 +37,7 @@ class RebalancingProposer(BaseScript):
 
     def __init__(self):
         super().__init__()
-        self.recipient = "l.philippe@cgfgestion.com"
+        self.recipients = ["l.philippe@cgfgestion.com", "philippee.pro@gmail.com"]
 
     # ── Turnover ──────────────────────────────────────────────────────────────── #
 
@@ -96,14 +96,14 @@ class RebalancingProposer(BaseScript):
         from email.mime.text import MIMEText
         msg = MIMEMultipart()
         msg["From"]    = gmail_user
-        msg["To"]      = self.recipient
+        msg["To"]      = ", ".join(self.recipients)
         msg["Subject"] = f"[CGF BRVM30 ETF] Rebalancement proposé — {rd}"
         msg.attach(MIMEText(body, "plain"))
 
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(gmail_user, gmail_pass)
-            server.sendmail(gmail_user, self.recipient, msg.as_string())
-        print(f"[OK] Email envoyé à {self.recipient}")
+            server.sendmail(gmail_user, self.recipients, msg.as_string())
+        print(f"[OK] Email envoyé à {', '.join(self.recipients)}")
 
     # ── Point d'entrée ────────────────────────────────────────────────────────── #
 
