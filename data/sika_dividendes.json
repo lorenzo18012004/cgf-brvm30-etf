@@ -1,69 +1,69 @@
 {
   "annee": 2026,
-  "scraped_at": "2026-07-17T17:57:15",
+  "scraped_at": "2026-07-24T18:10:50",
   "dividendes": [
-    {
-      "nom_sika": "BANQUE INTERNATIONALE POUR LE COMMERCE DU BENIN",
-      "ticker": null,
-      "date_detach": "2026-07-13",
-      "montant": 254.6,
-      "rendement": 4.04
-    },
-    {
-      "nom_sika": "TOTAL SENEGAL",
-      "ticker": "TOSG",
-      "date_detach": "2026-07-16",
-      "montant": 176.65,
-      "rendement": 4.42
-    },
     {
       "nom_sika": "CIE CI",
       "ticker": "CIEC",
       "date_detach": "2026-07-27",
       "montant": 234.0,
-      "rendement": 4.5
+      "rendement": 4.42
     },
     {
       "nom_sika": "SOLIBRA CI",
       "ticker": "SLBC",
       "date_detach": "2026-07-29",
       "montant": 2127.0,
-      "rendement": 5.43
+      "rendement": 5.39
     },
     {
       "nom_sika": "SOCIETE IVOIRIENNE DE BANQUE CI",
       "ticker": "SIBC",
       "date_detach": "2026-07-30",
       "montant": 425.0,
-      "rendement": 4.85
+      "rendement": 4.78
+    },
+    {
+      "nom_sika": "LOTERIE NATIONALE DU BENIN",
+      "ticker": "LNBB",
+      "date_detach": "2026-07-31",
+      "montant": 164.17,
+      "rendement": 3.81
+    },
+    {
+      "nom_sika": "NSIA BANQUE",
+      "ticker": null,
+      "date_detach": "2026-08-03",
+      "montant": 768.16,
+      "rendement": 3.28
+    },
+    {
+      "nom_sika": "SOGB",
+      "ticker": "SOGC",
+      "date_detach": "2026-08-05",
+      "montant": 570.0,
+      "rendement": 6.93
     },
     {
       "nom_sika": "SERVAIR ABIDJAN CI",
       "ticker": "SAFC",
       "date_detach": "2026-09-29",
       "montant": 124.0,
-      "rendement": 4.15
+      "rendement": 3.94
     },
     {
       "nom_sika": "SITAB",
       "ticker": "SDSC",
       "date_detach": null,
       "montant": 1707.2,
-      "rendement": 7.14
+      "rendement": 7.36
     },
     {
       "nom_sika": "CFAO CI",
       "ticker": null,
       "date_detach": null,
       "montant": 55.44,
-      "rendement": 3.47
-    },
-    {
-      "nom_sika": "NSIA BANQUE",
-      "ticker": null,
-      "date_detach": null,
-      "montant": 675.98,
-      "rendement": 2.86
+      "rendement": 3.3
     },
     {
       "nom_sika": "VIVO ENERGY CI",
@@ -77,7 +77,7 @@
       "ticker": "SMBC",
       "date_detach": null,
       "montant": 704.0,
-      "rendement": 4.63
+      "rendement": 4.4
     },
     {
       "nom_sika": "LOTERIE NATIONALE DU BENIN",
@@ -91,49 +91,49 @@
       "ticker": "TTLC",
       "date_detach": null,
       "montant": 183.92,
-      "rendement": 4.09
+      "rendement": 3.99
     },
     {
       "nom_sika": "NESTLE CI",
       "ticker": "NLCI",
       "date_detach": null,
       "montant": 369.6,
-      "rendement": 2.34
+      "rendement": 2.24
     },
     {
       "nom_sika": "SODECI",
       "ticker": "SDSC",
       "date_detach": null,
       "montant": 462.0,
-      "rendement": 4.09
+      "rendement": 3.91
     },
     {
       "nom_sika": "NEI CEDA CI",
       "ticker": "NEIC",
       "date_detach": null,
       "montant": 140.39,
-      "rendement": 6.12
+      "rendement": 6.24
     },
     {
       "nom_sika": "SGBCI",
       "ticker": "SGBC",
       "date_detach": null,
       "montant": 2293.28,
-      "rendement": 6.04
+      "rendement": 6.03
     },
     {
       "nom_sika": "TOTAL CI",
       "ticker": "TOTC",
       "date_detach": null,
       "montant": 139.77,
-      "rendement": 4.82
+      "rendement": 4.67
     },
     {
       "nom_sika": "SAPH CI",
       "ticker": "SHEC",
       "date_detach": null,
       "montant": 430.32,
-      "rendement": 5.74
+      "rendement": 5.66
     }
   ],
   "historique": {
@@ -309,7 +309,7 @@
       "2022": 234.0,
       "2023": 208.0,
       "2024": 222.0,
-      "2025": null
+      "2025": 177.0
     },
     "TTLC": {
       "2022": 224.0,
