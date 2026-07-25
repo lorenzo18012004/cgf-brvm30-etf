@@ -1,6 +1,6 @@
 {
   "etf_name": "CGF BRVM30 ETF",
-  "calc_date": "2026-07-24",
+  "calc_date": "2026-07-25",
   "calc_timestamp": "2026-06-16 09:09",
   "data_age_cal_days": 0,
   "data_age_biz_days": 0,
@@ -9,15 +9,15 @@
   "n_basket": 30,
   "launch_date": "2026-06-19",
   "launched": true,
-  "nav_indice": 274.0537,
+  "nav_indice": 274.0474,
   "par_fcfa": 100000,
-  "vl_par_part_fcfa": 112452.0,
+  "vl_par_part_fcfa": 112450.0,
   "n_parts": 50000,
-  "aum_mfcfa": 5622.6,
+  "aum_mfcfa": 5622.5,
   "perf_ytd": null,
   "perf_3m": null,
   "perf_1y": null,
-  "perf_since_launch": 12.4521,
+  "perf_since_launch": 12.4496,
   "perf_backtest_total": 140.33,
   "vol_ann_pct": 9.69,
   "max_drawdown_pct": -7.56,
@@ -3906,9 +3906,13 @@
     [
       "2026-07-24",
       112452.0
+    ],
+    [
+      "2026-07-25",
+      112450.0
     ]
   ],
-  "change_day_pct": 0.5795,
+  "change_day_pct": 0.0001,
   "source": "cloud_fallback_sika",
   "n_live_prices": 30,
   "cash_buffer_pct": 1.0
