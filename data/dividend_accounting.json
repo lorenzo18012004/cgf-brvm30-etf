@@ -1,7 +1,31 @@
 {
-  "updated_at": "2026-07-02T00:00:00",
-  "dividend_receivable_fcfa": 0.0,
-  "distribution_payable_fcfa": 0.0,
+  "updated_at": "2026-07-27T17:31:12.518850+00:00",
+  "dividend_receivable_fcfa": 4877468.0,
+  "distribution_payable_fcfa": 4877468.0,
   "poche_distribution_fcfa": 0.0,
-  "evenements": []
+  "evenements": [
+    {
+      "id": "CIEC_2026-07-27",
+      "ticker": "CIEC",
+      "nom": "CIE CI",
+      "ex_date": "2026-07-27",
+      "montant_par_action_fcfa": 234.0,
+      "nb_titres_etf": 20844.0,
+      "montant_total_fcfa": 4877468.0,
+      "montant_par_part_fcfa": 97.5494,
+      "payment_date": null,
+      "distribution_date": "2026-09-30",
+      "status": "accrued",
+      "journal": [
+        {
+          "date": "2026-07-27",
+          "type": "ACCRUAL",
+          "debit": "Dividend_Receivable",
+          "credit": "Distribution_Payable",
+          "montant_fcfa": 4877468.0,
+          "note": "Provisionnement ex-date CIEC — 234.00 FCFA/action"
+        }
+      ]
+    }
+  ]
 }
