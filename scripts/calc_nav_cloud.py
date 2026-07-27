@@ -114,10 +114,13 @@ class NavCalculatorCloud(BaseScript):
         aum = vl_new * n_parts / 1_000_000
         chg = total_ret * 100
 
-        # Append daily VL point to nav_live_series
+        # Append daily VL point to nav_live_series (jours ouvrés uniquement)
         live_series = nl.get("nav_live_series") or []
+        # Supprimer les éventuels points weekend déjà présents
+        from datetime import date as _date
+        live_series = [r for r in live_series if _date.fromisoformat(r[0]).weekday() < 5]
         existing_dates = {row[0] for row in live_series}
-        if today_str not in existing_dates:
+        if today_str not in existing_dates and now_utc.weekday() < 5:
             live_series.append([today_str, round(vl_new, 0)])
             live_series.sort(key=lambda x: x[0])
 
