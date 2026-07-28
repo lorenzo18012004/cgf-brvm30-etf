@@ -296,6 +296,7 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
     nav_gross  = 100.0
     nav_net    = 100.0
     _daily_fee = (1 - fee_ann) ** (1 / 252)
+    t3_pending = {}   # {date: turnover_fraction_en_transit} -- T+3 settlement BRVM
 
     div_reserve_gross = 0.0
     div_reserve_net   = 0.0
@@ -323,7 +324,12 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
             new_portfolio[tk] = v * (p2 / p1) if (p1 and p2 and p1 > 0) else v
         total_new = sum(new_portfolio.values())
         r_basket  = (total_new / total_prev - 1) if total_prev > 0 else 0.0
-        r_t       = (1 - CASH_BUFFER) * r_basket + CASH_BUFFER * _daily_rf
+        # T+3 settlement : pendant 3 jours après chaque rebal, la fraction vendue
+        # est en transit et gagne RF plutôt que le rendement du panier
+        _t3_frac      = min(t3_pending.pop(dt, 0.0), 1.0)
+        _r_basket_adj = ((1 - _t3_frac) * r_basket + _t3_frac * _daily_rf
+                         if _t3_frac > 0 else r_basket)
+        r_t       = (1 - CASH_BUFFER) * _r_basket_adj + CASH_BUFFER * _daily_rf
         portfolio  = new_portfolio
 
         nav_gross *= (1 + r_t)
@@ -382,11 +388,17 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
                     spread_one_way(adv_rb.get(t, compute_adv(t, rb_dates[rb_idx])))
                     for t in drifted
                 )  # spread one-way appliqué sur chaque trade (achat ET vente paient chacun)
-                total_turnover += sum(abs(target_w.get(t, 0) - curr_w_norm.get(t, 0))
-                                      for t in drifted) / 2
+                _q_to_monthly = sum(abs(target_w.get(t, 0) - curr_w_norm.get(t, 0))
+                                    for t in drifted) / 2
+                total_turnover += _q_to_monthly
 
                 nav_gross *= (1 - cost_rebal)
                 nav_net   *= (1 - cost_rebal)
+                # T+3 rebal mensuel
+                for _k in range(1, 4):
+                    if i + _k < len(all_dates):
+                        t3_pending[all_dates[i + _k]] = (
+                            t3_pending.get(all_dates[i + _k], 0.0) + _q_to_monthly)
 
                 # Ramener les titres drifted à leur cible, garder les autres
                 new_w_partial = {}
@@ -411,11 +423,17 @@ def build_nav_tr(all_dates, sh, rb_dates, wh,
                 spread_one_way(adv_rb.get(t, compute_adv(t, rb_dates[rb_idx])))
                 for t in all_tks
             )  # spread one-way appliqué sur chaque trade (achat ET vente paient chacun)
-            total_turnover += sum(abs(target_w.get(t, 0) - curr_w_norm.get(t, 0))
-                                  for t in all_tks) / 2
+            _q_to_quarterly = sum(abs(target_w.get(t, 0) - curr_w_norm.get(t, 0))
+                                   for t in all_tks) / 2
+            total_turnover += _q_to_quarterly
             nav_gross *= (1 - cost_rebal)
             nav_net   *= (1 - cost_rebal)
             portfolio   = dict(target_w)
+            # T+3 rebal trimestriel
+            for _k in range(1, 4):
+                if i + _k < len(all_dates):
+                    t3_pending[all_dates[i + _k]] = (
+                        t3_pending.get(all_dates[i + _k], 0.0) + _q_to_quarterly)
 
         gross_pts[dt] = nav_gross
         net_pts[dt]   = nav_net
