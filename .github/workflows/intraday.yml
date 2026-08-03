@@ -67,3 +67,17 @@ jobs:
           git add data/intraday_nav.json data/nav_intraday_history.json data/launch_state.json
           git diff --staged --quiet || git commit -m "iNAV cloud: snapshot $(date -u +'%Y-%m-%d %H:%M') UTC"
           git pull --rebase origin main && git push || true
+
+      - name: Reveiller les autres ETFs a 9h30
+        if: steps.check_hours.outputs.market_open == 'true' && github.event_name == 'schedule'
+        run: |
+          HOUR=$(python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).hour)")
+          if [ "$HOUR" = "9" ]; then
+            for REPO in cgf-brvmhalal-etf cgf-brvmc-etf cgf-BRVMDiv; do
+              curl -s -X POST \
+                -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/lorenzo18012004/$REPO/actions/workflows/intraday.yml/dispatches" \
+                -d '{"ref":"main"}' && echo "OK: $REPO" || echo "ERREUR: $REPO"
+            done
+          fi
