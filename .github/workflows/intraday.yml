@@ -69,10 +69,15 @@ jobs:
           git pull --rebase origin main && git push || true
 
       - name: Reveiller les autres ETFs a 9h30
-        if: steps.check_hours.outputs.market_open == 'true' && github.event_name == 'schedule'
+        if: steps.check_hours.outputs.market_open == 'true'
         run: |
-          HOUR=$(python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).hour)")
-          if [ "$HOUR" = "9" ]; then
+          SHOULD_WAKE=$(python3 -c "
+          from datetime import datetime, timezone, time as dtime
+          now = datetime.now(timezone.utc)
+          t = now.time().replace(tzinfo=None)
+          print('true' if dtime(9,30) <= t < dtime(9,50) else 'false')
+          ")
+          if [ "$SHOULD_WAKE" = "true" ]; then
             for REPO in cgf-brvmhalal-etf cgf-brvmc-etf cgf-BRVMDiv; do
               curl -s -X POST \
                 -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
