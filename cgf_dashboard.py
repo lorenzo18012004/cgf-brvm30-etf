@@ -2042,7 +2042,7 @@ def _render_backtest():
             if os.path.exists(_rp_path):
                 try:
                     _rp_live     = json.load(open(_rp_path, encoding="utf-8"))
-                    _bsk_items   = _rp_live.get("basket", [])
+                    _bsk_items   = _rp_live.get("new_basket") or _rp_live.get("basket", [])
                     _live_exclu  = sorted((_rp_live.get("excluded") or {}).keys())
                     _sc_new_live = []
                     for _s in _sc_new:
