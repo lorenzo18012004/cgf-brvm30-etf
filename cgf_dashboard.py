@@ -5478,21 +5478,21 @@ def _render_live():
                              for d in dates]
                     return float(sum(vals) / len(dates)) if dates else 0.0
 
-                # Cibles du prochain rebalancement pour calculer le delta de trade
-                _rp_liq = load_json(os.path.join(DATA_DIR, "rebal_pending.json")) or {}
-                _bsk_liq = _rp_liq.get("new_basket") or _rp_liq.get("basket", [])
-                _w_target_liq = {b["ticker"]: b.get("w_etf", 0) for b in _bsk_liq}
+                # Utiliser les ordres du dernier rebalancement — cohérent avec le calendrier d'exécution
+                _orders_liq = last_rb.get("orders", [])
                 _PART_RATE = 0.15
 
                 _liq_rows = []
-                for b in basket_now:
-                    tk       = b["ticker"]
-                    w_live   = b.get("poids_pct", 0) / 100
-                    w_target = _w_target_liq.get(tk, w_live)
-                    trade    = abs(w_live - w_target) * _aum   # montant à trader (M FCFA)
-                    adv      = _live_adv(tk)
-                    days     = round(trade / (_PART_RATE * adv) if adv > 0 else 0.0, 1)
-                    liq_r    = round(trade / adv if adv > 0 else 0.0, 2)
+                _seen_liq = set()
+                for o in sorted(_orders_liq, key=lambda x: x.get("days_exec", 0), reverse=True):
+                    tk    = o["ticker"]
+                    if tk in _seen_liq:
+                        continue
+                    _seen_liq.add(tk)
+                    adv   = _live_adv(tk)
+                    trade = float(o.get("montant_mfcfa", 0))
+                    days  = round(trade / (_PART_RATE * adv) if adv > 0 else float(o.get("days_exec_raw", o.get("days_exec", 0))), 1)
+                    liq_r = round(trade / adv if adv > 0 else 0.0, 2)
                     _liq_rows.append({
                         "ticker":      tk,
                         "adv_mfcfa":   round(adv, 1),
@@ -5530,7 +5530,7 @@ def _render_live():
                                       annotation_text="Cap 35j", annotation_font_color=NEG_COLOR)
                     _liq_h = max(440, len(df_liq_s) * 26 + 60)
                     fig_liq.update_layout(**PLOTLY_LAYOUT, height=_liq_h,
-                        title="Jours d'exécution estimés — delta rebal à 15% ADV", xaxis_title="Jours", showlegend=False)
+                        title="Jours d'exécution estimés — rebal en cours à 15% ADV", xaxis_title="Jours", showlegend=False)
                     st.plotly_chart(fig_liq, width='stretch')
                 with col_liq2:
                     st.dataframe(
@@ -5538,7 +5538,7 @@ def _render_live():
                         column_config={
                             "ticker":      st.column_config.TextColumn("Ticker", width="small"),
                             "adv_mfcfa":   st.column_config.NumberColumn("ADV (MF)", format="%.1f"),
-                            "trade_mfcfa": st.column_config.NumberColumn("Delta (MF)", format="%.1f"),
+                            "trade_mfcfa": st.column_config.NumberColumn("Montant (MF)", format="%.1f"),
                             "days_exec":   st.column_config.NumberColumn("J. exec.", format="%.1f"),
                             "liq_ratio":   st.column_config.NumberColumn("Ratio liq.", format="%.2f"),
                         },
