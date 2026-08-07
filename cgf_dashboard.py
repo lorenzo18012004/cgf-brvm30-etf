@@ -2052,11 +2052,11 @@ def _render_backtest():
                             if _it.get("force_otc"):
                                 continue
                             _w_b30 = _it.get("w_brvm30", 0)
-                            _w_etf = _it.get("w_etf", 0)
                             _adv   = _it.get("adv_mfcfa", 0)
                             _n     = 40 if _w_b30 >= 0.03 else 20
+                            # Peut-on atteindre le plein poids BRVM30 en N jours à cet AUM ?
                             _max_d = 0.15 * _adv * _n / _aum if _aum > 0 else 0
-                            if abs(_w_b30 - _w_etf) > _max_d + 1e-6:
+                            if _w_b30 > _max_d + 1e-6:
                                 _capped_live.append(_it.get("ticker", ""))
                         _sc_new_live.append(dict(_s, **{
                             "n_capped_avg": float(len(_capped_live)),
