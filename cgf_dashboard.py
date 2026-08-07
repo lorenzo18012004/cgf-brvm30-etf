@@ -2109,6 +2109,16 @@ def _render_backtest():
 
                 st.markdown("---")
 
+                # Sélecteur de scénario commun aux deux graphiques et à la heatmap
+                _heat_mode = st.radio(
+                    "Scénario de plafonnement :",
+                    ["Scale-up depuis panier actuel", "Construction from scratch"],
+                    horizontal=True, key="sc_heat_mode",
+                )
+                _use_scratch   = (_heat_mode == "Construction from scratch")
+                _cap_map_used  = _sc_scratch_map if _use_scratch else _sc_scaleup_map
+                _n_capped_live = [len(_cap_map_used.get(_a, [])) for _a in _aums]
+
                 # ── Graphiques ──────────────────────────────────────────────
                 _gc1, _gc2 = st.columns(2)
 
@@ -2143,16 +2153,17 @@ def _render_backtest():
                     st.plotly_chart(fig_te, width='stretch')
 
                 with _gc2:
+                    _n_exclu_live = [len(_live_exclu)] * len(_labels)
                     fig_cap = go.Figure()
                     fig_cap.add_trace(go.Bar(
-                        x=_labels, y=df_s["n_capped_avg"],
+                        x=_labels, y=_n_capped_live,
                         marker_color="#4a7fa5", opacity=0.85,
-                        text=[f"{v:.1f}" for v in df_s["n_capped_avg"]],
+                        text=[f"{v:.0f}" for v in _n_capped_live],
                         textposition="outside", name="Plafonnés"))
                     fig_cap.add_trace(go.Bar(
-                        x=_labels, y=df_s["n_exclu_avg"],
+                        x=_labels, y=_n_exclu_live,
                         marker_color="#c0392b", opacity=0.75,
-                        text=[f"{v:.1f}" for v in df_s["n_exclu_avg"]],
+                        text=[f"{v:.0f}" if v > 0 else "" for v in _n_exclu_live],
                         textposition="outside", name="Exclus"))
                     fig_cap.update_layout(
                         **PLOTLY_LAYOUT, height=380,
@@ -2185,14 +2196,6 @@ def _render_backtest():
                 # ── Titres goulots d'étranglement ───────────────────────────
                 st.markdown("---")
                 _section("Titres goulots — lesquels bloquent en premier")
-
-                _heat_mode = st.radio(
-                    "Scénario :",
-                    ["Scale-up depuis panier actuel", "Construction from scratch"],
-                    horizontal=True, key="sc_heat_mode",
-                )
-                _use_scratch = (_heat_mode == "Construction from scratch")
-                _cap_map_used = _sc_scratch_map if _use_scratch else _sc_scaleup_map
 
                 _all_tickers_cap = sorted(set(
                     tk for tks in _cap_map_used.values() for tk in tks
