@@ -2045,11 +2045,11 @@ def _render_backtest():
                     _bsk_items   = _rp_live.get("new_basket") or _rp_live.get("basket", [])
                     _live_exclu  = sorted((_rp_live.get("excluded") or {}).keys())
                     _sc_new_live = []
-                    _actual_aum  = _rp_live.get("aum_mfcfa", 5000)
                     _actual_caps = sorted(_rp_live.get("capped_tickers", []))
+                    _min_aum     = min((s.get("aum_mfcfa", 0) for s in _sc_new), default=5000)
                     for _s in _sc_new:
                         _aum = _s.get("aum_mfcfa", 0)
-                        if abs(_aum - _actual_aum) < 500:
+                        if _aum == _min_aum:
                             # AUM actuel : utiliser l'état opérationnel réel
                             _capped_live = _actual_caps
                         else:
