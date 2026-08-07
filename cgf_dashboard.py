@@ -3258,12 +3258,6 @@ def _render_live():
                             hovermode="x unified", showlegend=False)
                         fig_gap.update_xaxes(tickformat="%d/%m")
                         st.plotly_chart(fig_gap, width='stretch')
-                        _te_str2 = f"TE annualisée : {_te:.2f}%" if _te else ""
-                        st.caption(
-                            f"Écart actuel : {_gap_last:+.2f} pts — "
-                            + ("ETF en avance sur le BRVM30" if _gap_last >= 0 else "ETF en retard sur le BRVM30")
-                            + (f"  ·  {_te_str2}" if _te_str2 else "")
-                        )
 
             elif not launched:
                 st.info("ETF non encore lancé.")
