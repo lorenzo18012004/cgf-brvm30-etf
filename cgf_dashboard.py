@@ -3862,8 +3862,12 @@ def _render_live():
                 _last_rb_live = _rebals_live[-1] if _rebals_live else {}
                 _w_cible_live = {b["ticker"]: round(b.get("w_etf", 0) * 100, 4)
                                  for b in _last_rb_live.get("basket", [])}
-                _capped_live  = {b["ticker"]: bool(b.get("capped", False))
-                                 for b in _last_rb_live.get("basket", [])}
+                _rp_capped = load_json(os.path.join(DATA_DIR, "rebal_pending.json")) or {}
+                _bsk_pending = _rp_capped.get("new_basket") or _rp_capped.get("basket", [])
+                _capped_live = {b["ticker"]: bool(b.get("capped", False)) for b in _bsk_pending}
+                if not _capped_live:
+                    _capped_live = {b["ticker"]: bool(b.get("capped", False))
+                                    for b in _last_rb_live.get("basket", [])}
 
                 # Var. journalière via Sika — on récupère la variation officielle du jour
                 sika_data = scrape_sika_open()
