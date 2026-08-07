@@ -2037,6 +2037,25 @@ def _render_backtest():
             _sc_new = [s for s in sc if 'aum_mfcfa' in s]
             _sc_old = [s for s in sc if 'aum_mfcfa' not in s]
 
+            # Override "5 Md actuel" avec l'état live du panier (rebal_pending.json)
+            _rp_path = os.path.join(DATA_DIR, "rebal_pending.json")
+            if os.path.exists(_rp_path):
+                try:
+                    _rp_live = json.load(open(_rp_path, encoding="utf-8"))
+                    _live_capped = sorted(_rp_live.get("capped_tickers", []))
+                    _live_exclu  = sorted((_rp_live.get("excluded") or {}).keys())
+                    _sc_new = [
+                        dict(s, **{
+                            "n_capped_avg": float(len(_live_capped)),
+                            "n_exclu_avg":  float(len(_live_exclu)),
+                            "top_capped":   [{"ticker": tk, "freq": 1.0} for tk in _live_capped],
+                            "top_exclu":    [{"ticker": tk, "freq": 1.0} for tk in _live_exclu],
+                        }) if s.get("aum_mfcfa") == 5000 else s
+                        for s in _sc_new
+                    ]
+                except Exception:
+                    pass
+
             if _sc_new:
                 df_s = pd.DataFrame(_sc_new)
                 _labels = df_s['label'].tolist()
