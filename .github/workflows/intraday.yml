@@ -3,23 +3,26 @@ name: iNAV 5min (BRVM heures de marche)
 on:
   schedule:
     - cron: '30 9 * * 1-5'
-    - cron: '45 9 * * 1-5'
-    - cron: '0,15,30,45 10 * * 1-5'
-    - cron: '0,15,30,45 11 * * 1-5'
-    - cron: '0,15,30,45 12 * * 1-5'
-    - cron: '0,15,30,45 13 * * 1-5'
-    - cron: '0,15,30,45 14 * * 1-5'
-    - cron: '0,15,30 15 * * 1-5'
-  push:
-    paths:
-      - 'data/intraday_nav.json'
+    - cron: '40 9 * * 1-5'
+    - cron: '50 9 * * 1-5'
+    - cron: '0,10,20,30,40,50 10 * * 1-5'
+    - cron: '0,10,20,30,40,50 11 * * 1-5'
+    - cron: '0,10,20,30,40,50 12 * * 1-5'
+    - cron: '0,10,20,30,40,50 13 * * 1-5'
+    - cron: '0,10,20,30,40,50 14 * * 1-5'
+    - cron: '0,10,20,30 15 * * 1-5'
   workflow_dispatch:
+
+concurrency:
+  group: inav-loop
+  cancel-in-progress: false
 
 jobs:
   inav:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
 
     steps:
       - name: Checkout
@@ -31,13 +34,18 @@ jobs:
       - name: Verifier heures de marche
         id: check_hours
         run: |
-          MARKET_OPEN=$(python3 -c "
+          python3 -c "
+          import os
           from datetime import datetime, timezone, time as dtime
           now = datetime.now(timezone.utc)
           t = now.time().replace(tzinfo=None)
-          print('true' if now.weekday() < 5 and dtime(9,30) <= t <= dtime(15,30) else 'false')
-          ")
-          echo "market_open=$MARKET_OPEN" >> $GITHUB_OUTPUT
+          is_open = now.weekday() < 5 and dtime(9,30) <= t <= dtime(15,30)
+          val = 'true' if is_open else 'false'
+          print(f'market_open={val}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'market_open={val}
+')
+          "
 
       - name: Attendre 5 minutes
         if: steps.check_hours.outputs.market_open == 'true'
@@ -56,50 +64,14 @@ jobs:
         run: pip install -r requirements/requirements_cloud.txt
 
       - name: Calculer iNAV
-        id: calc_inav
         if: steps.check_hours.outputs.market_open == 'true'
-        continue-on-error: true
         run: python scripts/scrape_intraday_cloud.py
 
-      - name: Tracker les echecs iNAV
+      - name: Commit et push
         if: steps.check_hours.outputs.market_open == 'true'
-        env:
-          GMAIL_USER: ${{ secrets.GMAIL_USER }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-        run: python scripts/track_inav_failure.py "${{ steps.calc_inav.outcome }}"
-
-      - name: Commit et push (PAT pour declencher boucle)
-        if: steps.check_hours.outputs.market_open == 'true' && steps.calc_inav.outcome == 'success'
         run: |
           git config user.name "cgf-bot"
           git config user.email "bot@cgf-bourse.ci"
-          git add data/intraday_nav.json data/nav_intraday_history.json data/launch_state.json data/intraday_failure_count.json
+          git add data/intraday_nav.json data/nav_intraday_history.json data/launch_state.json
           git diff --staged --quiet || git commit -m "iNAV cloud: snapshot $(date -u +'%Y-%m-%d %H:%M') UTC"
           git pull --rebase origin main && git push || true
-
-      - name: Commit echec iNAV
-        if: steps.check_hours.outputs.market_open == 'true' && steps.calc_inav.outcome != 'success'
-        run: |
-          git config user.name "cgf-bot"
-          git config user.email "bot@cgf-bourse.ci"
-          git add data/intraday_failure_count.json
-          git diff --staged --quiet || { git pull --rebase origin main && git commit -m "iNAV: echec $(date -u +'%Y-%m-%d %H:%M') UTC" && git push || true; }
-
-      - name: Reveiller les autres ETFs a 9h30
-        if: steps.check_hours.outputs.market_open == 'true' && steps.calc_inav.outcome == 'success'
-        run: |
-          SHOULD_WAKE=$(python3 -c "
-          from datetime import datetime, timezone, time as dtime
-          now = datetime.now(timezone.utc)
-          t = now.time().replace(tzinfo=None)
-          print('true' if dtime(9,30) <= t < dtime(9,50) else 'false')
-          ")
-          if [ "$SHOULD_WAKE" = "true" ]; then
-            for REPO in cgf-brvmhalal-etf cgf-brvmc-etf cgf-BRVMDiv; do
-              curl -s -X POST \
-                -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
-                -H "Accept: application/vnd.github.v3+json" \
-                "https://api.github.com/repos/lorenzo18012004/$REPO/actions/workflows/intraday.yml/dispatches" \
-                -d '{"ref":"main"}' && echo "OK: $REPO" || echo "ERREUR: $REPO"
-            done
-          fi
