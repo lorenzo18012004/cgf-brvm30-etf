@@ -5798,10 +5798,7 @@ def _render_live():
                 fig_lv_td.update_layout(**PLOTLY_LAYOUT, height=300,
                     title="Tracking Difference cumulée (ETF − BRVM30 Price Return, base 100)",
                     yaxis_title="pts")
-                fig_lv_td.add_annotation(
-                    text="TD+ attendue en mars–sept. : l'ETF capture les dividendes, l'indice PR ne les intègre pas",
-                    xref="paper", yref="paper", x=0.01, y=0.97,
-                    showarrow=False, font=dict(size=9, color="#7d8fa3"), align="left")
+
                 st.plotly_chart(fig_lv_td, width='stretch')
 
             # Rendements journaliers
