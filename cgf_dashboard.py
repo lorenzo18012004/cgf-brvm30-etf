@@ -5526,8 +5526,10 @@ def _render_live():
                     ))
                     fig_liq.add_vline(x=1,  line_dash="dot",   line_color="#cbd5e1", annotation_text="1j")
                     fig_liq.add_vline(x=5,  line_dash="dot",   line_color=NEG_COLOR, annotation_text="5j")
-                    fig_liq.add_vline(x=35, line_dash="solid", line_color=NEG_COLOR, line_width=2,
-                                      annotation_text="Cap 35j", annotation_font_color=NEG_COLOR)
+                    fig_liq.add_vline(x=20, line_dash="dash",  line_color=NEG_COLOR, line_width=1,
+                                      annotation_text="Cap 20j", annotation_font_color=NEG_COLOR)
+                    fig_liq.add_vline(x=40, line_dash="solid", line_color=NEG_COLOR, line_width=2,
+                                      annotation_text="Cap 40j", annotation_font_color=NEG_COLOR)
                     _liq_h = max(440, len(df_liq_s) * 26 + 60)
                     fig_liq.update_layout(**PLOTLY_LAYOUT, height=_liq_h,
                         title="Jours d'exécution estimés — rebal en cours à 15% ADV", xaxis_title="Jours", showlegend=False)
