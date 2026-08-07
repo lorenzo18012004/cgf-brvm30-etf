@@ -640,13 +640,6 @@ def _github_reachable():
 
 @st.cache_data(ttl=1800)
 def load_close_history():
-    """
-    Charge l'historique des cours de clôture.
-    Base : Excel (prix split-ajustés, 2008→date derniere mise a jour).
-    Complement : Richbourse JSON pour les dates posterieures a l'Excel.
-    Exception : SAFC — données Excel corrompues, remplacées par Richbourse.
-    Retourne (DataFrame, error_msg|None).
-    """
     df_xl = pd.DataFrame()
     last_xl = pd.Timestamp("2000-01-01")
     excel_error = None
@@ -6321,23 +6314,23 @@ def _render_live():
                 _btn_lbl = (f"Marquer reçu — {_ev_btn['ticker']} "
                             f"({int(_ev_btn.get('montant_total_fcfa', 0) or 0):,} FCFA)")
                 if st.button(_btn_lbl, key=f"dsg_recv_{_ev_btn['id']}"):
-                    import subprocess as _sp_dsg
-                    _sp_dsg.run([
-                        sys.executable,
-                        os.path.join(BASE, "scripts", "check_corporate_actions.py"),
-                        "--record-payment", _ev_btn["ticker"], _ev_btn["ex_date"],
-                    ], capture_output=True)
+                    _scripts = os.path.join(BASE, "scripts")
+                    if _scripts not in sys.path:
+                        sys.path.insert(0, _scripts)
+                    from check_corporate_actions import CorporateActionsChecker as _CAC
+                    _CAC().record_payment_received(_ev_btn["ticker"], _ev_btn["ex_date"])
+                    load_json.clear()
                     st.rerun()
         if _received_dsg:
             _total_dsg = sum(e.get("montant_total_fcfa", 0) or 0 for e in _received_dsg)
             if st.button(f"Distribuer aux porteurs — {_total_dsg:,.0f} FCFA",
                          key="dsg_distribuer", type="primary"):
-                import subprocess as _sp_dist
-                _sp_dist.run([
-                    sys.executable,
-                    os.path.join(BASE, "scripts", "check_corporate_actions.py"),
-                    "--distribute",
-                ], capture_output=True)
+                _scripts = os.path.join(BASE, "scripts")
+                if _scripts not in sys.path:
+                    sys.path.insert(0, _scripts)
+                from check_corporate_actions import CorporateActionsChecker as _CAC
+                _CAC().record_distribution()
+                load_json.clear()
                 st.rerun()
 
 
