@@ -2045,19 +2045,25 @@ def _render_backtest():
                     _bsk_items   = _rp_live.get("new_basket") or _rp_live.get("basket", [])
                     _live_exclu  = sorted((_rp_live.get("excluded") or {}).keys())
                     _sc_new_live = []
+                    _actual_aum  = _rp_live.get("aum_mfcfa", 5000)
+                    _actual_caps = sorted(_rp_live.get("capped_tickers", []))
                     for _s in _sc_new:
                         _aum = _s.get("aum_mfcfa", 0)
-                        _capped_live = []
-                        for _it in _bsk_items:
-                            if _it.get("force_otc"):
-                                continue
-                            _w_b30 = _it.get("w_brvm30", 0)
-                            _adv   = _it.get("adv_mfcfa", 0)
-                            _n     = 40 if _w_b30 >= 0.03 else 20
-                            # Peut-on atteindre le plein poids BRVM30 en N jours à cet AUM ?
-                            _max_d = 0.15 * _adv * _n / _aum if _aum > 0 else 0
-                            if _w_b30 > _max_d + 1e-6:
-                                _capped_live.append(_it.get("ticker", ""))
+                        if abs(_aum - _actual_aum) < 500:
+                            # AUM actuel : utiliser l'état opérationnel réel
+                            _capped_live = _actual_caps
+                        else:
+                            # AUM hypothétique : contrainte structurelle (build from scratch)
+                            _capped_live = []
+                            for _it in _bsk_items:
+                                if _it.get("force_otc"):
+                                    continue
+                                _w_b30 = _it.get("w_brvm30", 0)
+                                _adv   = _it.get("adv_mfcfa", 0)
+                                _n     = 40 if _w_b30 >= 0.03 else 20
+                                _max_d = 0.15 * _adv * _n / _aum if _aum > 0 else 0
+                                if _w_b30 > _max_d + 1e-6:
+                                    _capped_live.append(_it.get("ticker", ""))
                         _sc_new_live.append(dict(_s, **{
                             "n_capped_avg": float(len(_capped_live)),
                             "n_exclu_avg":  float(len(_live_exclu)),
