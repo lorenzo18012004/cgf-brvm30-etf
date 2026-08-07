@@ -2037,22 +2037,34 @@ def _render_backtest():
             _sc_new = [s for s in sc if 'aum_mfcfa' in s]
             _sc_old = [s for s in sc if 'aum_mfcfa' not in s]
 
-            # Override "5 Md actuel" avec l'état live du panier (rebal_pending.json)
+            # Recomputer capping/exclusion pour chaque palier AUM avec ADV actuel (live)
             _rp_path = os.path.join(DATA_DIR, "rebal_pending.json")
             if os.path.exists(_rp_path):
                 try:
-                    _rp_live = json.load(open(_rp_path, encoding="utf-8"))
-                    _live_capped = sorted(_rp_live.get("capped_tickers", []))
+                    _rp_live     = json.load(open(_rp_path, encoding="utf-8"))
+                    _bsk_items   = _rp_live.get("basket", [])
                     _live_exclu  = sorted((_rp_live.get("excluded") or {}).keys())
-                    _sc_new = [
-                        dict(s, **{
-                            "n_capped_avg": float(len(_live_capped)),
+                    _sc_new_live = []
+                    for _s in _sc_new:
+                        _aum = _s.get("aum_mfcfa", 0)
+                        _capped_live = []
+                        for _it in _bsk_items:
+                            if _it.get("force_otc"):
+                                continue
+                            _w_b30 = _it.get("w_brvm30", 0)
+                            _w_etf = _it.get("w_etf", 0)
+                            _adv   = _it.get("adv_mfcfa", 0)
+                            _n     = 40 if _w_b30 >= 0.03 else 20
+                            _max_d = 0.15 * _adv * _n / _aum if _aum > 0 else 0
+                            if abs(_w_b30 - _w_etf) > _max_d + 1e-6:
+                                _capped_live.append(_it.get("ticker", ""))
+                        _sc_new_live.append(dict(_s, **{
+                            "n_capped_avg": float(len(_capped_live)),
                             "n_exclu_avg":  float(len(_live_exclu)),
-                            "top_capped":   [{"ticker": tk, "freq": 1.0} for tk in _live_capped],
-                            "top_exclu":    [{"ticker": tk, "freq": 1.0} for tk in _live_exclu],
-                        }) if s.get("aum_mfcfa") == 5000 else s
-                        for s in _sc_new
-                    ]
+                            "top_capped":   [{"ticker": tk, "freq": 1.0} for tk in sorted(_capped_live)],
+                            "top_exclu":    [{"ticker": tk, "freq": 1.0} for tk in sorted(_live_exclu)],
+                        }))
+                    _sc_new = _sc_new_live
                 except Exception:
                     pass
 
@@ -2127,7 +2139,7 @@ def _render_backtest():
                         textposition="outside", name="Exclus"))
                     fig_cap.update_layout(
                         **PLOTLY_LAYOUT, height=380,
-                        title="Titres plafonnés & exclus (moy. par trimestre)",
+                        title="Titres plafonnés & exclus (ADV actuel)",
                         barmode="stack", yaxis_title="Nb titres",
                         legend=dict(orientation="h", y=-0.25),
                         xaxis_tickangle=-30,
@@ -2150,7 +2162,7 @@ def _render_backtest():
                 df_tbl['n_exclu_avg']  = df_tbl['n_exclu_avg'].map(lambda v: f"{v:.1f}")
                 df_tbl['coverage_avg'] = df_tbl['coverage_avg'].map(lambda v: f"{v*100:.1f}%")
                 df_tbl.columns = ['AUM', 'TE', 'TD', 'Turnover', 'Coût tx/an',
-                                   'Titres moy.', 'Plafonnés moy.', 'Exclus moy.', 'Couverture']
+                                   'Titres moy.', 'Plafonnés (live)', 'Exclus (live)', 'Couverture']
                 st.dataframe(df_tbl, width='stretch', hide_index=True)
 
                 # ── Titres goulots d'étranglement ───────────────────────────
@@ -2175,11 +2187,11 @@ def _render_backtest():
                         zmin=0, zmax=1,
                         text=[[f"{v:.0%}" if v > 0 else "" for v in row] for row in _heatmap_data],
                         texttemplate="%{text}",
-                        colorbar=dict(title="Fréq. plaf.", tickformat=".0%"),
+                        colorbar=dict(title="Capé", tickformat=".0%"),
                     ))
                     fig_heat.update_layout(
                         **PLOTLY_LAYOUT, height=320,
-                        title="Fréquence de plafonnement par titre et par AUM",
+                        title="Titres capés par palier d'AUM (ADV actuel)",
                         xaxis_title="Ticker", yaxis_title="AUM",
                     )
                     st.plotly_chart(fig_heat, width='stretch')
