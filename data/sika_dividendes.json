@@ -1,20 +1,13 @@
 {
   "annee": 2026,
-  "scraped_at": "2026-08-21T17:19:14",
+  "scraped_at": "2026-08-29T00:47:51",
   "dividendes": [
-    {
-      "nom_sika": "SGBCI",
-      "ticker": "SGBC",
-      "date_detach": "2026-08-21",
-      "montant": 2606.0,
-      "rendement": 6.65
-    },
     {
       "nom_sika": "SAPH CI",
       "ticker": "SHEC",
       "date_detach": "2026-08-27",
       "montant": 489.0,
-      "rendement": 5.18
+      "rendement": 5.15
     },
     {
       "nom_sika": "TOTAL CI",
@@ -28,56 +21,56 @@
       "ticker": "NLCI",
       "date_detach": "2026-09-04",
       "montant": 420.0,
-      "rendement": 2.47
+      "rendement": 2.64
+    },
+    {
+      "nom_sika": "NEI CEDA CI",
+      "ticker": "NEIC",
+      "date_detach": "2026-09-09",
+      "montant": 159.54,
+      "rendement": 5.32
+    },
+    {
+      "nom_sika": "VIVO ENERGY CI",
+      "ticker": "VIVC",
+      "date_detach": "2026-09-24",
+      "montant": 96.67,
+      "rendement": 3.96
     },
     {
       "nom_sika": "SERVAIR ABIDJAN CI",
       "ticker": "SAFC",
       "date_detach": "2026-09-29",
       "montant": 229.0,
-      "rendement": 6.84
-    },
-    {
-      "nom_sika": "VIVO ENERGY CI",
-      "ticker": "VIVC",
-      "date_detach": null,
-      "montant": 85.07,
-      "rendement": 3.46
+      "rendement": 6.21
     },
     {
       "nom_sika": "SMB CI",
       "ticker": "SMBC",
       "date_detach": null,
       "montant": 704.0,
-      "rendement": 4.24
+      "rendement": 4.09
     },
     {
       "nom_sika": "LOTERIE NATIONALE DU BENIN",
       "ticker": "LNBB",
       "date_detach": null,
       "montant": 164.0,
-      "rendement": 4.0
+      "rendement": 4.1
     },
     {
       "nom_sika": "TRACTAFRIC MOTORS CI",
       "ticker": "TTLC",
       "date_detach": null,
       "montant": 183.92,
-      "rendement": 4.11
+      "rendement": 4.1
     },
     {
       "nom_sika": "SODECI",
       "ticker": "SDSC",
       "date_detach": null,
       "montant": 462.0,
-      "rendement": 3.8
-    },
-    {
-      "nom_sika": "NEI CEDA CI",
-      "ticker": "NEIC",
-      "date_detach": null,
-      "montant": 140.39,
-      "rendement": 5.85
+      "rendement": 3.55
     }
   ],
   "historique": {
