@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-08-21T16:21:25.869147+00:00",
-  "dividend_receivable_fcfa": 84855517.0,
-  "distribution_payable_fcfa": 84855517.0,
+  "updated_at": "2026-09-09T17:31:09.347555+00:00",
+  "dividend_receivable_fcfa": 85522746.0,
+  "distribution_payable_fcfa": 85522746.0,
   "poche_distribution_fcfa": 0.0,
   "evenements": [
     {
@@ -116,6 +116,29 @@
           "credit": "Distribution_Payable",
           "montant_fcfa": 27716431.0,
           "note": "Provisionnement ex-date SGBC — 2606.00 FCFA/action"
+        }
+      ]
+    },
+    {
+      "id": "NEIC_2026-09-09",
+      "ticker": "NEIC",
+      "nom": "NEI CEDA CI",
+      "ex_date": "2026-09-09",
+      "montant_par_action_fcfa": 159.54,
+      "nb_titres_etf": 4182.0,
+      "montant_total_fcfa": 667229.0,
+      "montant_par_part_fcfa": 13.3446,
+      "payment_date": null,
+      "distribution_date": "2026-09-30",
+      "status": "accrued",
+      "journal": [
+        {
+          "date": "2026-09-09",
+          "type": "ACCRUAL",
+          "debit": "Dividend_Receivable",
+          "credit": "Distribution_Payable",
+          "montant_fcfa": 667229.0,
+          "note": "Provisionnement ex-date NEIC — 159.54 FCFA/action"
         }
       ]
     }
