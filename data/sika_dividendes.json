@@ -1,62 +1,55 @@
 {
   "annee": 2026,
-  "scraped_at": "2026-09-04T19:12:44",
+  "scraped_at": "2026-09-11T19:21:26",
   "dividendes": [
-    {
-      "nom_sika": "NESTLE CI",
-      "ticker": "NLCI",
-      "date_detach": "2026-09-04",
-      "montant": 420.0,
-      "rendement": 2.49
-    },
     {
       "nom_sika": "NEI CEDA CI",
       "ticker": "NEIC",
       "date_detach": "2026-09-09",
       "montant": 159.54,
-      "rendement": 5.32
+      "rendement": 5.8
     },
     {
       "nom_sika": "SODECI",
       "ticker": "SDSC",
       "date_detach": "2026-09-15",
       "montant": 525.0,
-      "rendement": 3.89
+      "rendement": 3.92
+    },
+    {
+      "nom_sika": "SMB CI",
+      "ticker": "SMBC",
+      "date_detach": "2026-09-17",
+      "montant": 800.0,
+      "rendement": 4.37
     },
     {
       "nom_sika": "VIVO ENERGY CI",
       "ticker": "VIVC",
       "date_detach": "2026-09-24",
       "montant": 96.67,
-      "rendement": 4.03
+      "rendement": 3.79
     },
     {
       "nom_sika": "SERVAIR ABIDJAN CI",
       "ticker": "SAFC",
       "date_detach": "2026-09-29",
       "montant": 229.0,
-      "rendement": 5.87
-    },
-    {
-      "nom_sika": "SMB CI",
-      "ticker": "SMBC",
-      "date_detach": null,
-      "montant": 704.0,
-      "rendement": 4.02
+      "rendement": 5.59
     },
     {
       "nom_sika": "LOTERIE NATIONALE DU BENIN",
       "ticker": "LNBB",
       "date_detach": null,
       "montant": 164.0,
-      "rendement": 4.05
+      "rendement": 4.1
     },
     {
       "nom_sika": "TRACTAFRIC MOTORS CI",
       "ticker": "TTLC",
       "date_detach": null,
       "montant": 183.92,
-      "rendement": 4.23
+      "rendement": 4.19
     }
   ],
   "historique": {
