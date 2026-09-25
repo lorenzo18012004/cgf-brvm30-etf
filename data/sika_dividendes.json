@@ -1,27 +1,13 @@
 {
   "annee": 2026,
-  "scraped_at": "2026-09-18T19:17:29",
+  "scraped_at": "2026-09-25T20:10:59",
   "dividendes": [
-    {
-      "nom_sika": "SODECI",
-      "ticker": "SDSC",
-      "date_detach": "2026-09-15",
-      "montant": 525.0,
-      "rendement": 4.21
-    },
-    {
-      "nom_sika": "SMB CI",
-      "ticker": "SMBC",
-      "date_detach": "2026-09-17",
-      "montant": 800.0,
-      "rendement": 4.71
-    },
     {
       "nom_sika": "VIVO ENERGY CI",
       "ticker": "VIVC",
       "date_detach": "2026-09-24",
       "montant": 96.67,
-      "rendement": 3.5
+      "rendement": 3.99
     },
     {
       "nom_sika": "SERVAIR ABIDJAN CI",
@@ -35,14 +21,14 @@
       "ticker": "LNBB",
       "date_detach": null,
       "montant": 164.0,
-      "rendement": 4.02
+      "rendement": 4.12
     },
     {
       "nom_sika": "TRACTAFRIC MOTORS CI",
       "ticker": "TTLC",
       "date_detach": null,
       "montant": 183.92,
-      "rendement": 4.27
+      "rendement": 4.38
     }
   ],
   "historique": {
