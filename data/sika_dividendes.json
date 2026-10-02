@@ -1,34 +1,27 @@
 {
   "annee": 2026,
-  "scraped_at": "2026-09-25T20:10:59",
+  "scraped_at": "2026-10-02T21:05:37",
   "dividendes": [
-    {
-      "nom_sika": "VIVO ENERGY CI",
-      "ticker": "VIVC",
-      "date_detach": "2026-09-24",
-      "montant": 96.67,
-      "rendement": 3.99
-    },
     {
       "nom_sika": "SERVAIR ABIDJAN CI",
       "ticker": "SAFC",
       "date_detach": "2026-09-29",
       "montant": 229.0,
-      "rendement": 5.83
+      "rendement": 6.54
     },
     {
       "nom_sika": "LOTERIE NATIONALE DU BENIN",
       "ticker": "LNBB",
       "date_detach": null,
       "montant": 164.0,
-      "rendement": 4.12
+      "rendement": 4.29
     },
     {
       "nom_sika": "TRACTAFRIC MOTORS CI",
       "ticker": "TTLC",
       "date_detach": null,
       "montant": 183.92,
-      "rendement": 4.38
+      "rendement": 4.72
     }
   ],
   "historique": {
