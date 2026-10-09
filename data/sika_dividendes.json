@@ -1,27 +1,20 @@
 {
   "annee": 2026,
-  "scraped_at": "2026-10-02T21:05:37",
+  "scraped_at": "2026-10-09T21:23:53",
   "dividendes": [
     {
-      "nom_sika": "SERVAIR ABIDJAN CI",
-      "ticker": "SAFC",
-      "date_detach": "2026-09-29",
-      "montant": 229.0,
-      "rendement": 6.54
+      "nom_sika": "TRACTAFRIC MOTORS CI",
+      "ticker": "TTLC",
+      "date_detach": "2026-10-22",
+      "montant": 209.0,
+      "rendement": 5.04
     },
     {
       "nom_sika": "LOTERIE NATIONALE DU BENIN",
       "ticker": "LNBB",
       "date_detach": null,
       "montant": 164.0,
-      "rendement": 4.29
-    },
-    {
-      "nom_sika": "TRACTAFRIC MOTORS CI",
-      "ticker": "TTLC",
-      "date_detach": null,
-      "montant": 183.92,
-      "rendement": 4.72
+      "rendement": 4.17
     }
   ],
   "historique": {
