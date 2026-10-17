@@ -1,6 +1,6 @@
 {
   "etf_name": "CGF BRVM30 ETF",
-  "calc_date": "2026-10-16",
+  "calc_date": "2026-10-17",
   "calc_timestamp": "2026-06-16 09:09",
   "data_age_cal_days": 0,
   "data_age_biz_days": 0,
@@ -9,15 +9,15 @@
   "n_basket": 30,
   "launch_date": "2026-06-19",
   "launched": true,
-  "nav_indice": 303.4079,
+  "nav_indice": 303.3997,
   "par_fcfa": 100000,
-  "vl_par_part_fcfa": 124497.0,
+  "vl_par_part_fcfa": 124494.0,
   "n_parts": 50000,
-  "aum_mfcfa": 6224.9,
+  "aum_mfcfa": 6224.7,
   "perf_ytd": null,
   "perf_3m": null,
   "perf_1y": null,
-  "perf_since_launch": 24.497,
+  "perf_since_launch": 24.4937,
   "perf_backtest_total": 130.53,
   "vol_ann_pct": 8.18,
   "max_drawdown_pct": -6.69,
@@ -25,7 +25,7 @@
   "basket": [
     {
       "ticker": "SNTS",
-      "poids_pct": 24.9279,
+      "poids_pct": 24.928,
       "pv_mfcfa": 1035.8,
       "dernier_prix": 43500.0,
       "prix_stale": false,
@@ -35,7 +35,7 @@
     },
     {
       "ticker": "ORAC",
-      "poids_pct": 17.0923,
+      "poids_pct": 17.0924,
       "pv_mfcfa": 889.4,
       "dernier_prix": 20600.0,
       "prix_stale": false,
@@ -5412,7 +5412,7 @@
       124497.0
     ]
   ],
-  "change_day_pct": -1.1164,
+  "change_day_pct": -0.0003,
   "source": "cloud_fallback_sika",
   "n_live_prices": 30,
   "cash_buffer_pct": 1.0
