@@ -1,20 +1,20 @@
 {
   "annee": 2026,
-  "scraped_at": "2026-10-16T19:45:29",
+  "scraped_at": "2026-10-23T20:09:11",
   "dividendes": [
     {
       "nom_sika": "TRACTAFRIC MOTORS CI",
       "ticker": "TTLC",
       "date_detach": "2026-10-22",
       "montant": 209.0,
-      "rendement": 4.87
+      "rendement": 5.5
     },
     {
       "nom_sika": "AFRICA GLOBAL LOGISTICS",
       "ticker": "ABJC",
       "date_detach": "2026-10-26",
       "montant": 92.0,
-      "rendement": 3.21
+      "rendement": 3.07
     },
     {
       "nom_sika": "LOTERIE NATIONALE DU BENIN",
