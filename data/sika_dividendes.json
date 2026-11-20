@@ -1,13 +1,13 @@
 {
   "annee": 2026,
-  "scraped_at": "2026-11-13T22:17:33",
+  "scraped_at": "2026-11-20T22:52:00",
   "dividendes": [
     {
       "nom_sika": "LOTERIE NATIONALE DU BENIN",
       "ticker": "LNBB",
       "date_detach": null,
       "montant": 164.0,
-      "rendement": 4.32
+      "rendement": 4.21
     }
   ],
   "historique": {
